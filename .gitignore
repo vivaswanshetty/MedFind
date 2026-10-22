@@ -1,0 +1,34 @@
+# Node dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Expo / React Native
+.expo/
+dist/
+web-build/
+
+# Native build folders
+android/
+ios/
+
+# Environment and secrets (CRITICAL: Never commit credentials)
+.env
+.env*.local
+.env.production
+.env.staging
+
+# macOS system files
+.DS_Store
+*.swp
+*.swo
+
+# IDE settings
+.idea/
+.vscode/
+*.sublime-project
+*.sublime-workspace
+
+# Supabase local temp
+supabase/.temp/
