@@ -7,6 +7,8 @@ export type StockState = 'available' | 'low_stock' | 'unavailable' | 'unknown';
 
 export type FreshnessState = 'recent' | 'aging' | 'stale' | 'unknown';
 
+export type DataSourceType = 'database' | 'demo';
+
 export type ProviderType = 'hospital' | 'clinic' | 'ambulance';
 
 export type UserRole = 'public' | 'pharmacy_staff' | 'admin';

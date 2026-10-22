@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -6,18 +6,16 @@ import {
   TouchableOpacity,
   ScrollView,
   StyleSheet,
+  ActivityIndicator,
 } from 'react-native';
 import { useTheme } from '../theme/ThemeContext';
 import { layout, typography, statusLabels } from '../theme/tokens';
-import { calculateFreshness } from '../utils/freshness';
 import {
-  demoMedicines,
-  demoPharmacies,
-  demoStockSnapshots,
-  demoProviderListings,
-  DEMO_DATA_DISCLAIMER,
-} from '../data/demoData';
-import { Medicine, StockState } from '../types/models';
+  searchMedicineStock,
+  MedicineSearchResultItem,
+  DataSource,
+} from '../services/medicineSearch';
+import { demoProviderListings, DEMO_DATA_DISCLAIMER } from '../data/demoData';
 
 export default function HomeScreen() {
   const { mode, theme, toggleTheme } = useTheme();
@@ -26,62 +24,51 @@ export default function HomeScreen() {
   const [selectedDosageForm, setSelectedDosageForm] = useState<string>('All');
   const [showEmergencyDetails, setShowEmergencyDetails] = useState(false);
 
+  // Search state
+  const [isLoading, setIsLoading] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(null);
+  const [searchResults, setSearchResults] = useState<MedicineSearchResultItem[]>([]);
+  const [dataSource, setDataSource] = useState<DataSource>('demo');
+  const [totalPublishedInDb, setTotalPublishedInDb] = useState<number>(0);
+
   // Available dosage form filters
   const dosageForms = ['All', 'Tablet', 'Capsule', 'Inhaler', 'Powder'];
 
-  // Filter medicines based on query and dosage form
-  const filteredMedicines = useMemo(() => {
-    return demoMedicines.filter((med) => {
-      const query = searchQuery.trim().toLowerCase();
-      const matchesQuery =
-        query === '' ||
-        med.generic_name.toLowerCase().includes(query) ||
-        med.brand_name.toLowerCase().includes(query) ||
-        med.searchable_aliases.some((alias) => alias.toLowerCase().includes(query));
+  // Query data layer whenever search input or filter changes (with debounce)
+  useEffect(() => {
+    let isCancelled = false;
+    setIsLoading(true);
+    setSearchError(null);
 
-      const matchesDosage =
-        selectedDosageForm === 'All' ||
-        med.dosage_form?.toLowerCase() === selectedDosageForm.toLowerCase();
-
-      return matchesQuery && matchesDosage;
-    });
-  }, [searchQuery, selectedDosageForm]);
-
-  // Aggregate stock snapshot results for filtered medicines
-  const searchResults = useMemo(() => {
-    const results: Array<{
-      medicine: Medicine;
-      pharmacyName: string;
-      pharmacyAddress: string;
-      pharmacyPhone: string;
-      state: StockState;
-      updatedAt: string;
-      freshness: ReturnType<typeof calculateFreshness>;
-    }> = [];
-
-    filteredMedicines.forEach((med) => {
-      // Find snapshots for this medicine
-      const snapshots = demoStockSnapshots.filter((s) => s.medicine_id === med.id);
-
-      snapshots.forEach((snap) => {
-        const pharmacy = demoPharmacies.find((p) => p.id === snap.pharmacy_id);
-        if (pharmacy) {
-          const freshness = calculateFreshness(snap.updated_at);
-          results.push({
-            medicine: med,
-            pharmacyName: pharmacy.name,
-            pharmacyAddress: pharmacy.address,
-            pharmacyPhone: pharmacy.phone,
-            state: snap.state,
-            updatedAt: snap.updated_at,
-            freshness,
-          });
+    const timer = setTimeout(async () => {
+      try {
+        const response = await searchMedicineStock(searchQuery, selectedDosageForm);
+        if (!isCancelled) {
+          setSearchResults(response.results);
+          setDataSource(response.dataSource);
+          setTotalPublishedInDb(response.totalPublishedInDb);
+          if (response.errorMessage) {
+            setSearchError(response.errorMessage);
+          }
         }
-      });
-    });
+      } catch (err: unknown) {
+        if (!isCancelled) {
+          const msg = err instanceof Error ? err.message : String(err);
+          setSearchError(`Search error: ${msg}. Displaying simulated demo baseline.`);
+          setDataSource('demo');
+        }
+      } finally {
+        if (!isCancelled) {
+          setIsLoading(false);
+        }
+      }
+    }, 250); // 250ms debounce
 
-    return results;
-  }, [filteredMedicines]);
+    return () => {
+      isCancelled = true;
+      clearTimeout(timer);
+    };
+  }, [searchQuery, selectedDosageForm]);
 
   return (
     <ScrollView
@@ -94,6 +81,9 @@ export default function HomeScreen() {
           styles.disclaimerBanner,
           { backgroundColor: theme.surfaceElevated, borderColor: theme.border },
         ]}
+        accessible={true}
+        accessibilityRole="summary"
+        accessibilityLabel="Academic baseline notice: All data simulated for BMSCE project demonstration"
       >
         <Text style={[styles.disclaimerTag, { color: theme.textMuted }]}>
           [BMSCE CSE SEMESTER 5 MINI PROJECT — DEMO BASELINE]
@@ -117,6 +107,7 @@ export default function HomeScreen() {
         <TouchableOpacity
           onPress={toggleTheme}
           accessible={true}
+          accessibilityRole="button"
           accessibilityLabel={`Toggle theme mode. Current mode is ${mode}`}
           style={[
             styles.themeButton,
@@ -138,6 +129,8 @@ export default function HomeScreen() {
             borderColor: theme.emergencyBorder,
           },
         ]}
+        accessible={true}
+        accessibilityLabel="Emergency Help and Directory section"
       >
         <View style={styles.emergencyHeaderRow}>
           <Text style={[styles.emergencyBadge, { color: theme.emergencyText }]}>
@@ -146,7 +139,12 @@ export default function HomeScreen() {
           <TouchableOpacity
             onPress={() => setShowEmergencyDetails((prev) => !prev)}
             style={styles.emergencyToggleButton}
-            accessibilityLabel="Toggle emergency contact directory information"
+            accessibilityRole="button"
+            accessibilityLabel={
+              showEmergencyDetails
+                ? 'Collapse emergency directory listings'
+                : 'Expand emergency directory listings'
+            }
           >
             <Text style={[styles.emergencyToggleText, { color: theme.emergencyText }]}>
               {showEmergencyDetails ? 'Hide Directory ▲' : 'View Contacts ▼'}
@@ -168,6 +166,8 @@ export default function HomeScreen() {
                   styles.directoryItem,
                   { backgroundColor: theme.surface, borderColor: theme.border },
                 ]}
+                accessible={true}
+                accessibilityLabel={`${prov.type} directory listing: ${prov.name}`}
               >
                 <Text style={[styles.directoryTypeBadge, { color: theme.primaryAccent }]}>
                   {prov.type.toUpperCase()} DIRECTORY RECORD
@@ -196,6 +196,9 @@ export default function HomeScreen() {
           styles.safetyNotice,
           { backgroundColor: theme.surface, borderColor: theme.border },
         ]}
+        accessible={true}
+        accessibilityRole="alert"
+        accessibilityLabel="Clinical safety notice: MedFind does not provide medical diagnoses, dosage calculations, or automatic medicine substitutions."
       >
         <Text style={[styles.safetyNoticeText, { color: theme.textSecondary }]}>
           ℹ️ <Text style={{ fontWeight: '700' }}>Clinical Safety Notice:</Text> MedFind does
@@ -227,6 +230,7 @@ export default function HomeScreen() {
           autoCorrect={false}
           accessible={true}
           accessibilityLabel="Search medicine input field"
+          accessibilityHint="Enter a brand or generic medicine name to search participating pharmacy records"
         />
 
         {/* Dosage Form Filter Chips */}
@@ -250,6 +254,8 @@ export default function HomeScreen() {
                   },
                 ]}
                 accessible={true}
+                accessibilityRole="button"
+                accessibilityState={{ selected: isSelected }}
                 accessibilityLabel={`Filter by dosage form: ${form}`}
               >
                 <Text
@@ -269,39 +275,117 @@ export default function HomeScreen() {
         </ScrollView>
       </View>
 
-      {/* 6. SEARCH RESULTS & PARTICIPATING PHARMACY STOCK CARDS */}
+      {/* 6. DATA SOURCE STATUS BANNER (Unblended) */}
+      <View
+        style={[
+          styles.dataSourceBanner,
+          {
+            backgroundColor:
+              dataSource === 'database' ? theme.badgeBackground : theme.surfaceElevated,
+            borderColor:
+              dataSource === 'database' ? theme.primaryAccent : theme.border,
+          },
+        ]}
+        accessible={true}
+        accessibilityLabel={
+          dataSource === 'database'
+            ? 'Connected to live database records'
+            : 'Using simulated demo data mode'
+        }
+      >
+        <Text
+          style={[
+            styles.dataSourceTag,
+            {
+              color:
+                dataSource === 'database' ? theme.primaryAccent : theme.textSecondary,
+            },
+          ]}
+        >
+          {dataSource === 'database'
+            ? '● VERIFIED DATABASE RECORDS (SUPABASE)'
+            : '○ DEMO DATA MODE (SIMULATED BASELINE)'}
+        </Text>
+        <Text style={[styles.dataSourceNotice, { color: theme.textSecondary }]}>
+          {dataSource === 'database'
+            ? `Displaying verified stock snapshots from Supabase (${totalPublishedInDb} total published in database).`
+            : 'Supabase currently has no published stock snapshot records. Displaying simulated demo fixtures.'}
+        </Text>
+      </View>
+
+      {/* Optional Search Error Warning */}
+      {searchError && (
+        <View
+          style={[
+            styles.errorBanner,
+            { backgroundColor: '#FFF7ED', borderColor: theme.warningAccent },
+          ]}
+          accessible={true}
+          accessibilityRole="alert"
+        >
+          <Text style={[styles.errorText, { color: theme.textPrimary }]}>
+            ⚠️ {searchError}
+          </Text>
+        </View>
+      )}
+
+      {/* 7. SEARCH RESULTS & PARTICIPATING PHARMACY STOCK CARDS */}
       <View style={styles.resultsSection}>
         <View style={styles.resultsHeaderRow}>
           <Text style={[styles.resultsCount, { color: theme.textSecondary }]}>
-            Showing {searchResults.length} snapshot result(s)
+            {isLoading
+              ? 'Searching...'
+              : `Showing ${searchResults.length} snapshot result(s)`}
           </Text>
           <Text style={[styles.resultsBoundaryTag, { color: theme.textMuted }]}>
             Coverage: Participating Stores Only
           </Text>
         </View>
 
-        {searchResults.length === 0 ? (
+        {/* Loading Indicator */}
+        {isLoading && (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="small" color={theme.primaryAccent} />
+            <Text style={[styles.loadingText, { color: theme.textSecondary }]}>
+              Querying participating pharmacy inventory records...
+            </Text>
+          </View>
+        )}
+
+        {/* Empty State */}
+        {!isLoading && searchResults.length === 0 && (
           <View
             style={[
               styles.emptyStateCard,
               { backgroundColor: theme.surface, borderColor: theme.border },
             ]}
+            accessible={true}
+            accessibilityRole="text"
+            accessibilityLabel="No matching stock records found"
           >
             <Text style={[styles.emptyStateTitle, { color: theme.textPrimary }]}>
               No Participating Stock Records Found
             </Text>
             <Text style={[styles.emptyStateText, { color: theme.textSecondary }]}>
-              No participating store has published availability for &quot;{searchQuery}&quot; under the
-              selected filter. Please verify spelling or contact local pharmacies directly.
+              {searchQuery.trim()
+                ? `No participating pharmacy has published stock for "${searchQuery}" under the selected filter. Try another medicine name or filter.`
+                : 'No published stock records match your filter criteria.'}
             </Text>
           </View>
-        ) : (
-          searchResults.map((item, index) => {
-            const stockDescriptor = statusLabels.stock[item.state] || statusLabels.stock.unknown;
+        )}
+
+        {/* Results List */}
+        {!isLoading &&
+          searchResults.map((item) => {
+            const isDemo = item.isDemo || dataSource === 'demo';
+            const stockMap = isDemo
+              ? statusLabels.stock.demo
+              : statusLabels.stock.database;
+            const stockDescriptor = stockMap[item.state] || stockMap.unknown;
 
             return (
               <View
-                key={`${item.medicine.id}-${item.pharmacyName}-${index}`}
+                key={item.id}
                 style={[
                   styles.resultCard,
                   {
@@ -312,15 +396,20 @@ export default function HomeScreen() {
                         : theme.border,
                   },
                 ]}
+                accessible={true}
+                accessibilityRole="summary"
+                accessibilityLabel={`${item.brandName}, ${item.genericName}, ${stockDescriptor.accessibilityLabel}. ${item.freshness.accessibilityLabel}`}
               >
                 {/* Medicine Descriptor */}
                 <View style={styles.cardHeader}>
                   <View style={styles.medTitleGroup}>
                     <Text style={[styles.medBrandName, { color: theme.textPrimary }]}>
-                      {item.medicine.brand_name}
+                      {item.brandName}
                     </Text>
                     <Text style={[styles.medGenericName, { color: theme.textSecondary }]}>
-                      {item.medicine.generic_name} • {item.medicine.strength} ({item.medicine.dosage_form})
+                      {item.genericName}
+                      {item.strength ? ` • ${item.strength}` : ''}
+                      {item.dosageForm ? ` (${item.dosageForm})` : ''}
                     </Text>
                   </View>
 
@@ -391,11 +480,14 @@ export default function HomeScreen() {
                     {item.freshness.guidanceText}
                   </Text>
                   <Text style={[styles.timestampExact, { color: theme.textMuted }]}>
-                    Snapshot recorded: {item.updatedAt ? item.updatedAt.replace('T', ' ').slice(0, 19) + ' UTC' : 'None'}
+                    {isDemo ? '[Simulated Timestamp] ' : 'Recorded at: '}
+                    {item.updatedAt
+                      ? item.updatedAt.replace('T', ' ').slice(0, 19) + ' UTC'
+                      : 'None'}
                   </Text>
                 </View>
 
-                {/* Pharmacy Information */}
+                {/* Pharmacy Information (Non-actionable phone) */}
                 <View style={styles.pharmacyDetails}>
                   <Text style={[styles.pharmacyName, { color: theme.textPrimary }]}>
                     📍 {item.pharmacyName}
@@ -404,12 +496,12 @@ export default function HomeScreen() {
                     {item.pharmacyAddress}
                   </Text>
                   <Text style={[styles.pharmacyPhoneText, { color: theme.textSecondary }]}>
-                    Contact: {item.pharmacyPhone}
+                    Phone: {item.pharmacyPhone}
                   </Text>
                 </View>
 
                 {/* Call-First Recommendation when data is aging or stale */}
-                {item.freshness.requiresCallFirst && (
+                {item.freshness.requiresCallFirst && !isDemo && (
                   <View
                     style={[
                       styles.callFirstNotice,
@@ -426,8 +518,7 @@ export default function HomeScreen() {
                 )}
               </View>
             );
-          })
-        )}
+          })}
       </View>
     </ScrollView>
   );
@@ -588,6 +679,31 @@ const styles = StyleSheet.create({
   filterChipText: {
     fontSize: typography.fontSize.xs,
   },
+  dataSourceBanner: {
+    borderWidth: 1,
+    borderRadius: layout.borderRadius.sm,
+    padding: layout.spacing.sm,
+    marginBottom: layout.spacing.md,
+  },
+  dataSourceTag: {
+    fontSize: typography.fontSize.xs,
+    fontWeight: '700',
+    marginBottom: 2,
+  },
+  dataSourceNotice: {
+    fontSize: typography.fontSize.xs,
+    lineHeight: 16,
+  },
+  errorBanner: {
+    borderWidth: 1,
+    borderRadius: layout.borderRadius.sm,
+    padding: layout.spacing.sm,
+    marginBottom: layout.spacing.md,
+  },
+  errorText: {
+    fontSize: typography.fontSize.xs,
+    lineHeight: 16,
+  },
   resultsSection: {
     gap: layout.spacing.md,
   },
@@ -602,6 +718,16 @@ const styles = StyleSheet.create({
   },
   resultsBoundaryTag: {
     fontSize: typography.fontSize.xs,
+  },
+  loadingContainer: {
+    padding: layout.spacing.lg,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: layout.spacing.sm,
+  },
+  loadingText: {
+    fontSize: typography.fontSize.sm,
   },
   emptyStateCard: {
     borderWidth: 1,

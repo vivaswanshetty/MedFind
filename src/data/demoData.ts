@@ -70,7 +70,7 @@ export const demoPharmacies: Pharmacy[] = [
     address: '101 Simulation Boulevard, Demo Block A, Bengaluru [Fictional Location]',
     latitude: 0.0000,
     longitude: 0.0000,
-    phone: '080-0000-0001 [Demo - No Call Action]',
+    phone: '080-0000-0001 (Simulated Demo — Inactive Number)',
     participation_status: 'participating',
     verified_at: '2026-10-22T08:30:00.000Z',
     opening_hours: '08:00 - 22:00 (Simulated)',
@@ -82,7 +82,7 @@ export const demoPharmacies: Pharmacy[] = [
     address: '202 Mock Avenue, Demo Block B, Bengaluru [Fictional Location]',
     latitude: 0.0000,
     longitude: 0.0000,
-    phone: '080-0000-0002 [Demo - No Call Action]',
+    phone: '080-0000-0002 (Simulated Demo — Inactive Number)',
     participation_status: 'participating',
     verified_at: '2026-10-22T07:15:00.000Z',
     opening_hours: '24 Hours (Simulated)',
@@ -94,7 +94,7 @@ export const demoPharmacies: Pharmacy[] = [
     address: '303 Synthetic Road, Demo Block C, Bengaluru [Fictional Location]',
     latitude: 0.0000,
     longitude: 0.0000,
-    phone: '080-0000-0003 [Demo - No Call Action]',
+    phone: '080-0000-0003 (Simulated Demo — Inactive Number)',
     participation_status: 'participating',
     verified_at: '2026-10-22T06:00:00.000Z',
     opening_hours: '09:00 - 21:00 (Simulated)',
@@ -115,7 +115,7 @@ export const demoStockSnapshots: StockSnapshot[] = [
     state: 'available',
     updated_at: getOffsetIso(12), // <= 30 min -> RECENT
     updated_by: 'staff-demo-alpha',
-    note: 'Simulated morning verification snapshot',
+    note: 'Simulated test fixture record (12m offset)',
     is_demo: true,
   },
   // Pharmacy Beta: Aging update (45 minutes ago)
@@ -126,7 +126,7 @@ export const demoStockSnapshots: StockSnapshot[] = [
     state: 'low_stock',
     updated_at: getOffsetIso(45), // 30m - 2h -> AGING
     updated_by: 'staff-demo-beta',
-    note: 'Simulated limited stock report',
+    note: 'Simulated test fixture record (45m offset)',
     is_demo: true,
   },
   // Pharmacy Gamma: Stale update (180 minutes / 3 hours ago)
@@ -137,7 +137,7 @@ export const demoStockSnapshots: StockSnapshot[] = [
     state: 'available',
     updated_at: getOffsetIso(180), // > 2h -> STALE
     updated_by: 'staff-demo-gamma',
-    note: 'Simulated unrefreshed snapshot',
+    note: 'Simulated test fixture record (180m offset)',
     is_demo: true,
   },
   // Pharmacy Alpha: Salbutamol Inhaler (Recent update)
@@ -148,10 +148,10 @@ export const demoStockSnapshots: StockSnapshot[] = [
     state: 'available',
     updated_at: getOffsetIso(20),
     updated_by: 'staff-demo-alpha',
-    note: 'Simulated inhaler stock report',
+    note: 'Simulated test fixture record (20m offset)',
     is_demo: true,
   },
-  // Pharmacy Beta: Amoxicillin (Unavailable - Out of stock)
+  // Pharmacy Beta: Amoxicillin (Unavailable)
   {
     id: 'snap-demo-005',
     pharmacy_id: 'pharm-demo-002',
@@ -159,7 +159,7 @@ export const demoStockSnapshots: StockSnapshot[] = [
     state: 'unavailable',
     updated_at: getOffsetIso(15),
     updated_by: 'staff-demo-beta',
-    note: 'Simulated out of stock snapshot',
+    note: 'Simulated test fixture record (unavailable)',
     is_demo: true,
   },
   // Cetirizine at Pharmacy Gamma: Unknown timestamp edge case
@@ -170,7 +170,7 @@ export const demoStockSnapshots: StockSnapshot[] = [
     state: 'unknown',
     updated_at: '', // Missing timestamp -> UNKNOWN
     updated_by: 'system-demo-unverified',
-    note: 'Missing snapshot timestamp placeholder',
+    note: 'Simulated test fixture record (unverified timestamp)',
     is_demo: true,
   },
 ];

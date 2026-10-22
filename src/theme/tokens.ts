@@ -136,50 +136,74 @@ export const layout = {
  */
 export const statusLabels = {
   stock: {
-    available: {
-      text: 'Available',
-      symbol: '[In Stock]',
-      accessibilityLabel: 'Available in stock',
+    database: {
+      available: {
+        text: 'Reported Available',
+        symbol: '[Available]',
+        accessibilityLabel: 'Pharmacy snapshot reports medicine is available',
+      },
+      low_stock: {
+        text: 'Reported Low Stock',
+        symbol: '[Low Stock]',
+        accessibilityLabel: 'Pharmacy snapshot reports limited quantity — call first',
+      },
+      unavailable: {
+        text: 'Reported Unavailable',
+        symbol: '[Unavailable]',
+        accessibilityLabel: 'Pharmacy snapshot reports medicine is currently unavailable',
+      },
+      unknown: {
+        text: 'Stock Unknown',
+        symbol: '[Unknown]',
+        accessibilityLabel: 'No valid snapshot available — call store to verify',
+      },
     },
-    low_stock: {
-      text: 'Low Stock',
-      symbol: '[Limited]',
-      accessibilityLabel: 'Low stock available — call first',
-    },
-    unavailable: {
-      text: 'Unavailable',
-      symbol: '[Out of Stock]',
-      accessibilityLabel: 'Currently unavailable at this store',
-    },
-    unknown: {
-      text: 'Unknown',
-      symbol: '[Unverified]',
-      accessibilityLabel: 'Stock state unknown — verification required',
+    demo: {
+      available: {
+        text: 'Simulated Available',
+        symbol: '[Simulated: Available]',
+        accessibilityLabel: 'Simulated available status for testing only',
+      },
+      low_stock: {
+        text: 'Simulated Low Stock',
+        symbol: '[Simulated: Low Stock]',
+        accessibilityLabel: 'Simulated low stock status for testing only',
+      },
+      unavailable: {
+        text: 'Simulated Unavailable',
+        symbol: '[Simulated: Unavailable]',
+        accessibilityLabel: 'Simulated unavailable status for testing only',
+      },
+      unknown: {
+        text: 'Simulated Unknown',
+        symbol: '[Simulated: Unknown]',
+        accessibilityLabel: 'Simulated unknown status for testing only',
+      },
     },
   },
   freshness: {
     recent: {
-      label: 'Verified Recently',
+      label: 'Recent Update',
       badgeText: 'Recent (≤ 30 min)',
-      guidance: 'Recently confirmed by store',
+      guidance: 'Updated within 30 min — call pharmacy before travel to confirm',
       accessibilityLabel: 'Stock updated within the last 30 minutes',
     },
     aging: {
       label: 'Update Aging',
       badgeText: 'Aging (30m - 2h) — Call first',
-      guidance: 'Call store to confirm before visiting',
+      guidance: 'Update is 30 minutes to 2 hours old — call store first',
       accessibilityLabel: 'Update is 30 minutes to 2 hours old. Call store first.',
     },
     stale: {
       label: 'Update Stale',
       badgeText: 'Stale (> 2h) — Call first',
-      guidance: 'Likely out of date; call store before travel',
+      guidance: 'Update is over 2 hours old — must call store to confirm',
       accessibilityLabel: 'Update is more than 2 hours old. Must call store to confirm.',
     },
     unknown: {
       label: 'Timestamp Unverified',
       badgeText: 'Unknown Timestamp — Call first',
-      guidance: 'No valid timestamp available',
+      guidance: 'No valid timestamp available — call store to check stock',
       accessibilityLabel: 'No valid timestamp. Always call store first.',
     },
   },

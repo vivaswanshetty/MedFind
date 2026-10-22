@@ -7,9 +7,12 @@
  * - Stale:   Update over 2 hours (> 120 min)
  * - Unknown: No valid snapshot or unparseable timestamp.
  * 
- * Clinical & Truthfulness Invariant:
- * Missing data strictly maps to 'unknown', NEVER to 'available' or 'recent'.
- * Timestamps must remain visible in all UI results.
+ * Safety & Accuracy Invariants:
+ * - Never claims stock is "live", "guaranteed", or "in stock".
+ * - Never uses phrases like "Recently confirmed by store" that imply real inventory.
+ * - Missing data strictly maps to 'unknown', NEVER to 'available' or 'recent'.
+ * - Explicitly marks demo records as simulated recency markers.
+ * - Timestamps remain visible in all UI results.
  */
 
 export type FreshnessState = 'recent' | 'aging' | 'stale' | 'unknown';
@@ -19,51 +22,35 @@ export interface FreshnessCalculation {
   stateLabel: string;
   badgeLabel: string;
   guidanceText: string;
+  accessibilityLabel: string;
   relativeTimeText: string;
   rawTimestamp: string | null;
   ageMinutes: number | null;
   requiresCallFirst: boolean;
+  isSimulated: boolean;
 }
 
 const THIRTY_MINUTES_MS = 30 * 60 * 1000;
 const TWO_HOURS_MS = 120 * 60 * 1000;
 
-export const freshnessLabels = {
-  recent: {
-    label: 'Verified Recently',
-    guidance: 'Recently confirmed by store',
-  },
-  aging: {
-    label: 'Update Aging',
-    guidance: 'Call store to confirm before visiting',
-  },
-  stale: {
-    label: 'Update Stale',
-    guidance: 'Likely out of date; call store before travel',
-  },
-  unknown: {
-    label: 'Timestamp Unverified',
-    guidance: 'No valid timestamp available',
-  },
-};
-
 /**
- * Calculates the freshness state given an ISO timestamp string and optional current reference time.
+ * Calculates the freshness state given an ISO timestamp string, reference time, and optional demo flag.
  * Pure function with zero external side effects.
  */
 export function calculateFreshness(
   timestampIso: string | null | undefined,
-  referenceNow: Date = new Date()
+  referenceNow: Date = new Date(),
+  isDemo: boolean = false
 ): FreshnessCalculation {
   if (!timestampIso || typeof timestampIso !== 'string' || timestampIso.trim() === '') {
-    return createUnknownResult(null, 'No timestamp provided');
+    return createUnknownResult(null, 'No timestamp provided', isDemo);
   }
 
   const parsedDate = new Date(timestampIso);
   const parsedTime = parsedDate.getTime();
 
   if (Number.isNaN(parsedTime)) {
-    return createUnknownResult(timestampIso, 'Invalid timestamp format');
+    return createUnknownResult(timestampIso, 'Invalid timestamp format', isDemo);
   }
 
   const nowTime = referenceNow.getTime();
@@ -73,8 +60,7 @@ export function calculateFreshness(
   const safeDiffMs = diffMs < 0 && Math.abs(diffMs) <= 2 * 60 * 1000 ? 0 : diffMs;
 
   if (safeDiffMs < 0) {
-    // Timestamp is significantly in the future, which is anomalous
-    return createUnknownResult(timestampIso, 'Timestamp is in the future');
+    return createUnknownResult(timestampIso, 'Timestamp is in the future', isDemo);
   }
 
   const ageMinutes = Math.floor(safeDiffMs / (60 * 1000));
@@ -83,38 +69,56 @@ export function calculateFreshness(
   if (safeDiffMs <= THIRTY_MINUTES_MS) {
     return {
       state: 'recent',
-      stateLabel: freshnessLabels.recent.label,
-      badgeLabel: `Recent (${relativeTimeText})`,
-      guidanceText: freshnessLabels.recent.guidance,
+      stateLabel: isDemo ? 'Simulated Recent' : 'Recent Update',
+      badgeLabel: isDemo ? `Simulated: Recent (≤ 30m window)` : `Recent (${relativeTimeText})`,
+      guidanceText: isDemo
+        ? 'Simulated recency marker for testing — not real inventory.'
+        : 'Updated within 30 min — call pharmacy before travel to confirm.',
+      accessibilityLabel: isDemo
+        ? 'Simulated recent update marker for testing only'
+        : `Stock updated ${relativeTimeText}. Call pharmacy before traveling.`,
       relativeTimeText,
       rawTimestamp: timestampIso,
       ageMinutes,
       requiresCallFirst: false,
+      isSimulated: isDemo,
     };
   }
 
   if (safeDiffMs <= TWO_HOURS_MS) {
     return {
       state: 'aging',
-      stateLabel: freshnessLabels.aging.label,
-      badgeLabel: `Aging (${relativeTimeText}) — Call first`,
-      guidanceText: freshnessLabels.aging.guidance,
+      stateLabel: isDemo ? 'Simulated Aging' : 'Aging Update',
+      badgeLabel: isDemo ? `Simulated: Aging (30m - 2h)` : `Aging (${relativeTimeText}) — Call first`,
+      guidanceText: isDemo
+        ? 'Simulated aging marker for testing — not real inventory.'
+        : 'Update is over 30 min old — stock may have changed. Call first.',
+      accessibilityLabel: isDemo
+        ? 'Simulated aging update marker for testing only'
+        : `Stock update is ${relativeTimeText}. Aging status, call pharmacy first.`,
       relativeTimeText,
       rawTimestamp: timestampIso,
       ageMinutes,
       requiresCallFirst: true,
+      isSimulated: isDemo,
     };
   }
 
   return {
     state: 'stale',
-    stateLabel: freshnessLabels.stale.label,
-    badgeLabel: `Stale (${relativeTimeText}) — Call first`,
-    guidanceText: freshnessLabels.stale.guidance,
+    stateLabel: isDemo ? 'Simulated Stale' : 'Stale Update',
+    badgeLabel: isDemo ? `Simulated: Stale (> 2h)` : `Stale (${relativeTimeText}) — Call first`,
+    guidanceText: isDemo
+      ? 'Simulated stale marker for testing — not real inventory.'
+      : 'Update is over 2 hours old. Must call store to confirm.',
+    accessibilityLabel: isDemo
+      ? 'Simulated stale update marker for testing only'
+      : `Stock update is ${relativeTimeText}. Stale status, must call store before travel.`,
     relativeTimeText,
     rawTimestamp: timestampIso,
     ageMinutes,
     requiresCallFirst: true,
+    isSimulated: isDemo,
   };
 }
 
@@ -136,15 +140,25 @@ function formatRelativeTime(minutes: number): string {
   return `${hours}h ${remainingMinutes}m ago`;
 }
 
-function createUnknownResult(rawTimestamp: string | null, reason: string): FreshnessCalculation {
+function createUnknownResult(
+  rawTimestamp: string | null,
+  reason: string,
+  isDemo: boolean
+): FreshnessCalculation {
   return {
     state: 'unknown',
-    stateLabel: 'Unknown',
-    badgeLabel: 'Unknown — Call first',
-    guidanceText: `Status unverified (${reason}). Call store to check stock.`,
+    stateLabel: isDemo ? 'Simulated Unknown' : 'Unknown',
+    badgeLabel: isDemo ? 'Simulated: Unknown Timestamp' : 'Unknown — Call first',
+    guidanceText: isDemo
+      ? `Simulated unknown marker (${reason}) — not real inventory.`
+      : `Status unverified (${reason}). Call store to check stock.`,
+    accessibilityLabel: isDemo
+      ? 'Simulated unknown timestamp marker'
+      : `Stock status unverified. Call store to check stock.`,
     relativeTimeText: 'Unknown update time',
     rawTimestamp,
     ageMinutes: null,
     requiresCallFirst: true,
+    isSimulated: isDemo,
   };
 }
