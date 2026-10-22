@@ -13,7 +13,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useTheme } from '../theme/ThemeContext';
-import { layout, typography, statusLabels } from '../theme/tokens';
+import { layout, typography } from '../theme/tokens';
 import {
   searchMedicineStock,
   MedicineSearchResultItem,
@@ -38,7 +38,7 @@ export default function HomeScreen() {
   const [dataSource, setDataSource] = useState<DataSource>('demo');
   const [totalPublishedInDb, setTotalPublishedInDb] = useState<number>(0);
 
-  // Safety & academic baseline disclosure modal
+  // Safety & pilot information modal
   const [showSafetyModal, setShowSafetyModal] = useState(false);
 
   // Dosage form filter list
@@ -85,9 +85,11 @@ export default function HomeScreen() {
     Keyboard.dismiss();
   };
 
+  const isDemoMode = dataSource === 'demo';
+
   return (
     <View style={[styles.screenRoot, { backgroundColor: theme.canvas }]}>
-      {/* 1. COMPACT INTEGRATED APP HEADER */}
+      {/* 1. COMPACT APP HEADER */}
       <View
         style={[
           styles.headerBar,
@@ -116,13 +118,13 @@ export default function HomeScreen() {
               MedFind
             </Text>
             <Text style={[styles.appTagline, { color: theme.textMuted }]}>
-              Prescription Stock & Care Directory
+              Prescription & Care Directory
             </Text>
           </View>
         </View>
 
         <View style={styles.headerActionsGroup}>
-          {/* Safety & Academic Notice Trigger */}
+          {/* Info Modal Trigger */}
           <TouchableOpacity
             onPress={() => setShowSafetyModal(true)}
             style={[
@@ -131,14 +133,14 @@ export default function HomeScreen() {
             ]}
             accessible={true}
             accessibilityRole="button"
-            accessibilityLabel="View safety, academic baseline, and data boundaries"
+            accessibilityLabel="View safety and pilot boundaries"
           >
             <Text style={[styles.headerButtonLabel, { color: theme.textSecondary }]}>
               ℹ️ Info
             </Text>
           </TouchableOpacity>
 
-          {/* Theme Mode Switcher */}
+          {/* Theme Switcher */}
           <TouchableOpacity
             onPress={toggleTheme}
             style={[
@@ -147,7 +149,7 @@ export default function HomeScreen() {
             ]}
             accessible={true}
             accessibilityRole="button"
-            accessibilityLabel={`Toggle color theme. Current theme is ${mode}`}
+            accessibilityLabel={`Toggle theme mode. Current theme is ${mode}`}
           >
             <Text style={[styles.headerButtonLabel, { color: theme.textSecondary }]}>
               {mode === 'light' ? '🌙 Dark' : '☀️ Light'}
@@ -161,136 +163,111 @@ export default function HomeScreen() {
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
       >
-        {/* 2. CONCISE PILOT & DATA STATUS BAR */}
+        {/* 2. ONE CLEAR DEMO / DATA NOTICE NEAR THE TOP */}
         <View
           style={[
-            styles.statusBarCard,
+            styles.modeNoticeBanner,
             {
-              backgroundColor: theme.surface,
-              borderColor: theme.border,
+              backgroundColor: isDemoMode
+                ? mode === 'light'
+                  ? '#F6F3EE'
+                  : '#161420'
+                : theme.badgeBackground,
+              borderColor: isDemoMode ? theme.border : theme.primaryAccent,
             },
           ]}
+          accessible={true}
+          accessibilityLabel={
+            isDemoMode
+              ? 'Demo data notice: sample records, not real pharmacy stock'
+              : 'Connected to Supabase database records'
+          }
         >
-          <View style={styles.statusIndicatorRow}>
-            <View
+          <View style={styles.modeNoticeContent}>
+            <Text
               style={[
-                styles.statusPill,
+                styles.modeNoticeText,
                 {
-                  backgroundColor:
-                    dataSource === 'database'
-                      ? theme.badgeBackground
-                      : theme.surfaceElevated,
-                  borderColor:
-                    dataSource === 'database' ? theme.primaryAccent : theme.border,
+                  color: isDemoMode
+                    ? theme.textSecondary
+                    : theme.primaryAccentText,
                 },
               ]}
             >
-              <Text
-                style={[
-                  styles.statusPillText,
-                  {
-                    color:
-                      dataSource === 'database'
-                        ? theme.primaryAccentText
-                        : theme.textSecondary,
-                  },
-                ]}
-              >
-                {dataSource === 'database'
-                  ? '● Supabase Cloud Records'
-                  : '○ Simulated Demo Mode'}
-              </Text>
-            </View>
+              {isDemoMode
+                ? 'ℹ️ Demo data — sample records, not real pharmacy stock.'
+                : `● Supabase records — reported availability (${totalPublishedInDb} items in database).`}
+            </Text>
 
             <TouchableOpacity
               onPress={() => setShowSafetyModal(true)}
-              style={styles.pilotDisclosureTrigger}
+              style={styles.modeNoticeLink}
               accessible={true}
               accessibilityRole="button"
-              accessibilityLabel="View BMSCE pilot details and clinical boundaries"
+              accessibilityLabel="View detailed safety and pilot notice"
             >
-              <Text style={[styles.pilotDisclosureText, { color: theme.textMuted }]}>
-                BMSCE Pilot Notice ›
+              <Text
+                style={[
+                  styles.modeNoticeLinkText,
+                  { color: isDemoMode ? theme.textMuted : theme.primaryAccentText },
+                ]}
+              >
+                Pilot info ›
               </Text>
             </TouchableOpacity>
           </View>
 
-          <Text style={[styles.statusSubtitle, { color: theme.textSecondary }]}>
-            {dataSource === 'database'
-              ? `Displaying reported stock snapshots from Supabase (${totalPublishedInDb} records in database).`
-              : 'Supabase contains no active records. Displaying simulated Basavanagudi demo baseline.'}
-          </Text>
-
-          {/* Non-intrusive Offline / Cloud Notification if applicable */}
+          {/* Offline / Connection Diagnostic strip (expandable) */}
           {searchError && (
-            <View
-              style={[
-                styles.compactAlertStrip,
-                {
-                  backgroundColor: mode === 'light' ? '#FFF8EE' : '#231608',
-                  borderColor: theme.warningAccent,
-                },
-              ]}
-            >
-              <View style={styles.alertHeaderRow}>
-                <Text
-                  style={[
-                    styles.alertTitleText,
-                    {
-                      color:
-                        mode === 'light'
-                          ? theme.warningAccentText
-                          : theme.warningAccent,
-                    },
-                  ]}
-                >
-                  ⚠️ Cloud unreachable. Using simulated demo baseline.
+            <View style={styles.diagnosticRow}>
+              <Text
+                style={[
+                  styles.diagnosticNotice,
+                  { color: mode === 'light' ? theme.warningAccentText : theme.warningAccent },
+                ]}
+              >
+                ⚠️ Cloud offline: using local sample baseline.
+              </Text>
+              <TouchableOpacity
+                onPress={() => setShowErrorDetails((prev) => !prev)}
+                style={styles.diagnosticToggle}
+              >
+                <Text style={[styles.diagnosticToggleText, { color: theme.textMuted }]}>
+                  {showErrorDetails ? 'Hide' : 'Details'}
                 </Text>
-                <TouchableOpacity
-                  onPress={() => setShowErrorDetails((prev) => !prev)}
-                  style={styles.errorDetailsToggle}
-                >
-                  <Text
-                    style={[
-                      styles.errorDetailsToggleText,
-                      { color: theme.textSecondary },
-                    ]}
-                  >
-                    {showErrorDetails ? 'Hide' : 'Details'}
-                  </Text>
-                </TouchableOpacity>
-              </View>
-
-              {showErrorDetails && (
-                <Text style={[styles.errorMonospaceText, { color: theme.textMuted }]}>
-                  {searchError}
-                </Text>
-              )}
+              </TouchableOpacity>
             </View>
+          )}
+
+          {showErrorDetails && searchError && (
+            <Text style={[styles.diagnosticCode, { color: theme.textMuted }]}>
+              {searchError}
+            </Text>
           )}
         </View>
 
-        {/* 3. PROMINENT MEDICINE SEARCH & DOSAGE FILTERS */}
+        {/* 3. MEDICINE SEARCH (MAIN FOCUS) */}
         <View style={styles.searchSection}>
-          <Text style={[styles.sectionOverline, { color: theme.textMuted }]}>
-            MEDICINE LOOKUP (PARTICIPATING PHARMACIES ONLY)
+          <Text style={[styles.searchSectionTitle, { color: theme.textPrimary }]}>
+            Find a medicine
           </Text>
 
+          {/* Search Box */}
           <View
             style={[
-              styles.searchInputWrapper,
+              styles.searchInputContainer,
               {
                 backgroundColor: theme.surface,
                 borderColor: theme.border,
               },
             ]}
           >
-            <Text style={[styles.searchIconSymbol, { color: theme.textMuted }]}>
+            <Text style={[styles.searchPrefixIcon, { color: theme.textMuted }]}>
               🔍
             </Text>
             <TextInput
-              style={[styles.searchInputField, { color: theme.textPrimary }]}
-              placeholder="Search by brand, generic name, or alias..."
+              style={[styles.searchInput, { color: theme.textPrimary }]}
+              placeholder="Search by brand or generic name..."
               placeholderTextColor={theme.textMuted}
               value={searchQuery}
               onChangeText={setSearchQuery}
@@ -298,29 +275,28 @@ export default function HomeScreen() {
               autoCorrect={false}
               returnKeyType="search"
               accessible={true}
-              accessibilityLabel="Search medicine input field"
-              accessibilityHint="Type a brand or generic name to check reported pharmacy stock"
+              accessibilityLabel="Search by medicine name"
             />
             {searchQuery.length > 0 && (
               <TouchableOpacity
                 onPress={clearSearch}
-                style={styles.clearSearchButton}
+                style={styles.clearButton}
                 accessible={true}
                 accessibilityRole="button"
                 accessibilityLabel="Clear search input"
               >
-                <Text style={[styles.clearSearchIcon, { color: theme.textMuted }]}>
+                <Text style={[styles.clearButtonIcon, { color: theme.textMuted }]}>
                   ✕
                 </Text>
               </TouchableOpacity>
             )}
           </View>
 
-          {/* Dosage Form Filter Chips */}
+          {/* Compact Dosage-Form Filter Chips */}
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.filterChipContainer}
+            contentContainerStyle={styles.filterChipRow}
             style={styles.filterScrollView}
           >
             {dosageForms.map((form) => {
@@ -330,7 +306,7 @@ export default function HomeScreen() {
                   key={form}
                   onPress={() => setSelectedDosageForm(form)}
                   style={[
-                    styles.dosageFilterChip,
+                    styles.filterChip,
                     {
                       backgroundColor: isSelected
                         ? mode === 'light'
@@ -351,7 +327,7 @@ export default function HomeScreen() {
                 >
                   <Text
                     style={[
-                      styles.dosageFilterChipText,
+                      styles.filterChipLabel,
                       {
                         color: isSelected
                           ? mode === 'light'
@@ -370,75 +346,68 @@ export default function HomeScreen() {
           </ScrollView>
         </View>
 
-        {/* 4. CALM PERSISTENT EMERGENCY & CARE ENTRY */}
+        {/* 4. CALM & COMPACT EMERGENCY HELP ENTRY */}
         <View
           style={[
-            styles.emergencyCard,
+            styles.emergencyStrip,
             {
               backgroundColor: theme.emergencyBackground,
               borderColor: theme.emergencyBorder,
             },
           ]}
           accessible={true}
-          accessibilityLabel="Emergency Help and Care Directory shortcut"
+          accessibilityLabel="Emergency Help and Directory entry point"
         >
-          <View style={styles.emergencyHeaderRow}>
-            <View style={styles.emergencyTitleGroup}>
-              <Text style={[styles.emergencyTag, { color: theme.emergencyText }]}>
-                [EMERGENCY & CARE DIRECTORY]
-              </Text>
-              <Text style={[styles.emergencyTitle, { color: theme.textPrimary }]}>
-                Hospitals, Clinics & Ambulance Contacts
-              </Text>
-            </View>
-
-            <TouchableOpacity
-              onPress={() => router.push('/care')}
-              style={[
-                styles.emergencyActionButton,
-                {
-                  backgroundColor: theme.surface,
-                  borderColor: theme.emergencyBorder,
-                },
-              ]}
-              accessible={true}
-              accessibilityRole="button"
-              accessibilityLabel="Open Full Care and Emergency Directory"
-            >
-              <Text style={[styles.emergencyActionText, { color: theme.emergencyText }]}>
-                Open Directory →
-              </Text>
-            </TouchableOpacity>
+          <View style={styles.emergencyLeft}>
+            <Text style={[styles.emergencyTagText, { color: theme.emergencyText }]}>
+              🚨 Emergency & Nearby Care
+            </Text>
+            <Text style={[styles.emergencyDescriptionText, { color: theme.textSecondary }]}>
+              Hospitals, clinics & ambulance contacts (directory only)
+            </Text>
           </View>
 
-          <Text style={[styles.emergencyNoticeText, { color: theme.textSecondary }]}>
-            Directory contact reference only. MedFind makes zero claims of live ambulance
-            dispatch, response times, or hospital bed capacity.
-          </Text>
+          <TouchableOpacity
+            onPress={() => router.push('/care')}
+            style={[
+              styles.emergencyDirectoryButton,
+              {
+                backgroundColor: theme.surface,
+                borderColor: theme.emergencyBorder,
+              },
+            ]}
+            accessible={true}
+            accessibilityRole="button"
+            accessibilityLabel="Open Care and Emergency Directory screen"
+          >
+            <Text style={[styles.emergencyDirectoryButtonText, { color: theme.emergencyText }]}>
+              Open Directory →
+            </Text>
+          </TouchableOpacity>
         </View>
 
-        {/* 5. MEDICINE RESULTS FEED */}
-        <View style={styles.resultsFeed}>
-          <View style={styles.resultsFeedHeader}>
-            <Text style={[styles.resultsFeedTitle, { color: theme.textPrimary }]}>
+        {/* 5. RESULTS LIST */}
+        <View style={styles.resultsArea}>
+          <View style={styles.resultsHeaderRow}>
+            <Text style={[styles.resultsCountText, { color: theme.textPrimary }]}>
               {isLoading
                 ? 'Searching records...'
-                : `Reported Stock Snapshots (${searchResults.length})`}
+                : `${searchResults.length} result(s) found`}
             </Text>
-            <Text style={[styles.resultsFeedBoundary, { color: theme.textMuted }]}>
-              Participating Stores Only
+            <Text style={[styles.resultsBoundaryText, { color: theme.textMuted }]}>
+              Participating stores only
             </Text>
           </View>
 
-          {/* Loading Indicator */}
+          {/* Loading State */}
           {isLoading && (
-            <View style={styles.loadingContainer}>
+            <View style={styles.loadingBox}>
               <ActivityIndicator
                 size="small"
                 color={mode === 'light' ? theme.primaryAccentText : theme.primaryAccent}
               />
-              <Text style={[styles.loadingNotice, { color: theme.textSecondary }]}>
-                Checking participating pharmacy inventory snapshots...
+              <Text style={[styles.loadingNoticeText, { color: theme.textSecondary }]}>
+                Checking pharmacy stock records...
               </Text>
             </View>
           )}
@@ -447,34 +416,64 @@ export default function HomeScreen() {
           {!isLoading && searchResults.length === 0 && (
             <View
               style={[
-                styles.emptyStateContainer,
+                styles.emptyStateBox,
                 { backgroundColor: theme.surface, borderColor: theme.border },
               ]}
               accessible={true}
               accessibilityRole="text"
             >
-              <Text style={[styles.emptyStateIcon, { color: theme.textMuted }]}>
-                📋
+              <Text style={styles.emptyIcon}>📋</Text>
+              <Text style={[styles.emptyTitle, { color: theme.textPrimary }]}>
+                No stock records found
               </Text>
-              <Text style={[styles.emptyStateTitle, { color: theme.textPrimary }]}>
-                No Participating Stock Records Found
-              </Text>
-              <Text style={[styles.emptyStateBody, { color: theme.textSecondary }]}>
+              <Text style={[styles.emptyDescription, { color: theme.textSecondary }]}>
                 {searchQuery.trim()
-                  ? `No participating pharmacy has published stock for "${searchQuery}" under the "${selectedDosageForm}" filter. Try adjusting your query.`
-                  : 'No published stock records currently match the selected filter criteria.'}
+                  ? `No participating pharmacy has published stock for "${searchQuery}" under the "${selectedDosageForm}" filter.`
+                  : 'No published stock records currently match this filter.'}
               </Text>
             </View>
           )}
 
-          {/* Result Cards */}
+          {/* Quick-Scan Medicine Result Cards */}
           {!isLoading &&
             searchResults.map((item) => {
-              const isDemo = item.isDemo || dataSource === 'demo';
-              const stockMap = isDemo
-                ? statusLabels.stock.demo
-                : statusLabels.stock.database;
-              const stockDescriptor = stockMap[item.state] || stockMap.unknown;
+              const isDemo = item.isDemo || isDemoMode;
+
+              // Format neutral availability labels
+              let availabilityLabel = 'Reported: Available';
+              let availabilityBg = theme.badgeBackground;
+              let availabilityColor = theme.primaryAccentText;
+
+              if (item.state === 'available') {
+                availabilityLabel = isDemo
+                  ? 'Sample availability: Available'
+                  : 'Reported: Available';
+                availabilityBg = theme.badgeBackground;
+                availabilityColor = theme.primaryAccentText;
+              } else if (item.state === 'low_stock') {
+                availabilityLabel = isDemo
+                  ? 'Sample availability: Low Stock'
+                  : 'Reported: Low Stock';
+                availabilityBg = mode === 'light' ? '#FFF8EE' : '#261708';
+                availabilityColor = mode === 'light' ? theme.warningAccentText : theme.warningAccent;
+              } else if (item.state === 'unavailable') {
+                availabilityLabel = isDemo
+                  ? 'Sample availability: Unavailable'
+                  : 'Reported: Unavailable';
+                availabilityBg = theme.surfaceElevated;
+                availabilityColor = theme.textSecondary;
+              } else {
+                availabilityLabel = isDemo
+                  ? 'Sample availability: Unknown'
+                  : 'Reported: Unknown';
+                availabilityBg = theme.surfaceElevated;
+                availabilityColor = theme.textSecondary;
+              }
+
+              // Format neutral update time
+              const updateTimeLabel = isDemo
+                ? `Sample update: ${item.freshness.relativeTimeText}`
+                : `Updated ${item.freshness.relativeTimeText}`;
 
               return (
                 <View
@@ -484,61 +483,72 @@ export default function HomeScreen() {
                     {
                       backgroundColor: theme.surface,
                       borderColor:
-                        item.freshness.state === 'aging'
+                        item.freshness.state === 'aging' && !isDemo
                           ? theme.warningAccent
                           : theme.border,
                     },
                   ]}
                   accessible={true}
                   accessibilityRole="summary"
-                  accessibilityLabel={`${item.brandName}, ${item.genericName}, ${stockDescriptor.accessibilityLabel}. ${item.freshness.accessibilityLabel}`}
+                  accessibilityLabel={`${item.brandName}, ${item.genericName}. ${availabilityLabel}. ${updateTimeLabel}`}
                 >
-                  {/* Card Top: Brand Name, Dosage & Availability Badge */}
-                  <View style={styles.cardTopRow}>
-                    <View style={styles.medicineTitleBlock}>
-                      <Text style={[styles.brandNameText, { color: theme.textPrimary }]}>
+                  {/* Top: Medicine Name & Badges */}
+                  <View style={styles.cardHeaderRow}>
+                    <View style={styles.cardTitleGroup}>
+                      <Text style={[styles.brandTitle, { color: theme.textPrimary }]}>
                         {item.brandName}
                       </Text>
-                      <Text style={[styles.genericNameText, { color: theme.textSecondary }]}>
+                      <Text style={[styles.genericSubtitle, { color: theme.textSecondary }]}>
                         {item.genericName}
                       </Text>
                     </View>
 
-                    {/* Dosage & Strength Pill */}
-                    {(item.strength || item.dosageForm) && (
-                      <View
-                        style={[
-                          styles.dosageBadge,
-                          {
-                            backgroundColor: theme.surfaceElevated,
-                            borderColor: theme.border,
-                          },
-                        ]}
-                      >
-                        <Text style={[styles.dosageBadgeText, { color: theme.textSecondary }]}>
-                          {item.strength}
-                          {item.strength && item.dosageForm ? ' • ' : ''}
-                          {item.dosageForm}
-                        </Text>
-                      </View>
-                    )}
+                    <View style={styles.cardBadgesGroup}>
+                      {/* Strength / Form Badge */}
+                      {(item.strength || item.dosageForm) && (
+                        <View
+                          style={[
+                            styles.dosagePill,
+                            {
+                              backgroundColor: theme.surfaceElevated,
+                              borderColor: theme.border,
+                            },
+                          ]}
+                        >
+                          <Text style={[styles.dosagePillText, { color: theme.textSecondary }]}>
+                            {item.strength}
+                            {item.strength && item.dosageForm ? ' • ' : ''}
+                            {item.dosageForm}
+                          </Text>
+                        </View>
+                      )}
+
+                      {/* Small, consistent "Demo" label on demo cards */}
+                      {isDemo && (
+                        <View
+                          style={[
+                            styles.demoTagPill,
+                            {
+                              backgroundColor: theme.surfaceElevated,
+                              borderColor: theme.border,
+                            },
+                          ]}
+                        >
+                          <Text style={[styles.demoTagPillText, { color: theme.textMuted }]}>
+                            Demo
+                          </Text>
+                        </View>
+                      )}
+                    </View>
                   </View>
 
-                  {/* Availability & Freshness Row */}
-                  <View style={styles.statusRow}>
-                    {/* Availability Tag */}
+                  {/* Availability & Update Time (Quick-Scan) */}
+                  <View style={styles.cardMetaRow}>
                     <View
                       style={[
-                        styles.availabilityPill,
+                        styles.availabilityBadge,
                         {
-                          backgroundColor:
-                            item.state === 'available'
-                              ? theme.badgeBackground
-                              : item.state === 'low_stock'
-                              ? mode === 'light'
-                                ? '#FFF8EE'
-                                : '#261708'
-                              : theme.surfaceElevated,
+                          backgroundColor: availabilityBg,
                           borderColor:
                             item.state === 'available'
                               ? theme.primaryAccent
@@ -548,108 +558,42 @@ export default function HomeScreen() {
                         },
                       ]}
                     >
-                      <Text
-                        style={[
-                          styles.availabilityPillText,
-                          {
-                            color:
-                              item.state === 'available'
-                                ? theme.primaryAccentText
-                                : item.state === 'low_stock'
-                                ? theme.warningAccentText
-                                : theme.textSecondary,
-                          },
-                        ]}
-                      >
-                        {stockDescriptor.symbol} {stockDescriptor.text}
+                      <Text style={[styles.availabilityBadgeText, { color: availabilityColor }]}>
+                        {availabilityLabel}
                       </Text>
                     </View>
 
-                    {/* Freshness Badge */}
-                    <View
-                      style={[
-                        styles.freshnessChip,
-                        {
-                          backgroundColor:
-                            item.freshness.state === 'aging'
-                              ? mode === 'light'
-                                ? '#FFF4E5'
-                                : '#2A1806'
-                              : theme.surfaceElevated,
-                          borderColor:
-                            item.freshness.state === 'aging'
-                              ? theme.warningAccent
-                              : theme.border,
-                        },
-                      ]}
-                    >
-                      <Text
-                        style={[
-                          styles.freshnessChipText,
-                          {
-                            color:
-                              item.freshness.state === 'aging'
-                                ? theme.warningAccentText
-                                : theme.textMuted,
-                          },
-                        ]}
-                      >
-                        🕒 {item.freshness.badgeLabel}
-                      </Text>
-                    </View>
+                    <Text style={[styles.updateTimeText, { color: theme.textMuted }]}>
+                      🕒 {updateTimeLabel}
+                    </Text>
                   </View>
 
-                  {/* Timestamp Disclosure */}
-                  <Text style={[styles.timestampDetail, { color: theme.textMuted }]}>
-                    {isDemo ? 'Simulated recorded time: ' : 'Recorded at: '}
-                    {item.updatedAt
-                      ? item.updatedAt.replace('T', ' ').slice(0, 19) + ' UTC'
-                      : 'None'}
-                  </Text>
-
-                  {/* Pharmacy Store & Contact Info */}
+                  {/* Pharmacy Name & Contact Info */}
                   <View
                     style={[
-                      styles.pharmacyContainer,
+                      styles.pharmacyInfoBox,
                       {
                         backgroundColor: theme.surfaceElevated,
                         borderColor: theme.border,
                       },
                     ]}
                   >
-                    <Text style={[styles.pharmacyTitle, { color: theme.textPrimary }]}>
+                    <Text style={[styles.pharmacyNameText, { color: theme.textPrimary }]}>
                       🏪 {item.pharmacyName}
                     </Text>
-                    <Text style={[styles.pharmacyAddress, { color: theme.textSecondary }]}>
+                    <Text style={[styles.pharmacyLocationText, { color: theme.textSecondary }]}>
                       📍 {item.pharmacyAddress}
                     </Text>
-                    <Text style={[styles.pharmacyPhone, { color: theme.textMuted }]}>
-                      Phone: {item.pharmacyPhone}
+                    <Text style={[styles.pharmacyContactText, { color: theme.textMuted }]}>
+                      {isDemo ? '📞 Sample contact (no calls)' : `📞 ${item.pharmacyPhone}`}
                     </Text>
                   </View>
 
-                  {/* Simulated Record Disclaimer on demo fixtures */}
-                  {isDemo && (
-                    <View
-                      style={[
-                        styles.demoRecordTag,
-                        {
-                          backgroundColor: theme.surfaceElevated,
-                          borderColor: theme.border,
-                        },
-                      ]}
-                    >
-                      <Text style={[styles.demoRecordTagText, { color: theme.textMuted }]}>
-                        [Simulated Test Fixture • Fictional Record — Non-actionable]
-                      </Text>
-                    </View>
-                  )}
-
-                  {/* Call-First Guidance on Aging Real Data */}
+                  {/* Call-First warning if real store data is aging */}
                   {item.freshness.requiresCallFirst && !isDemo && (
                     <View
                       style={[
-                        styles.callFirstAlert,
+                        styles.callFirstBox,
                         {
                           backgroundColor: mode === 'light' ? '#FFF8EE' : '#231608',
                           borderColor: theme.warningAccent,
@@ -658,7 +602,7 @@ export default function HomeScreen() {
                     >
                       <Text
                         style={[
-                          styles.callFirstAlertText,
+                          styles.callFirstText,
                           {
                             color:
                               mode === 'light'
@@ -677,17 +621,17 @@ export default function HomeScreen() {
         </View>
       </ScrollView>
 
-      {/* 6. COMPACT ACCESSIBLE SAFETY & PILOT DISCLOSURE MODAL */}
+      {/* 6. CONCISE SAFETY & PILOT INFORMATION MODAL */}
       <Modal
         visible={showSafetyModal}
         transparent={true}
         animationType="fade"
         onRequestClose={() => setShowSafetyModal(false)}
       >
-        <View style={styles.modalOverlay}>
+        <View style={styles.modalBackdrop}>
           <View
             style={[
-              styles.modalCard,
+              styles.modalSheet,
               {
                 backgroundColor: theme.surface,
                 borderColor: theme.border,
@@ -695,13 +639,13 @@ export default function HomeScreen() {
             ]}
             accessible={true}
             accessibilityRole="alert"
-            accessibilityLabel="MedFind Pilot & Safety Boundaries Notice"
+            accessibilityLabel="MedFind Safety and Pilot Information Notice"
           >
-            {/* Modal Header */}
-            <View style={styles.modalHeaderRow}>
+            {/* Modal Top */}
+            <View style={styles.modalHeader}>
               <View>
                 <Text style={[styles.modalTitle, { color: theme.textPrimary }]}>
-                  Safety & Pilot Boundaries
+                  Safety & Pilot Information
                 </Text>
                 <Text style={[styles.modalSubtitle, { color: theme.textMuted }]}>
                   BMSCE CSE Semester 5 Mini Project
@@ -711,67 +655,64 @@ export default function HomeScreen() {
               <TouchableOpacity
                 onPress={() => setShowSafetyModal(false)}
                 style={[
-                  styles.modalCloseButton,
+                  styles.modalCloseBtn,
                   { backgroundColor: theme.surfaceElevated, borderColor: theme.border },
                 ]}
                 accessible={true}
                 accessibilityRole="button"
                 accessibilityLabel="Close safety modal"
               >
-                <Text style={[styles.modalCloseIcon, { color: theme.textPrimary }]}>
-                  ✕
-                </Text>
+                <Text style={[styles.modalCloseIcon, { color: theme.textPrimary }]}>✕</Text>
               </TouchableOpacity>
             </View>
 
-            <ScrollView style={styles.modalScrollBody}>
-              {/* Academic Baseline Section */}
+            <ScrollView style={styles.modalScroll}>
+              {/* Demo Data Notice */}
               <View style={styles.modalSection}>
-                <Text style={[styles.modalSectionHeader, { color: theme.textPrimary }]}>
-                  🎓 Academic Project Evaluation Baseline
+                <Text style={[styles.modalSectionTitle, { color: theme.textPrimary }]}>
+                  🎓 Academic Demo Baseline
                 </Text>
-                <Text style={[styles.modalSectionBody, { color: theme.textSecondary }]}>
+                <Text style={[styles.modalSectionText, { color: theme.textSecondary }]}>
                   {DEMO_DATA_DISCLAIMER}
                 </Text>
               </View>
 
-              {/* Clinical Boundaries */}
+              {/* Clinical Guardrails */}
               <View style={styles.modalSection}>
-                <Text style={[styles.modalSectionHeader, { color: theme.textPrimary }]}>
+                <Text style={[styles.modalSectionTitle, { color: theme.textPrimary }]}>
                   ⚕️ Clinical Safety Guardrails
                 </Text>
-                <Text style={[styles.modalSectionBody, { color: theme.textSecondary }]}>
-                  • MedFind does not provide clinical diagnoses, dosage calculations, or drug substitutions.{'\n'}
-                  • Always consult a licensed pharmacist or physician before consuming or replacing medications.{'\n'}
-                  • Stock status indicates reported availability, never live continuous inventory.
+                <Text style={[styles.modalSectionText, { color: theme.textSecondary }]}>
+                  • MedFind does not provide medical advice, clinical diagnoses, or automatic drug substitutions.{'\n'}
+                  • Always consult a licensed pharmacist or physician to verify prescriptions.{'\n'}
+                  • Stock status reflects snapshot availability, never continuous real-time inventory.
                 </Text>
               </View>
 
-              {/* Data & Privacy Boundaries */}
+              {/* Privacy */}
               <View style={styles.modalSection}>
-                <Text style={[styles.modalSectionHeader, { color: theme.textPrimary }]}>
-                  🔒 Privacy & Device Permissions
+                <Text style={[styles.modalSectionTitle, { color: theme.textPrimary }]}>
+                  🔒 Privacy & Health Data
                 </Text>
-                <Text style={[styles.modalSectionBody, { color: theme.textSecondary }]}>
-                  • Zero patient health information (PHI) or prescription uploads are collected or stored.{'\n'}
-                  • Location permissions are not required; facilities are presented strictly as an indexed directory.{'\n'}
-                  • Demo records do not initiate device telephone calls.
+                <Text style={[styles.modalSectionText, { color: theme.textSecondary }]}>
+                  • MedFind does not collect, track, or upload patient health data or prescriptions.{'\n'}
+                  • Location permissions are not required; listings are organized as an indexed directory.
                 </Text>
               </View>
             </ScrollView>
 
-            {/* Modal Dismiss Button */}
+            {/* Dismiss Button */}
             <TouchableOpacity
               onPress={() => setShowSafetyModal(false)}
               style={[
-                styles.modalDismissButton,
+                styles.modalDismissBtn,
                 { backgroundColor: theme.primaryAccent },
               ]}
               accessible={true}
               accessibilityRole="button"
               accessibilityLabel="Dismiss modal and return to search"
             >
-              <Text style={[styles.modalDismissButtonText, { color: theme.textInverse }]}>
+              <Text style={[styles.modalDismissBtnText, { color: theme.textInverse }]}>
                 Understood — Back to MedFind
               </Text>
             </TouchableOpacity>
@@ -787,7 +728,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 
-  // 1. HEADER
+  // HEADER
   headerBar: {
     paddingHorizontal: layout.spacing.md,
     paddingBottom: layout.spacing.sm,
@@ -854,120 +795,108 @@ const styles = StyleSheet.create({
     paddingBottom: layout.spacing.xl * 2,
   },
 
-  // 2. STATUS BAR CARD
-  statusBarCard: {
+  // 2. DEMO / DATA NOTICE BANNER
+  modeNoticeBanner: {
     borderRadius: layout.borderRadius.md,
     borderWidth: 1,
-    padding: layout.spacing.sm + 2,
+    paddingHorizontal: layout.spacing.md,
+    paddingVertical: layout.spacing.sm,
     marginBottom: layout.spacing.md,
   },
-  statusIndicatorRow: {
+  modeNoticeContent: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 4,
-  },
-  statusPill: {
-    paddingHorizontal: layout.spacing.sm,
-    paddingVertical: 3,
-    borderRadius: layout.borderRadius.pill,
-    borderWidth: 1,
-  },
-  statusPillText: {
-    fontSize: typography.fontSize.xs,
-    fontWeight: '700',
-  },
-  pilotDisclosureTrigger: {
-    minHeight: 32,
-    justifyContent: 'center',
-    paddingHorizontal: layout.spacing.xs,
-  },
-  pilotDisclosureText: {
-    fontSize: typography.fontSize.xs,
-    fontWeight: '600',
-  },
-  statusSubtitle: {
-    fontSize: typography.fontSize.xs,
-    lineHeight: 16,
-    marginTop: 2,
-  },
-  compactAlertStrip: {
-    marginTop: layout.spacing.sm,
-    padding: layout.spacing.sm,
-    borderRadius: layout.borderRadius.sm,
-    borderWidth: 1,
-  },
-  alertHeaderRow: {
-    flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
   },
-  alertTitleText: {
+  modeNoticeText: {
     fontSize: typography.fontSize.xs,
     fontWeight: '600',
     flex: 1,
+    lineHeight: 18,
   },
-  errorDetailsToggle: {
-    minHeight: 28,
+  modeNoticeLink: {
+    minHeight: 32,
     justifyContent: 'center',
     paddingLeft: layout.spacing.sm,
   },
-  errorDetailsToggleText: {
+  modeNoticeLinkText: {
     fontSize: typography.fontSize.xs,
     fontWeight: '700',
   },
-  errorMonospaceText: {
+  diagnosticRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 6,
+    paddingTop: 6,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: '#DDD',
+  },
+  diagnosticNotice: {
     fontSize: typography.fontSize.xs - 1,
+    fontWeight: '600',
+    flex: 1,
+  },
+  diagnosticToggle: {
+    minHeight: 26,
+    justifyContent: 'center',
+    paddingLeft: layout.spacing.sm,
+  },
+  diagnosticToggleText: {
+    fontSize: typography.fontSize.xs - 1,
+    fontWeight: '700',
+  },
+  diagnosticCode: {
+    fontSize: typography.fontSize.xs - 2,
     fontFamily: 'monospace',
     marginTop: 4,
   },
 
-  // 3. SEARCH & FILTERS
+  // 3. MEDICINE SEARCH (MAIN FOCUS)
   searchSection: {
     marginBottom: layout.spacing.md,
   },
-  sectionOverline: {
-    fontSize: typography.fontSize.xs - 1,
+  searchSectionTitle: {
+    fontSize: typography.fontSize.md + 1,
     fontWeight: '700',
-    letterSpacing: 0.5,
-    marginBottom: 6,
+    marginBottom: layout.spacing.xs + 2,
   },
-  searchInputWrapper: {
+  searchInputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    minHeight: 50,
+    minHeight: 48,
     borderRadius: layout.borderRadius.md,
     borderWidth: 1,
     paddingHorizontal: layout.spacing.md,
     marginBottom: layout.spacing.sm,
   },
-  searchIconSymbol: {
-    fontSize: 16,
+  searchPrefixIcon: {
+    fontSize: 15,
     marginRight: layout.spacing.sm,
   },
-  searchInputField: {
+  searchInput: {
     flex: 1,
     fontSize: typography.fontSize.base,
     minHeight: 44,
   },
-  clearSearchButton: {
+  clearButton: {
     minWidth: 32,
     minHeight: 32,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  clearSearchIcon: {
+  clearButtonIcon: {
     fontSize: 14,
     fontWeight: '700',
   },
   filterScrollView: {
     marginTop: 2,
   },
-  filterChipContainer: {
+  filterChipRow: {
     flexDirection: 'row',
     gap: layout.spacing.xs + 2,
   },
-  dosageFilterChip: {
+  filterChip: {
     minHeight: layout.minTouchTarget,
     paddingHorizontal: layout.spacing.md,
     borderRadius: layout.borderRadius.pill,
@@ -975,82 +904,73 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  dosageFilterChipText: {
+  filterChipLabel: {
     fontSize: typography.fontSize.sm,
   },
 
-  // 4. EMERGENCY ENTRY CARD
-  emergencyCard: {
+  // 4. CALM & COMPACT EMERGENCY HELP
+  emergencyStrip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     borderRadius: layout.borderRadius.md,
     borderWidth: 1,
-    padding: layout.spacing.md,
-    marginBottom: layout.spacing.lg,
+    padding: layout.spacing.sm + 2,
+    marginBottom: layout.spacing.md,
   },
-  emergencyHeaderRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 6,
-  },
-  emergencyTitleGroup: {
+  emergencyLeft: {
     flex: 1,
     marginRight: layout.spacing.sm,
   },
-  emergencyTag: {
-    fontSize: typography.fontSize.xs - 1,
-    fontWeight: '800',
-    letterSpacing: 0.5,
+  emergencyTagText: {
+    fontSize: typography.fontSize.xs + 1,
+    fontWeight: '700',
     marginBottom: 2,
   },
-  emergencyTitle: {
-    fontSize: typography.fontSize.sm + 1,
-    fontWeight: '700',
+  emergencyDescriptionText: {
+    fontSize: typography.fontSize.xs - 1,
+    lineHeight: 14,
   },
-  emergencyActionButton: {
+  emergencyDirectoryButton: {
     minHeight: layout.minTouchTarget,
     paddingHorizontal: layout.spacing.sm + 4,
-    borderRadius: layout.borderRadius.md,
+    borderRadius: layout.borderRadius.sm + 2,
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  emergencyActionText: {
+  emergencyDirectoryButtonText: {
     fontSize: typography.fontSize.xs + 1,
     fontWeight: '700',
   },
-  emergencyNoticeText: {
-    fontSize: typography.fontSize.xs,
-    lineHeight: 16,
-  },
 
-  // 5. RESULTS FEED
-  resultsFeed: {
-    gap: layout.spacing.sm + 2,
+  // 5. RESULTS LIST
+  resultsArea: {
+    gap: layout.spacing.sm,
   },
-  resultsFeedHeader: {
+  resultsHeaderRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 4,
+    marginBottom: 2,
   },
-  resultsFeedTitle: {
+  resultsCountText: {
     fontSize: typography.fontSize.sm,
     fontWeight: '700',
   },
-  resultsFeedBoundary: {
+  resultsBoundaryText: {
     fontSize: typography.fontSize.xs,
-    fontWeight: '500',
   },
-  loadingContainer: {
+  loadingBox: {
     padding: layout.spacing.lg,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  loadingNotice: {
+  loadingNoticeText: {
     fontSize: typography.fontSize.xs,
     marginTop: layout.spacing.sm,
   },
-  emptyStateContainer: {
+  emptyStateBox: {
     padding: layout.spacing.xl,
     borderRadius: layout.borderRadius.md,
     borderWidth: 1,
@@ -1058,143 +978,139 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginTop: layout.spacing.sm,
   },
-  emptyStateIcon: {
-    fontSize: 28,
+  emptyIcon: {
+    fontSize: 26,
     marginBottom: layout.spacing.sm,
   },
-  emptyStateTitle: {
+  emptyTitle: {
     fontSize: typography.fontSize.base,
     fontWeight: '700',
     marginBottom: 4,
   },
-  emptyStateBody: {
+  emptyDescription: {
     fontSize: typography.fontSize.xs,
     textAlign: 'center',
     lineHeight: 18,
   },
 
-  // MEDICINE CARD
+  // MEDICINE CARD (QUICK-SCAN)
   medicineCard: {
-    borderRadius: layout.borderRadius.md + 2,
+    borderRadius: layout.borderRadius.md,
     borderWidth: 1,
     padding: layout.spacing.md,
-    gap: layout.spacing.sm,
+    gap: layout.spacing.xs + 4,
   },
-  cardTopRow: {
+  cardHeaderRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
   },
-  medicineTitleBlock: {
+  cardTitleGroup: {
     flex: 1,
     marginRight: layout.spacing.sm,
   },
-  brandNameText: {
+  brandTitle: {
     fontSize: typography.fontSize.base + 1,
     fontWeight: '800',
   },
-  genericNameText: {
+  genericSubtitle: {
     fontSize: typography.fontSize.xs + 1,
     fontStyle: 'italic',
     marginTop: 2,
   },
-  dosageBadge: {
+  cardBadgesGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: layout.spacing.xs,
+  },
+  dosagePill: {
     paddingHorizontal: layout.spacing.sm,
     paddingVertical: 3,
     borderRadius: layout.borderRadius.pill,
     borderWidth: 1,
   },
-  dosageBadgeText: {
+  dosagePillText: {
     fontSize: typography.fontSize.xs,
     fontWeight: '600',
   },
-
-  // STATUS & FRESHNESS ROW
-  statusRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: layout.spacing.xs + 2,
-    alignItems: 'center',
-  },
-  availabilityPill: {
-    paddingHorizontal: layout.spacing.sm,
-    paddingVertical: 4,
+  demoTagPill: {
+    paddingHorizontal: layout.spacing.xs + 3,
+    paddingVertical: 3,
     borderRadius: layout.borderRadius.pill,
     borderWidth: 1,
   },
-  availabilityPillText: {
+  demoTagPillText: {
+    fontSize: typography.fontSize.xs - 1,
+    fontWeight: '700',
+  },
+
+  // CARD META ROW
+  cardMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    flexWrap: 'wrap',
+    gap: layout.spacing.xs,
+  },
+  availabilityBadge: {
+    paddingHorizontal: layout.spacing.sm,
+    paddingVertical: 3,
+    borderRadius: layout.borderRadius.pill,
+    borderWidth: 1,
+  },
+  availabilityBadgeText: {
     fontSize: typography.fontSize.xs,
     fontWeight: '700',
   },
-  freshnessChip: {
-    paddingHorizontal: layout.spacing.sm,
-    paddingVertical: 4,
-    borderRadius: layout.borderRadius.pill,
-    borderWidth: 1,
-  },
-  freshnessChipText: {
+  updateTimeText: {
     fontSize: typography.fontSize.xs,
-    fontWeight: '600',
-  },
-  timestampDetail: {
-    fontSize: typography.fontSize.xs - 1,
   },
 
-  // PHARMACY DETAILS
-  pharmacyContainer: {
+  // PHARMACY INFO BOX
+  pharmacyInfoBox: {
     borderRadius: layout.borderRadius.sm,
     borderWidth: 1,
-    padding: layout.spacing.sm + 2,
+    padding: layout.spacing.sm,
+    gap: 2,
   },
-  pharmacyTitle: {
+  pharmacyNameText: {
     fontSize: typography.fontSize.sm,
     fontWeight: '700',
-    marginBottom: 2,
   },
-  pharmacyAddress: {
+  pharmacyLocationText: {
     fontSize: typography.fontSize.xs,
-    marginBottom: 2,
   },
-  pharmacyPhone: {
+  pharmacyContactText: {
     fontSize: typography.fontSize.xs,
-    fontWeight: '500',
   },
-  demoRecordTag: {
-    borderRadius: layout.borderRadius.sm,
-    borderWidth: 1,
-    padding: layout.spacing.xs + 2,
-    alignItems: 'center',
-  },
-  demoRecordTagText: {
-    fontSize: typography.fontSize.xs - 1,
-    fontWeight: '600',
-  },
-  callFirstAlert: {
+
+  // CALL FIRST ALERT
+  callFirstBox: {
     borderRadius: layout.borderRadius.sm,
     borderWidth: 1,
     padding: layout.spacing.sm,
   },
-  callFirstAlertText: {
+  callFirstText: {
     fontSize: typography.fontSize.xs,
     fontWeight: '600',
   },
 
   // 6. MODAL STYLES
-  modalOverlay: {
+  modalBackdrop: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.6)',
     justifyContent: 'center',
     alignItems: 'center',
     padding: layout.spacing.md,
   },
-  modalCard: {
+  modalSheet: {
     width: '100%',
     maxHeight: '85%',
     borderRadius: layout.borderRadius.lg,
     borderWidth: 1,
     padding: layout.spacing.lg,
   },
-  modalHeaderRow: {
+  modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
@@ -1208,7 +1124,7 @@ const styles = StyleSheet.create({
     fontSize: typography.fontSize.xs,
     marginTop: 2,
   },
-  modalCloseButton: {
+  modalCloseBtn: {
     width: 36,
     height: 36,
     borderRadius: layout.borderRadius.pill,
@@ -1220,29 +1136,29 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
   },
-  modalScrollBody: {
+  modalScroll: {
     marginBottom: layout.spacing.md,
   },
   modalSection: {
     marginBottom: layout.spacing.md,
   },
-  modalSectionHeader: {
+  modalSectionTitle: {
     fontSize: typography.fontSize.sm,
     fontWeight: '700',
     marginBottom: 4,
   },
-  modalSectionBody: {
+  modalSectionText: {
     fontSize: typography.fontSize.xs,
     lineHeight: 18,
   },
-  modalDismissButton: {
+  modalDismissBtn: {
     minHeight: layout.minTouchTarget,
     borderRadius: layout.borderRadius.md,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: layout.spacing.md,
   },
-  modalDismissButtonText: {
+  modalDismissBtnText: {
     fontSize: typography.fontSize.sm,
     fontWeight: '700',
   },

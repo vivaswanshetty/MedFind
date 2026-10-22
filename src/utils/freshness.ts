@@ -69,13 +69,13 @@ export function calculateFreshness(
   if (safeDiffMs <= THIRTY_MINUTES_MS) {
     return {
       state: 'recent',
-      stateLabel: isDemo ? 'Simulated Recent' : 'Recent Update',
-      badgeLabel: isDemo ? `Simulated: Recent (≤ 30m window)` : `Recent (${relativeTimeText})`,
+      stateLabel: isDemo ? 'Sample: Recent' : 'Recent Update',
+      badgeLabel: isDemo ? `Sample update: ${relativeTimeText}` : `Recent (${relativeTimeText})`,
       guidanceText: isDemo
-        ? 'Simulated recency marker for testing — not real inventory.'
+        ? 'Sample record for demonstration. Call store to verify actual stock.'
         : 'Updated within 30 min — call pharmacy before travel to confirm.',
       accessibilityLabel: isDemo
-        ? 'Simulated recent update marker for testing only'
+        ? `Sample update: ${relativeTimeText}`
         : `Stock updated ${relativeTimeText}. Call pharmacy before traveling.`,
       relativeTimeText,
       rawTimestamp: timestampIso,
@@ -88,13 +88,13 @@ export function calculateFreshness(
   if (safeDiffMs <= TWO_HOURS_MS) {
     return {
       state: 'aging',
-      stateLabel: isDemo ? 'Simulated Aging' : 'Aging Update',
-      badgeLabel: isDemo ? `Simulated: Aging (30m - 2h)` : `Aging (${relativeTimeText}) — Call first`,
+      stateLabel: isDemo ? 'Sample: Aging' : 'Aging Update',
+      badgeLabel: isDemo ? `Sample update: ${relativeTimeText}` : `Aging (${relativeTimeText}) — Call first`,
       guidanceText: isDemo
-        ? 'Simulated aging marker for testing — not real inventory.'
+        ? 'Sample record for demonstration. Call store to verify actual stock.'
         : 'Update is over 30 min old — stock may have changed. Call first.',
       accessibilityLabel: isDemo
-        ? 'Simulated aging update marker for testing only'
+        ? `Sample update: ${relativeTimeText} (aging)`
         : `Stock update is ${relativeTimeText}. Aging status, call pharmacy first.`,
       relativeTimeText,
       rawTimestamp: timestampIso,
@@ -106,13 +106,13 @@ export function calculateFreshness(
 
   return {
     state: 'stale',
-    stateLabel: isDemo ? 'Simulated Stale' : 'Stale Update',
-    badgeLabel: isDemo ? `Simulated: Stale (> 2h)` : `Stale (${relativeTimeText}) — Call first`,
+    stateLabel: isDemo ? 'Sample: Stale' : 'Stale Update',
+    badgeLabel: isDemo ? `Sample update: ${relativeTimeText}` : `Stale (${relativeTimeText}) — Call first`,
     guidanceText: isDemo
-      ? 'Simulated stale marker for testing — not real inventory.'
+      ? 'Sample record for demonstration. Call store to verify actual stock.'
       : 'Update is over 2 hours old. Must call store to confirm.',
     accessibilityLabel: isDemo
-      ? 'Simulated stale update marker for testing only'
+      ? `Sample update: ${relativeTimeText} (stale)`
       : `Stock update is ${relativeTimeText}. Stale status, must call store before travel.`,
     relativeTimeText,
     rawTimestamp: timestampIso,
@@ -147,13 +147,13 @@ function createUnknownResult(
 ): FreshnessCalculation {
   return {
     state: 'unknown',
-    stateLabel: isDemo ? 'Simulated Unknown' : 'Unknown',
-    badgeLabel: isDemo ? 'Simulated: Unknown Timestamp' : 'Unknown — Call first',
+    stateLabel: isDemo ? 'Sample: Unknown' : 'Unknown',
+    badgeLabel: isDemo ? 'Sample update: Unknown' : 'Unknown — Call first',
     guidanceText: isDemo
-      ? `Simulated unknown marker (${reason}) — not real inventory.`
+      ? 'Sample record with unverified timestamp. Call store to verify.'
       : `Status unverified (${reason}). Call store to check stock.`,
     accessibilityLabel: isDemo
-      ? 'Simulated unknown timestamp marker'
+      ? 'Sample update: Unknown timestamp'
       : `Stock status unverified. Call store to check stock.`,
     relativeTimeText: 'Unknown update time',
     rawTimestamp,
