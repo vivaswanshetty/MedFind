@@ -23,6 +23,8 @@ export interface Medicine {
   created_at: string;
 }
 
+export type DirectorySourceType = 'public_directory' | 'provider_confirmed';
+
 export interface Pharmacy {
   id: string;
   name: string;
@@ -33,6 +35,9 @@ export interface Pharmacy {
   participation_status: 'participating' | 'pending_review' | 'inactive';
   verified_at: string | null;
   opening_hours?: string;
+  source_type?: DirectorySourceType;
+  source_url?: string;
+  verified_date?: string;
   is_demo?: boolean;
 }
 
@@ -57,6 +62,9 @@ export interface ProviderListing {
   phone: string;
   services: string[];
   source: string;
+  source_url?: string;
+  source_type?: DirectorySourceType;
+  verified_date?: string;
   reviewed_at: string;
   is_demo?: boolean;
 }

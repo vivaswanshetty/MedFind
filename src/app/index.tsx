@@ -270,109 +270,27 @@ export default function HomeScreen() {
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
       >
-        {/* 2. DEMO / LIVE DATA NOTICE (APPLE LIQUID GLASS BANNER) */}
+        {/* 2. CONCISE SOURCING NOTICE */}
         <View
           style={[
             styles.modeNoticeBanner,
             {
-              backgroundColor: isDemoMode
-                ? mode === 'light'
-                  ? 'rgba(255, 255, 255, 0.82)'
-                  : 'rgba(22, 19, 34, 0.82)'
-                : theme.badgeBackground,
-              borderColor: isDemoMode ? theme.glass.border : theme.primaryAccent,
+              backgroundColor: theme.glass.backgroundSubtle,
+              borderColor: theme.glass.borderSubtle,
               shadowColor: theme.glass.shadowColor,
             },
           ]}
           accessible={true}
-          accessibilityLabel={
-            isDemoMode
-              ? 'Demo data notice: sample records, not real pharmacy stock'
-              : 'Connected to Supabase database records'
-          }
+          accessibilityLabel="Stock availability policy notice"
         >
           <View style={styles.modeNoticeContent}>
-            <View style={styles.modeNoticeTextRow}>
-              <View style={styles.noticeIconWrapper}>
-                <ShieldCheckIcon
-                  size={16}
-                  color={isDemoMode ? (mode === 'light' ? '#87A96B' : '#00E5FF') : '#10B981'}
-                />
-              </View>
-              <Text
-                style={[
-                  styles.modeNoticeText,
-                  {
-                    color: isDemoMode
-                      ? theme.textSecondary
-                      : theme.primaryAccentText,
-                  },
-                ]}
-              >
-                {isDemoMode
-                  ? 'Demo data — sample records, not real pharmacy stock.'
-                  : `Supabase records — reported availability (${totalPublishedInDb} items in database).`}
-              </Text>
+            <View style={styles.noticeIconWrapper}>
+              <InfoIcon size={16} color={mode === 'light' ? '#87A96B' : '#00E5FF'} />
             </View>
-
-            <TouchableOpacity
-              onPress={() => setShowSafetyModal(true)}
-              style={[
-                styles.modeNoticeLink,
-                {
-                  backgroundColor: theme.glass.backgroundPill,
-                  borderColor: theme.glass.borderSubtle,
-                },
-              ]}
-              accessible={true}
-              accessibilityRole="button"
-              accessibilityLabel="View detailed safety and pilot notice"
-            >
-              <Text
-                style={[
-                  styles.modeNoticeLinkText,
-                  { color: isDemoMode ? theme.textSecondary : theme.primaryAccentText },
-                ]}
-              >
-                Pilot info
-              </Text>
-              <ArrowRightIcon
-                size={12}
-                color={isDemoMode ? theme.textSecondary : theme.primaryAccentText}
-              />
-            </TouchableOpacity>
-          </View>
-
-          {/* Offline / Connection Diagnostic strip (expandable) */}
-          {searchError && (
-            <View style={styles.diagnosticRow}>
-              <View style={styles.diagnosticNoticeWrapper}>
-                <WarningIcon size={14} />
-                <Text
-                  style={[
-                    styles.diagnosticNotice,
-                    { color: mode === 'light' ? theme.warningAccentText : theme.warningAccent },
-                  ]}
-                >
-                  Cloud offline: using local sample baseline.
-                </Text>
-              </View>
-              <TouchableOpacity
-                onPress={() => setShowErrorDetails((prev) => !prev)}
-                style={styles.diagnosticToggle}
-              >
-                <Text style={[styles.diagnosticToggleText, { color: theme.textMuted }]}>
-                  {showErrorDetails ? 'Hide' : 'Details'}
-                </Text>
-              </TouchableOpacity>
-            </View>
-          )}
-
-          {showErrorDetails && searchError && (
-            <Text style={[styles.diagnosticCode, { color: theme.textMuted }]}>
-              {searchError}
+            <Text style={[styles.modeNoticeText, { color: theme.textSecondary }]}>
+              Stock availability is only shown when reported directly by a participating pharmacy.
             </Text>
-          )}
+          </View>
         </View>
 
         {/* 3. MEDICINE SEARCH (MAIN FOCUS) */}
@@ -675,43 +593,30 @@ export default function HomeScreen() {
           {/* Quick-Scan Medicine Result Cards - Tap opens Detail Screen */}
           {!isLoading &&
             displayedResults.map((item) => {
-              const isDemo = item.isDemo || isDemoMode;
+              const isReported = item.isReported && item.state !== 'unknown';
 
-              // Format neutral availability labels
-              let availabilityLabel = 'Reported: Available';
-              let availabilityBg = theme.badgeBackground;
-              let availabilityColor = theme.primaryAccentText;
+              // Format availability label & styling
+              let availabilityLabel = '○ Availability not reported';
+              let availabilityBg = theme.glass.backgroundSubtle;
+              let availabilityColor = theme.textSecondary;
 
               if (item.state === 'available') {
-                availabilityLabel = isDemo
-                  ? '● Sample: Available'
-                  : '● Reported: Available';
+                availabilityLabel = '● Reported Available';
                 availabilityBg = theme.badgeBackground;
                 availabilityColor = theme.primaryAccentText;
               } else if (item.state === 'low_stock') {
-                availabilityLabel = isDemo
-                  ? '▲ Sample: Low Stock'
-                  : '▲ Reported: Low Stock';
+                availabilityLabel = '▲ Reported Low Stock';
                 availabilityBg = mode === 'light' ? 'rgba(255, 248, 238, 0.9)' : 'rgba(38, 23, 8, 0.85)';
                 availabilityColor = mode === 'light' ? theme.warningAccentText : theme.warningAccent;
               } else if (item.state === 'unavailable') {
-                availabilityLabel = isDemo
-                  ? '— Sample: Unavailable'
-                  : '— Reported: Unavailable';
-                availabilityBg = theme.glass.backgroundSubtle;
-                availabilityColor = theme.textSecondary;
-              } else {
-                availabilityLabel = isDemo
-                  ? '○ Sample: Unknown'
-                  : '○ Reported: Unknown';
+                availabilityLabel = '— Reported Unavailable';
                 availabilityBg = theme.glass.backgroundSubtle;
                 availabilityColor = theme.textSecondary;
               }
 
-              // Format neutral update time
-              const updateTimeLabel = isDemo
-                ? `Sample update: ${item.freshness.relativeTimeText}`
-                : `Updated ${item.freshness.relativeTimeText}`;
+              const timeText = item.updatedAt
+                ? `Updated ${item.freshness.relativeTimeText}`
+                : 'Report pending';
 
               return (
                 <TouchableOpacity
@@ -722,19 +627,16 @@ export default function HomeScreen() {
                     styles.medicineCard,
                     {
                       backgroundColor: theme.glass.background,
-                      borderColor:
-                        item.freshness.state === 'aging' && !isDemo
-                          ? theme.warningAccent
-                          : theme.glass.border,
+                      borderColor: theme.glass.border,
                       borderTopColor: theme.glass.borderHighlight,
                       shadowColor: theme.glass.shadowColor,
                     },
                   ]}
                   accessible={true}
                   accessibilityRole="button"
-                  accessibilityLabel={`${item.brandName}, ${item.genericName}. ${availabilityLabel}. ${updateTimeLabel}. Tap to view details.`}
+                  accessibilityLabel={`${item.brandName}, ${item.genericName}. ${availabilityLabel}. ${timeText}. Tap to view details.`}
                 >
-                  {/* Top: Medicine Name & Badges */}
+                  {/* Top: Medicine Name & Strength/Form */}
                   <View style={styles.cardHeaderRow}>
                     <View style={styles.cardTitleGroup}>
                       <Text style={[styles.brandTitle, { color: theme.textPrimary }]}>
@@ -745,43 +647,23 @@ export default function HomeScreen() {
                       </Text>
                     </View>
 
-                    <View style={styles.cardBadgesGroup}>
-                      {/* Strength / Form Badge - Liquid Glass Pill */}
-                      {(item.strength || item.dosageForm) && (
-                        <View
-                          style={[
-                            styles.dosagePill,
-                            {
-                              backgroundColor: theme.glass.backgroundPill,
-                              borderColor: theme.glass.border,
-                            },
-                          ]}
-                        >
-                          <Text style={[styles.dosagePillText, { color: theme.textSecondary }]}>
-                            {item.strength}
-                            {item.strength && item.dosageForm ? ' • ' : ''}
-                            {item.dosageForm}
-                          </Text>
-                        </View>
-                      )}
-
-                      {/* Small, consistent "Demo" label on demo cards */}
-                      {isDemo && (
-                        <View
-                          style={[
-                            styles.demoTagPill,
-                            {
-                              backgroundColor: theme.glass.backgroundPill,
-                              borderColor: theme.glass.border,
-                            },
-                          ]}
-                        >
-                          <Text style={[styles.demoTagPillText, { color: theme.textMuted }]}>
-                            Demo
-                          </Text>
-                        </View>
-                      )}
-                    </View>
+                    {(item.strength || item.dosageForm) && (
+                      <View
+                        style={[
+                          styles.dosagePill,
+                          {
+                            backgroundColor: theme.glass.backgroundPill,
+                            borderColor: theme.glass.border,
+                          },
+                        ]}
+                      >
+                        <Text style={[styles.dosagePillText, { color: theme.textSecondary }]}>
+                          {item.strength}
+                          {item.strength && item.dosageForm ? ' • ' : ''}
+                          {item.dosageForm}
+                        </Text>
+                      </View>
+                    )}
                   </View>
 
                   {/* Availability & Update Time (Quick-Scan) */}
@@ -808,83 +690,37 @@ export default function HomeScreen() {
                     <View style={styles.updateTimeWrapper}>
                       <ClockIcon size={13} color={theme.textMuted} />
                       <Text style={[styles.updateTimeText, { color: theme.textMuted }]}>
-                        {updateTimeLabel}
+                        {timeText}
                       </Text>
-                      <ArrowRightIcon size={12} color={theme.textMuted} />
                     </View>
                   </View>
 
-                  {/* Pharmacy Name & Contact Info - Inset Liquid Glass Box */}
+                  {/* Provider & Source Attribution Row */}
                   <View
                     style={[
-                      styles.pharmacyInfoBox,
+                      styles.cardProviderRow,
                       {
-                        backgroundColor: theme.glass.backgroundSubtle,
-                        borderColor: theme.glass.borderSubtle,
+                        borderTopColor: theme.glass.borderSubtle,
                       },
                     ]}
                   >
-                    <View style={styles.pharmacyRow}>
-                      <PharmacyStoreIcon
-                        size={16}
-                        color={mode === 'light' ? '#87A96B' : '#00E5FF'}
-                      />
-                      <Text style={[styles.pharmacyNameText, { color: theme.textPrimary }]}>
-                        {item.pharmacyName}
+                    <View style={styles.providerInfoLeft}>
+                      <PharmacyStoreIcon size={14} color={mode === 'light' ? '#87A96B' : '#00E5FF'} />
+                      <Text
+                        style={[styles.providerNameText, { color: theme.textSecondary }]}
+                        numberOfLines={1}
+                      >
+                        {isReported ? item.pharmacyName : 'Participating pharmacy report pending'}
                       </Text>
                     </View>
 
-                    <View style={styles.pharmacyRow}>
-                      <MapPinIcon size={14} />
-                      <Text style={[styles.pharmacyLocationText, { color: theme.textSecondary }]}>
-                        {item.pharmacyAddress}
+                    <View style={styles.viewDetailsRow}>
+                      <Text style={[styles.viewDetailsText, { color: theme.primaryAccentText }]}>
+                        Details
                       </Text>
-                    </View>
-
-                    <View style={styles.pharmacyRow}>
-                      <PhoneIcon
-                        size={14}
-                        color={
-                          isDemo
-                            ? theme.textMuted
-                            : mode === 'light'
-                            ? '#87A96B'
-                            : '#00E5FF'
-                        }
-                      />
-                      <Text style={[styles.pharmacyContactText, { color: theme.textMuted }]}>
-                        {isDemo ? 'Sample contact (no calls)' : item.pharmacyPhone}
-                      </Text>
+                      <ArrowRightIcon size={12} color={theme.primaryAccentText} />
                     </View>
                   </View>
-
-                  {/* Call-First warning if real store data is aging */}
-                  {item.freshness.requiresCallFirst && !isDemo && (
-                    <View
-                      style={[
-                        styles.callFirstBox,
-                        {
-                          backgroundColor: mode === 'light' ? 'rgba(255, 248, 238, 0.9)' : 'rgba(35, 22, 8, 0.85)',
-                          borderColor: theme.warningAccent,
-                        },
-                      ]}
-                    >
-                      <WarningIcon size={15} />
-                      <Text
-                        style={[
-                          styles.callFirstText,
-                          {
-                            color:
-                              mode === 'light'
-                                ? theme.warningAccentText
-                                : theme.warningAccent,
-                          },
-                        ]}
-                      >
-                        Stock snapshot is not live. Call pharmacy to verify before traveling.
-                      </Text>
-                    </View>
-                  )}
                 </TouchableOpacity>
               );
             })}
@@ -1536,51 +1372,37 @@ const styles = StyleSheet.create({
     fontWeight: '400',
   },
 
-  // PHARMACY INFO BOX (INSET LIQUID GLASS)
-  pharmacyInfoBox: {
-    borderRadius: layout.borderRadius.md,
-    borderWidth: 1,
-    padding: layout.spacing.sm + 2,
-    gap: 6,
+  // PROVIDER ROW & VIEW DETAILS
+  cardProviderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingTop: layout.spacing.xs + 4,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    gap: layout.spacing.sm,
   },
-  pharmacyRow: {
+  providerInfoLeft: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-  },
-  pharmacyNameText: {
-    fontFamily: typography.fontFamilySemibold,
-    fontSize: typography.fontSize.sm,
-    fontWeight: '600',
     flex: 1,
   },
-  pharmacyLocationText: {
-    fontFamily: typography.fontFamilyRegular,
-    fontSize: typography.fontSize.xs,
-    fontWeight: '400',
-    flex: 1,
-  },
-  pharmacyContactText: {
-    fontFamily: typography.fontFamilyRegular,
-    fontSize: typography.fontSize.xs,
-    fontWeight: '400',
-    flex: 1,
-  },
-
-  // CALL FIRST ALERT
-  callFirstBox: {
-    borderRadius: layout.borderRadius.md,
-    borderWidth: 1,
-    padding: layout.spacing.sm,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  callFirstText: {
+  providerNameText: {
     fontFamily: typography.fontFamilyMedium,
     fontSize: typography.fontSize.xs,
     fontWeight: '500',
     flex: 1,
+  },
+  viewDetailsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    flexShrink: 0,
+  },
+  viewDetailsText: {
+    fontFamily: typography.fontFamilySemibold,
+    fontSize: typography.fontSize.xs,
+    fontWeight: '600',
   },
 
   // 6. MODAL STYLES (APPLE LIQUID GLASS SHEET)

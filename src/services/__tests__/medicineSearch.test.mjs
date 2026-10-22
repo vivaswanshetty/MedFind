@@ -3,20 +3,21 @@ import assert from 'node:assert/strict';
 import { searchMedicineStock } from '../medicineSearch.ts';
 
 test('Medicine Search Data Layer & Fallback Tests', async (t) => {
-  await t.test('Returns unblended demo data when database has 0 snapshots', async () => {
+  await t.test('Returns unblended essential medicine catalog when database has 0 snapshots', async () => {
     const res = await searchMedicineStock('Paracetamol', 'All');
     
     // Check data source
     assert.equal(res.dataSource, 'demo');
-    assert(res.results.length > 0, 'Should find demo Paracetamol records');
+    assert(res.results.length > 0, 'Should find NLEM Paracetamol records');
 
-    // Verify all items are marked isDemo and have valid freshness
+    // Verify all items are un-reported catalog items with verified source attribution
     for (const item of res.results) {
-      assert.equal(item.isDemo, true);
+      assert.equal(item.isReported, false);
+      assert.equal(item.state, 'unknown');
+      assert.equal(item.freshness.badgeLabel, 'Availability not reported');
+      assert.equal(item.sourceName, 'National List of Essential Medicines (NLEM India 2022)');
+      assert.equal(item.sourceUrl, 'https://cdsco.gov.in');
       assert.match(item.genericName.toLowerCase(), /paracetamol/);
-      assert(item.freshness, 'Each item must have a freshness calculation');
-      assert.notEqual(item.freshness.state, undefined);
-      assert(item.freshness.isSimulated, 'Demo items must have simulated freshness flag');
     }
   });
 
@@ -40,14 +41,14 @@ test('Medicine Search Data Layer & Fallback Tests', async (t) => {
     assert.equal(resNonExistent.results.length, 0);
   });
 
-  await t.test('No demo record uses "In Stock" or implies real store confirmation', async () => {
+  await t.test('No unverified record uses "In Stock" or invented contact numbers', async () => {
     const res = await searchMedicineStock('', 'All');
     for (const item of res.results) {
       // Must not contain "In Stock" in badge or guidance
       assert.doesNotMatch(item.freshness.badgeLabel, /In Stock/i);
       assert.doesNotMatch(item.freshness.guidanceText, /confirmed by store/i);
-      // Phone numbers must be inactive demo placeholders
-      assert.match(item.pharmacyPhone, /Inactive Number|No Call Action/i);
+      // No fictional phone numbers for unreported catalog entries
+      assert.equal(item.pharmacyPhone, '');
     }
   });
 });

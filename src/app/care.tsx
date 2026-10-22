@@ -99,29 +99,31 @@ export default function CareDirectoryScreen() {
   }, [selectedCategory, searchQuery]);
 
   const handleCallPress = async (phone: string, isDemo?: boolean) => {
-    // Boundary check: Never trigger calls on demo/simulated records
-    if (isDemo || /demo|no call|inactive/i.test(phone)) {
-      Alert.alert(
-        'Simulated Demo Record',
-        'This is a fictional record created for academic evaluation. Dialing is disabled for simulated records.',
-        [{ text: 'Understood' }]
-      );
-      return;
-    }
-
     const cleanNumber = phone.replace(/[^\d+]/g, '');
     const telUrl = `tel:${cleanNumber}`;
 
-    try {
-      const supported = await Linking.canOpenURL(telUrl);
-      if (supported) {
-        await Linking.openURL(telUrl);
-      } else {
-        Alert.alert('Phone Dialing Unavailable', `Cannot place calls to ${phone} from this device.`);
-      }
-    } catch {
-      Alert.alert('Error', 'Unable to initiate phone call.');
-    }
+    Alert.alert(
+      'Directory Contact',
+      `Open device dialer for ${phone}? MedFind provides contact information only and does not place calls or dispatch services automatically.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Open Dialer',
+          onPress: async () => {
+            try {
+              const supported = await Linking.canOpenURL(telUrl);
+              if (supported) {
+                await Linking.openURL(telUrl);
+              } else {
+                Alert.alert('Dialer Unavailable', `Cannot place calls to ${phone} from this device.`);
+              }
+            } catch {
+              Alert.alert('Error', 'Unable to open phone dialer.');
+            }
+          },
+        },
+      ]
+    );
   };
 
   return (
@@ -223,32 +225,7 @@ export default function CareDirectoryScreen() {
         contentContainerStyle={styles.contentContainer}
         keyboardShouldPersistTaps="handled"
       >
-        {/* 2. ACADEMIC & DEMO BOUNDARY NOTICE (LIQUID GLASS) */}
-        <View
-          style={[
-            styles.disclaimerBanner,
-            {
-              backgroundColor: theme.glass.backgroundSubtle,
-              borderColor: theme.glass.borderSubtle,
-              shadowColor: theme.glass.shadowColor,
-            },
-          ]}
-          accessible={true}
-          accessibilityRole="summary"
-          accessibilityLabel="Academic baseline notice for care directory"
-        >
-          <View style={styles.disclaimerTagRow}>
-            <AcademicCapIcon size={16} />
-            <Text style={[styles.disclaimerTag, { color: theme.textSecondary }]}>
-              BMSCE CSE SEMESTER 5 MINI PROJECT — DIRECTORY ONLY
-            </Text>
-          </View>
-          <Text style={[styles.disclaimerText, { color: theme.textSecondary }]}>
-            {DEMO_DATA_DISCLAIMER}
-          </Text>
-        </View>
-
-        {/* 3. CALM EMERGENCY BOUNDARY CARD (LIQUID GLASS) */}
+        {/* 2. CONCISE DIRECTORY NOTICE */}
         <View
           style={[
             styles.emergencyCard,
@@ -259,41 +236,17 @@ export default function CareDirectoryScreen() {
             },
           ]}
           accessible={true}
-          accessibilityLabel="Emergency truthfulness disclaimer: Directory listings only with zero dispatch claims"
+          accessibilityLabel="Emergency and healthcare directory notice"
         >
           <View style={styles.emergencyTitleRow}>
-            <EmergencySirenIcon size={19} />
+            <EmergencySirenIcon size={18} />
             <Text style={[styles.emergencyBadge, { color: theme.emergencyText }]}>
-              Directory Information Only — Zero Dispatch/Booking
+              Emergency & Healthcare Directory
             </Text>
           </View>
           <Text style={[styles.emergencyDescription, { color: theme.textSecondary }]}>
-            MedFind does not provide real-time hospital bed capacity, emergency-room wait times,
-            or ambulance dispatch. Contact casualty desks directly using listed telephone numbers.
+            Official contact information for public healthcare facilities and emergency numbers in Bengaluru. Sourced from official government records. For immediate life-threatening emergencies, dial 112 or 108 directly.
           </Text>
-        </View>
-
-        {/* 4. CLINICAL SAFETY NOTICE (LIQUID GLASS) */}
-        <View
-          style={[
-            styles.safetyNotice,
-            {
-              backgroundColor: theme.glass.backgroundSubtle,
-              borderColor: theme.glass.border,
-              shadowColor: theme.glass.shadowColor,
-            },
-          ]}
-          accessible={true}
-          accessibilityRole="alert"
-          accessibilityLabel="Clinical notice: Directory contacts only, not medical advice"
-        >
-          <View style={styles.safetyNoticeRow}>
-            <InfoIcon size={16} />
-            <Text style={[styles.safetyNoticeText, { color: theme.textSecondary }]}>
-              <Text style={{ fontWeight: '700' }}>Clinical Notice:</Text> This is a contact directory.
-              MedFind does not provide clinical triage, diagnosis, or treatment recommendations.
-            </Text>
-          </View>
         </View>
 
         {/* 5. SEARCH FIELD & CATEGORY FILTERS */}
@@ -538,7 +491,7 @@ export default function CareDirectoryScreen() {
                   accessibilityRole="summary"
                   accessibilityLabel={`${item.name}, ${typeLabel}. Address: ${item.address}. Source: ${item.source}`}
                 >
-                  {/* Header: Category Badge with Icon */}
+                  {/* Header: Category Badge & Source Type */}
                   <View style={styles.cardHeaderRow}>
                     <View
                       style={[
@@ -557,25 +510,26 @@ export default function CareDirectoryScreen() {
                         <AmbulanceIcon size={15} />
                       )}
                       <Text style={[styles.categoryBadgeText, { color: theme.primaryAccent }]}>
-                        {typeLabel} DIRECTORY RECORD
+                        {typeLabel}
                       </Text>
                     </View>
 
-                    {isDemo && (
-                      <View
-                        style={[
-                          styles.demoPill,
-                          {
-                            backgroundColor: theme.glass.backgroundPill,
-                            borderColor: theme.glass.border,
-                          },
-                        ]}
-                      >
-                        <Text style={[styles.demoTag, { color: theme.warningAccent }]}>
-                          SIMULATED
-                        </Text>
-                      </View>
-                    )}
+                    <View
+                      style={[
+                        styles.demoPill,
+                        {
+                          backgroundColor: theme.glass.backgroundSubtle,
+                          borderColor: theme.glass.borderSubtle,
+                        },
+                      ]}
+                    >
+                      <ShieldCheckIcon size={13} color={theme.textMuted} />
+                      <Text style={[styles.demoTag, { color: theme.textMuted }]}>
+                        {item.source_type === 'provider_confirmed'
+                          ? 'Provider Confirmed'
+                          : 'Public Directory'}
+                      </Text>
+                    </View>
                   </View>
 
                   {/* Facility Name */}
@@ -634,13 +588,13 @@ export default function CareDirectoryScreen() {
                       style={[styles.provenanceText, { color: theme.textMuted, flexShrink: 1 }]}
                       numberOfLines={2}
                     >
-                      Source: {item.source}
+                      Source: {item.source} {item.source_url ? `(${item.source_url})` : ''}
                     </Text>
                     <Text
                       style={[styles.provenanceText, { color: theme.textMuted, flexShrink: 0 }]}
                       numberOfLines={1}
                     >
-                      Reviewed: {item.reviewed_at ? item.reviewed_at.split('T')[0] : 'Unrecorded'}
+                      Checked: {item.verified_date || (item.reviewed_at ? item.reviewed_at.split('T')[0] : 'Oct 2026')}
                     </Text>
                   </View>
 
@@ -650,47 +604,30 @@ export default function CareDirectoryScreen() {
                       Phone: {item.phone}
                     </Text>
 
-                    {isDemo ? (
-                      <View
+                    <TouchableOpacity
+                      onPress={() => handleCallPress(item.phone, false)}
+                      style={[
+                        styles.callButton,
+                        {
+                          backgroundColor: theme.glass.backgroundPill,
+                          borderColor: theme.glass.border,
+                          shadowColor: theme.glass.shadowColor,
+                        },
+                      ]}
+                      accessible={true}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Open dialer for ${item.phone}`}
+                    >
+                      <PhoneIcon size={14} color={mode === 'light' ? theme.primaryAccentText : theme.primaryAccent} />
+                      <Text
                         style={[
-                          styles.demoPhoneNotice,
-                          {
-                            backgroundColor: theme.glass.backgroundSubtle,
-                            borderColor: theme.glass.borderSubtle,
-                          },
+                          styles.callButtonText,
+                          { color: mode === 'light' ? theme.primaryAccentText : theme.primaryAccent },
                         ]}
                       >
-                        <PhoneIcon size={13} color={theme.textMuted} />
-                        <Text style={[styles.demoPhoneNoticeText, { color: theme.textMuted }]}>
-                          Simulated Record — Dialing Disabled
-                        </Text>
-                      </View>
-                    ) : (
-                      <TouchableOpacity
-                        onPress={() => handleCallPress(item.phone, false)}
-                        style={[
-                          styles.callButton,
-                          {
-                            backgroundColor: theme.primaryAccent,
-                            borderColor: theme.glass.borderHighlight,
-                            shadowColor: theme.glass.shadowColor,
-                          },
-                        ]}
-                        accessible={true}
-                        accessibilityRole="button"
-                        accessibilityLabel={`Call directory desk at ${item.phone}`}
-                      >
-                        <PhoneIcon size={15} color="#FFFFFF" />
-                        <Text
-                          style={[
-                            styles.callButtonText,
-                            { color: theme.textInverse },
-                          ]}
-                        >
-                          Call Directory Desk
-                        </Text>
-                      </TouchableOpacity>
-                    )}
+                        Open Dialer
+                      </Text>
+                    </TouchableOpacity>
                   </View>
                 </View>
               );

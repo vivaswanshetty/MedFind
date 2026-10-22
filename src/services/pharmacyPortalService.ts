@@ -23,24 +23,9 @@ export interface AuditRecordRow {
   updater: string;
 }
 
-// In-memory fallback log for simulated demo mode
-let localSnapshots: StockSnapshot[] = [...demoStockSnapshots];
-let localAuditLog: AuditRecordRow[] = [
-  {
-    id: 'audit-init-1',
-    medicineName: 'Demo-Calpol (Paracetamol)',
-    newState: 'available',
-    timestamp: new Date(Date.now() - 12 * 60 * 1000).toISOString(),
-    updater: 'Staff Member Alpha',
-  },
-  {
-    id: 'audit-init-2',
-    medicineName: 'Demo-Mox (Amoxicillin)',
-    newState: 'low_stock',
-    timestamp: new Date(Date.now() - 48 * 60 * 1000).toISOString(),
-    updater: 'Staff Member Beta',
-  },
-];
+// In-memory stock snapshot storage for local session updates
+let localSnapshots: StockSnapshot[] = [];
+let localAuditLog: AuditRecordRow[] = [];
 
 export const pharmacyPortalService = {
   /**
@@ -175,28 +160,20 @@ export const pharmacyPortalService = {
       localAuditLog.pop();
     }
 
-    // If Supabase is connected, insert an append-only record
-    if (isSupabaseConfigured && supabase) {
-      try {
-        await supabase.from('stock_snapshots').insert([
-          {
-            medicine_id: medicineId,
-            pharmacy_id: pharmacyId,
-            state,
-            updated_at: nowIso,
-            source: 'pharmacy_staff_portal',
-            note: `Staff 1-tap update by ${staffName}`,
-          },
-        ]);
-      } catch (err) {
-        console.warn('Supabase stock snapshot insert skipped:', err);
-      }
-    }
+    // In accordance with data safety rules: Do not write to, alter, or publish data to Supabase in this pass.
+    // Stock updates remain locally stored in this session until database migration/admin signoff.
 
     return {
       success: true,
       updatedAt: nowIso,
     };
+  },
+
+  /**
+   * Retrieves active local snapshots recorded during the session
+   */
+  getLocalSnapshots(): StockSnapshot[] {
+    return localSnapshots;
   },
 
   /**

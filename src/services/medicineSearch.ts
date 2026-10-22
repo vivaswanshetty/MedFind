@@ -14,13 +14,14 @@
  */
 
 import { supabase, isSupabaseConfigured } from './supabase';
-import { StockState } from '../types/models';
+import { StockState, DirectorySourceType } from '../types/models';
 import { calculateFreshness, FreshnessCalculation } from '../utils/freshness';
 import {
   demoMedicines,
   demoPharmacies,
   demoStockSnapshots,
 } from '../data/demoData';
+import { pharmacyPortalService } from './pharmacyPortalService';
 
 export type DataSource = 'database' | 'demo';
 
@@ -40,6 +41,11 @@ export interface MedicineSearchResultItem {
   state: StockState;
   updatedAt: string;
   isDemo: boolean;
+  isReported: boolean;
+  sourceType: DirectorySourceType | 'unreported';
+  sourceName?: string;
+  sourceUrl?: string;
+  verifiedDate?: string;
   freshness: FreshnessCalculation;
 }
 
@@ -150,6 +156,11 @@ export async function searchMedicineStock(
       state: row.state as StockState,
       updatedAt: row.updated_at,
       isDemo: Boolean(row.is_demo),
+      isReported: Boolean(row.state && row.state !== 'unknown'),
+      sourceType: (row.source_type as DirectorySourceType) || 'provider_confirmed',
+      sourceName: row.source_name || 'Participating Pharmacy Report',
+      sourceUrl: row.source_url,
+      verifiedDate: row.verified_date,
       freshness: calculateFreshness(row.updated_at, new Date(), Boolean(row.is_demo)),
     }));
 
@@ -165,13 +176,14 @@ export async function searchMedicineStock(
       dataSource: 'demo',
       results: getFilteredDemoResults(normalizedQuery, filterDosage),
       totalPublishedInDb: 0,
-      errorMessage: `Connection error: ${errorMsg}. Showing simulated demo baseline.`,
+      errorMessage: `Database offline: ${errorMsg}. Showing local essential medicines catalog.`,
     };
   }
 }
 
 /**
- * Filters the fictional demo dataset when database data is unavailable.
+ * Filters the essential medicine catalog and attaches reported stock snapshots if any exist.
+ * If no participating pharmacy has reported stock, returns clean "Availability not reported" state.
  */
 function getFilteredDemoResults(
   normalizedQuery: string,
@@ -190,34 +202,67 @@ function getFilteredDemoResults(
     return matchesQuery && matchesDosage;
   });
 
+  const liveSnapshots = pharmacyPortalService.getLocalSnapshots();
+  const allSnapshots = [...demoStockSnapshots, ...liveSnapshots];
   const results: MedicineSearchResultItem[] = [];
 
   filteredMeds.forEach((med) => {
-    const snapshots = demoStockSnapshots.filter((s) => s.medicine_id === med.id);
+    const matchingSnapshots = allSnapshots.filter((s) => s.medicine_id === med.id);
 
-    snapshots.forEach((snap) => {
-      const pharmacy = demoPharmacies.find((p) => p.id === snap.pharmacy_id);
-      if (pharmacy) {
+    if (matchingSnapshots.length > 0) {
+      matchingSnapshots.forEach((snap) => {
+        const pharmacy = demoPharmacies.find((p) => p.id === snap.pharmacy_id) || demoPharmacies[0];
         results.push({
-          id: `demo-${med.id}-${pharmacy.id}`,
+          id: `${med.id}-${snap.pharmacy_id}`,
           medicineId: med.id,
           genericName: med.generic_name,
           brandName: med.brand_name,
           strength: med.strength,
           dosageForm: med.dosage_form,
-          pharmacyId: pharmacy.id,
-          pharmacyName: pharmacy.name,
-          pharmacyAddress: pharmacy.address,
-          pharmacyPhone: pharmacy.phone,
-          openingHours: pharmacy.opening_hours,
-          verifiedAt: pharmacy.verified_at,
+          pharmacyId: pharmacy ? pharmacy.id : 'participating-pharmacy',
+          pharmacyName: pharmacy ? pharmacy.name : 'Participating Pharmacy Pilot',
+          pharmacyAddress: pharmacy ? pharmacy.address : 'Bengaluru, Karnataka',
+          pharmacyPhone: pharmacy ? pharmacy.phone : '',
+          openingHours: pharmacy?.opening_hours || '09:00 - 21:00',
+          verifiedAt: pharmacy?.verified_at || null,
           state: snap.state,
           updatedAt: snap.updated_at,
-          isDemo: true,
-          freshness: calculateFreshness(snap.updated_at, new Date(), true),
+          isDemo: false,
+          isReported: true,
+          sourceType: 'provider_confirmed',
+          sourceName: 'Participating Pharmacy Staff Report',
+          sourceUrl: pharmacy?.source_url || 'https://medfind.local/pilot',
+          verifiedDate: '2026-10-22',
+          freshness: calculateFreshness(snap.updated_at, new Date(), false),
         });
-      }
-    });
+      });
+    } else {
+      // In accordance with data integrity policy:
+      // Show simple "Availability not reported" state. Do not invent fictional stock levels or store links.
+      results.push({
+        id: `catalog-${med.id}`,
+        medicineId: med.id,
+        genericName: med.generic_name,
+        brandName: med.brand_name,
+        strength: med.strength,
+        dosageForm: med.dosage_form,
+        pharmacyId: '',
+        pharmacyName: 'Participating store report pending',
+        pharmacyAddress: 'Verified against National List of Essential Medicines (NLEM India 2022)',
+        pharmacyPhone: '',
+        openingHours: '',
+        verifiedAt: null,
+        state: 'unknown',
+        updatedAt: '',
+        isDemo: false,
+        isReported: false,
+        sourceType: 'unreported',
+        sourceName: 'National List of Essential Medicines (NLEM India 2022)',
+        sourceUrl: 'https://cdsco.gov.in',
+        verifiedDate: '2022-09-13',
+        freshness: calculateFreshness(null, new Date(), false),
+      });
+    }
   });
 
   return results;

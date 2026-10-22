@@ -81,32 +81,52 @@ export default function MedicineDetailScreen() {
   const handleCallPress = async () => {
     if (!item) return;
 
-    if (item.isDemo || /demo|no call|inactive/i.test(item.pharmacyPhone)) {
+    if (!item.pharmacyPhone) {
       Alert.alert(
-        'Simulated Demo Record',
-        'This record is for academic demonstration. Dialing is disabled for simulated demo numbers.',
+        'Phone Contact Unavailable',
+        'A telephone contact has not been confirmed directly by a participating provider for this listing.',
         [{ text: 'Understood' }]
       );
       return;
     }
 
-    const cleanNumber = item.pharmacyPhone.replace(/[^\d+]/g, '');
-    const telUrl = `tel:${cleanNumber}`;
-
-    try {
-      const supported = await Linking.canOpenURL(telUrl);
-      if (supported) {
-        await Linking.openURL(telUrl);
-      } else {
-        Alert.alert('Phone Dialing Unavailable', `Cannot place calls to ${item.pharmacyPhone} from this device.`);
-      }
-    } catch {
-      Alert.alert('Error', 'Unable to initiate phone call.');
-    }
+    Alert.alert(
+      'Contact Information Only',
+      `MedFind provides directory contact numbers only and does not place calls, reserve stock, or dispatch services.\n\nOpen device dialer with ${item.pharmacyPhone}?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Open Dialer',
+          onPress: async () => {
+            const cleanNumber = item.pharmacyPhone.replace(/[^\d+]/g, '');
+            const telUrl = `tel:${cleanNumber}`;
+            try {
+              const supported = await Linking.canOpenURL(telUrl);
+              if (supported) {
+                await Linking.openURL(telUrl);
+              } else {
+                Alert.alert('Phone Dialing Unavailable', `Cannot place calls to ${item.pharmacyPhone} from this device.`);
+              }
+            } catch {
+              Alert.alert('Error', 'Unable to initiate phone call.');
+            }
+          },
+        },
+      ]
+    );
   };
 
   const handleOpenMaps = async () => {
     if (!item) return;
+
+    if (!item.isReported || !item.pharmacyAddress) {
+      Alert.alert(
+        'Location Unavailable',
+        'No participating retail pharmacy location is currently reporting stock for this medicine.',
+        [{ text: 'Understood' }]
+      );
+      return;
+    }
 
     const query = encodeURIComponent(`${item.pharmacyName}, ${item.pharmacyAddress}`);
     const mapUrl = Platform.select({
@@ -159,30 +179,32 @@ export default function MedicineDetailScreen() {
     );
   }
 
-  const isDemo = item.isDemo;
+  const isReported = item.isReported === true;
 
   // Format availability
-  let availabilityLabel = isDemo ? '● Sample: Available' : '● Reported: Available';
-  let availabilityBg = theme.badgeBackground;
-  let availabilityColor = theme.primaryAccentText;
+  let availabilityLabel = '○ Availability not reported';
+  let availabilityBg = theme.glass.backgroundSubtle;
+  let availabilityColor = theme.textSecondary;
 
-  if (item.state === 'low_stock') {
-    availabilityLabel = isDemo ? '▲ Sample: Low Stock' : '▲ Reported: Low Stock';
-    availabilityBg = mode === 'light' ? 'rgba(255, 248, 238, 0.95)' : 'rgba(38, 23, 8, 0.85)';
-    availabilityColor = mode === 'light' ? theme.warningAccentText : theme.warningAccent;
-  } else if (item.state === 'unavailable') {
-    availabilityLabel = isDemo ? '— Sample: Unavailable' : '— Reported: Unavailable';
-    availabilityBg = theme.glass.backgroundSubtle;
-    availabilityColor = theme.textSecondary;
-  } else if (item.state === 'unknown') {
-    availabilityLabel = isDemo ? '○ Sample: Unknown' : '○ Reported: Unknown';
-    availabilityBg = theme.glass.backgroundSubtle;
-    availabilityColor = theme.textSecondary;
+  if (isReported) {
+    if (item.state === 'available') {
+      availabilityLabel = '● Reported: Available';
+      availabilityBg = theme.badgeBackground;
+      availabilityColor = theme.primaryAccentText;
+    } else if (item.state === 'low_stock') {
+      availabilityLabel = '▲ Reported: Low Stock';
+      availabilityBg = mode === 'light' ? 'rgba(255, 248, 238, 0.95)' : 'rgba(38, 23, 8, 0.85)';
+      availabilityColor = mode === 'light' ? theme.warningAccentText : theme.warningAccent;
+    } else if (item.state === 'unavailable') {
+      availabilityLabel = '— Reported: Unavailable';
+      availabilityBg = theme.glass.backgroundSubtle;
+      availabilityColor = theme.textSecondary;
+    }
   }
 
-  const updateTimeText = isDemo
-    ? `Sample update: ${item.freshness.relativeTimeText}`
-    : `Updated ${item.freshness.relativeTimeText}`;
+  const updateTimeText = isReported && item.freshness.rawTimestamp
+    ? `Updated ${item.freshness.relativeTimeText}`
+    : 'Availability not reported';
 
   return (
     <View style={[styles.screenRoot, { backgroundColor: theme.canvas }]}>
@@ -293,21 +315,21 @@ export default function MedicineDetailScreen() {
                 </View>
               )}
 
-              {isDemo && (
-                <View
-                  style={[
-                    styles.demoPill,
-                    {
-                      backgroundColor: theme.glass.backgroundPill,
-                      borderColor: theme.glass.border,
-                    },
-                  ]}
-                >
-                  <Text style={[styles.demoPillText, { color: theme.textMuted }]}>
-                    Demo Record
-                  </Text>
-                </View>
-              )}
+              <View
+                style={[
+                  styles.sourcePill,
+                  {
+                    backgroundColor: theme.glass.backgroundPill,
+                    borderColor: theme.glass.border,
+                  },
+                ]}
+              >
+                <Text style={[styles.sourcePillText, { color: theme.textMuted }]}>
+                  {item.sourceType === 'provider_confirmed'
+                    ? 'Provider Confirmed'
+                    : (item.sourceName || 'NLEM India 2022')}
+                </Text>
+              </View>
             </View>
           </View>
 
@@ -318,9 +340,9 @@ export default function MedicineDetailScreen() {
               {
                 backgroundColor: availabilityBg,
                 borderColor:
-                  item.state === 'available'
+                  isReported && item.state === 'available'
                     ? theme.primaryAccent
-                    : item.state === 'low_stock'
+                    : isReported && item.state === 'low_stock'
                     ? theme.warningAccent
                     : theme.glass.border,
               },
@@ -329,9 +351,9 @@ export default function MedicineDetailScreen() {
             <ShieldCheckIcon
               size={18}
               color={
-                item.state === 'available'
+                isReported && item.state === 'available'
                   ? theme.primaryAccent
-                  : item.state === 'low_stock'
+                  : isReported && item.state === 'low_stock'
                   ? theme.warningAccent
                   : theme.textSecondary
               }
@@ -341,39 +363,23 @@ export default function MedicineDetailScreen() {
             </Text>
           </View>
 
-          {/* Freshness Timestamp */}
+          {/* Timestamp / Status Notice */}
           <View style={styles.updateRow}>
             <ClockIcon size={14} color={theme.textMuted} />
             <Text style={[styles.updateText, { color: theme.textMuted }]}>
-              {updateTimeText} ({item.freshness.badgeLabel})
+              {updateTimeText}
             </Text>
           </View>
 
-          {/* Aging Warning Notice if applicable */}
-          {item.freshness.requiresCallFirst && !isDemo && (
-            <View
-              style={[
-                styles.agingWarningBox,
-                {
-                  backgroundColor: mode === 'light' ? 'rgba(255, 248, 238, 0.95)' : 'rgba(35, 22, 8, 0.9)',
-                  borderColor: theme.warningAccent,
-                },
-              ]}
-            >
-              <WarningIcon size={16} />
-              <Text
-                style={[
-                  styles.agingWarningText,
-                  { color: mode === 'light' ? theme.warningAccentText : theme.warningAccent },
-                ]}
-              >
-                Snapshot is not live. Always call store to confirm stock before traveling.
-              </Text>
-            </View>
-          )}
+          {/* Concise Stock Notice */}
+          <View style={styles.policyNoticeBox}>
+            <Text style={[styles.policyNoticeText, { color: theme.textMuted }]}>
+              Stock availability is only shown when reported directly by a participating pharmacy.
+            </Text>
+          </View>
         </View>
 
-        {/* 3. PARTICIPATING PHARMACY DETAILS (LIQUID GLASS CARD) */}
+        {/* 3. PARTICIPATING PHARMACY OR SOURCE DETAILS */}
         <View
           style={[
             styles.sectionCard,
@@ -387,7 +393,7 @@ export default function MedicineDetailScreen() {
           <View style={styles.sectionHeaderRow}>
             <PharmacyStoreIcon size={18} color={mode === 'light' ? '#87A96B' : '#00E5FF'} />
             <Text style={[styles.sectionTitle, { color: theme.textPrimary }]}>
-              Participating Store Details
+              {isReported ? 'Participating Store Details' : 'Catalog Source & Inventory Status'}
             </Text>
           </View>
 
@@ -395,7 +401,7 @@ export default function MedicineDetailScreen() {
             {item.pharmacyName}
           </Text>
 
-          {/* Address */}
+          {/* Address or Catalog Citation */}
           <View style={styles.infoRow}>
             <MapPinIcon size={16} />
             <Text style={[styles.infoText, { color: theme.textSecondary }]}>
@@ -403,7 +409,7 @@ export default function MedicineDetailScreen() {
             </Text>
           </View>
 
-          {/* Opening Hours */}
+          {/* Opening Hours if reported */}
           {item.openingHours && (
             <View style={styles.infoRow}>
               <ClockIcon size={15} color={theme.textMuted} />
@@ -413,59 +419,90 @@ export default function MedicineDetailScreen() {
             </View>
           )}
 
-          {/* Contact String */}
-          <View style={styles.infoRow}>
-            <PhoneIcon size={15} color={isDemo ? theme.textMuted : theme.primaryAccent} />
-            <Text style={[styles.infoText, { color: theme.textSecondary }]}>
-              {isDemo ? 'Sample contact (no calls)' : item.pharmacyPhone}
-            </Text>
-          </View>
+          {/* Verified Source Attribution */}
+          {item.sourceName && (
+            <View style={styles.sourceMetaBox}>
+              <Text style={[styles.sourceMetaText, { color: theme.textMuted }]}>
+                Source: <Text style={{ color: theme.textSecondary, fontWeight: '500' }}>{item.sourceName}</Text>
+              </Text>
+              {item.verifiedDate && (
+                <Text style={[styles.sourceMetaText, { color: theme.textMuted }]}>
+                  Verified: <Text style={{ color: theme.textSecondary, fontWeight: '500' }}>{item.verifiedDate}</Text>
+                </Text>
+              )}
+            </View>
+          )}
 
-          {/* Primary Action Buttons */}
+          {/* Actions */}
           <View style={styles.actionsRow}>
-            <TouchableOpacity
-              onPress={handleCallPress}
-              style={[
-                styles.actionButton,
-                {
-                  backgroundColor: theme.primaryAccent,
-                  borderColor: theme.glass.borderHighlight,
-                  shadowColor: theme.glass.shadowColor,
-                },
-              ]}
-              accessible={true}
-              accessibilityRole="button"
-              accessibilityLabel={`Call store at ${item.pharmacyPhone}`}
-            >
-              <PhoneIcon size={16} color="#FFFFFF" />
-              <Text style={[styles.actionButtonText, { color: theme.textInverse }]}>
-                Call Pharmacy
-              </Text>
-            </TouchableOpacity>
+            {isReported && item.pharmacyPhone ? (
+              <TouchableOpacity
+                onPress={handleCallPress}
+                style={[
+                  styles.actionButton,
+                  {
+                    backgroundColor: theme.primaryAccent,
+                    borderColor: theme.glass.borderHighlight,
+                    shadowColor: theme.glass.shadowColor,
+                  },
+                ]}
+                accessible={true}
+                accessibilityRole="button"
+                accessibilityLabel={`Call store at ${item.pharmacyPhone}`}
+              >
+                <PhoneIcon size={16} color="#FFFFFF" />
+                <Text style={[styles.actionButtonText, { color: theme.textInverse }]}>
+                  Call Pharmacy
+                </Text>
+              </TouchableOpacity>
+            ) : null}
 
-            <TouchableOpacity
-              onPress={handleOpenMaps}
-              style={[
-                styles.actionButton,
-                {
-                  backgroundColor: theme.glass.backgroundPill,
-                  borderColor: theme.glass.border,
-                  shadowColor: theme.glass.shadowColor,
-                },
-              ]}
-              accessible={true}
-              accessibilityRole="button"
-              accessibilityLabel="Open pharmacy address in maps"
-            >
-              <DirectionsIcon size={16} />
-              <Text style={[styles.actionButtonText, { color: theme.textPrimary }]}>
-                Open in Maps
-              </Text>
-            </TouchableOpacity>
+            {isReported && item.pharmacyAddress ? (
+              <TouchableOpacity
+                onPress={handleOpenMaps}
+                style={[
+                  styles.actionButton,
+                  {
+                    backgroundColor: theme.glass.backgroundPill,
+                    borderColor: theme.glass.border,
+                    shadowColor: theme.glass.shadowColor,
+                  },
+                ]}
+                accessible={true}
+                accessibilityRole="button"
+                accessibilityLabel="Open pharmacy address in maps"
+              >
+                <DirectionsIcon size={16} />
+                <Text style={[styles.actionButtonText, { color: theme.textPrimary }]}>
+                  Open in Maps
+                </Text>
+              </TouchableOpacity>
+            ) : null}
+
+            {item.sourceUrl ? (
+              <TouchableOpacity
+                onPress={() => Linking.openURL(item.sourceUrl!)}
+                style={[
+                  styles.actionButton,
+                  {
+                    backgroundColor: theme.glass.backgroundPill,
+                    borderColor: theme.glass.border,
+                    shadowColor: theme.glass.shadowColor,
+                  },
+                ]}
+                accessible={true}
+                accessibilityRole="button"
+                accessibilityLabel="View official public source link"
+              >
+                <Text style={[styles.actionButtonText, { color: theme.primaryAccentText }]}>
+                  View Official Source
+                </Text>
+              </TouchableOpacity>
+            ) : null}
           </View>
         </View>
 
-        {/* 4. CLINICAL SAFETY & PRESCRIPTION NOTICE */}
+        {/* 4. CLINICAL GUIDANCE NOTICE */}
         <View
           style={[
             styles.noticeCard,
@@ -478,11 +515,11 @@ export default function MedicineDetailScreen() {
           <View style={styles.noticeHeaderRow}>
             <MedicalCrossIcon size={16} />
             <Text style={[styles.noticeTitle, { color: theme.textPrimary }]}>
-              Prescription & Clinical Verification
+              Important Guidance
             </Text>
           </View>
           <Text style={[styles.noticeBody, { color: theme.textSecondary }]}>
-            • MedFind is a stock discovery directory and does not dispense or reserve medication.{'\n'}
+            • MedFind shows stock reports only; it does not dispense or reserve medication.{'\n'}
             • Always carry a valid prescription from a registered medical practitioner.{'\n'}
             • Never adjust dosages or substitute medicines without consulting your physician or pharmacist.
           </Text>
@@ -630,13 +667,13 @@ const styles = StyleSheet.create({
     fontSize: typography.fontSize.xs,
     fontWeight: '500',
   },
-  demoPill: {
+  sourcePill: {
     paddingHorizontal: layout.spacing.sm,
     paddingVertical: 4,
     borderRadius: layout.borderRadius.pill,
     borderWidth: 1,
   },
-  demoPillText: {
+  sourcePillText: {
     fontFamily: typography.fontFamilySemibold,
     fontSize: typography.fontSize.xs - 1,
     fontWeight: '600',
@@ -666,19 +703,24 @@ const styles = StyleSheet.create({
     fontSize: typography.fontSize.xs,
     fontWeight: '400',
   },
-  agingWarningBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    borderRadius: layout.borderRadius.md,
-    borderWidth: 1,
-    padding: layout.spacing.sm,
+  policyNoticeBox: {
+    paddingTop: 4,
   },
-  agingWarningText: {
-    fontFamily: typography.fontFamilyMedium,
+  policyNoticeText: {
+    fontFamily: typography.fontFamilyRegular,
     fontSize: typography.fontSize.xs,
-    fontWeight: '500',
-    flex: 1,
+    fontWeight: '400',
+    lineHeight: 16,
+  },
+  sourceMetaBox: {
+    gap: 4,
+    marginTop: 2,
+    marginBottom: 4,
+  },
+  sourceMetaText: {
+    fontFamily: typography.fontFamilyRegular,
+    fontSize: typography.fontSize.xs,
+    fontWeight: '400',
   },
 
   // SECTION CARD

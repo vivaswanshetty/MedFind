@@ -43,12 +43,14 @@ test('Provider Directory Service Tests', async (t) => {
     }
   });
 
-  await t.test('Demo records are explicitly flagged and have inactive contact strings', async () => {
+  await t.test('All directory records have verified public directory attribution', async () => {
     const res = await getProviderListings('all');
-    const demoItems = res.results.filter((i) => i.is_demo);
-    for (const item of demoItems) {
-      assert.equal(item.is_demo, true);
-      assert.match(item.phone, /No Call Action|Demo|Inactive/i);
+    assert(res.results.length > 0, 'Should have directory entries');
+    for (const item of res.results) {
+      assert.equal(item.source_type, 'public_directory');
+      assert.ok(item.source_url, 'Must have public source URL');
+      assert.ok(item.verified_date, 'Must have verified date');
+      assert.notEqual(item.is_demo, true, 'No listing should be marked as demo');
     }
   });
 });

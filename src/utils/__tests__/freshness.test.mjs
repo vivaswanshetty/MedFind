@@ -64,7 +64,7 @@ test('Freshness boundary tests for MedFind', async (t) => {
     const resNull = calculateFreshness(null, baseTime);
     assert.equal(resNull.state, 'unknown');
     assert.equal(resNull.requiresCallFirst, true);
-    assert.match(resNull.badgeLabel, /Unknown/);
+    assert.match(resNull.badgeLabel, /Availability not reported|Unknown/);
 
     // Undefined
     const resUndefined = calculateFreshness(undefined, baseTime);

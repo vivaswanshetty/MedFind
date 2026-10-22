@@ -145,17 +145,22 @@ function createUnknownResult(
   reason: string,
   isDemo: boolean
 ): FreshnessCalculation {
+  const isUnreported = !rawTimestamp;
   return {
     state: 'unknown',
-    stateLabel: isDemo ? 'Sample: Unknown' : 'Unknown',
-    badgeLabel: isDemo ? 'Sample update: Unknown' : 'Unknown — Call first',
+    stateLabel: isDemo ? 'Sample: Unknown' : isUnreported ? 'Availability not reported' : 'Unknown',
+    badgeLabel: isDemo ? 'Sample update: Unknown' : isUnreported ? 'Availability not reported' : 'Unknown — Call first',
     guidanceText: isDemo
       ? 'Sample record with unverified timestamp. Call store to verify.'
+      : isUnreported
+      ? 'Stock availability is only shown when reported directly by a participating pharmacy.'
       : `Status unverified (${reason}). Call store to check stock.`,
     accessibilityLabel: isDemo
       ? 'Sample update: Unknown timestamp'
+      : isUnreported
+      ? 'Availability not reported by pharmacy'
       : `Stock status unverified. Call store to check stock.`,
-    relativeTimeText: 'Unknown update time',
+    relativeTimeText: isUnreported ? 'Not reported' : 'Unknown update time',
     rawTimestamp,
     ageMinutes: null,
     requiresCallFirst: true,
