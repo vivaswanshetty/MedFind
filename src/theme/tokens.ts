@@ -10,6 +10,21 @@
 
 export type ThemeMode = 'light' | 'dark';
 
+export interface GlassTokens {
+  background: string;
+  backgroundSubtle: string;
+  backgroundElevated: string;
+  backgroundPill: string;
+  border: string;
+  borderHighlight: string;
+  borderSubtle: string;
+  shadowColor: string;
+  shadowOffset: { width: number; height: number };
+  shadowOpacity: number;
+  shadowRadius: number;
+  elevation: number;
+}
+
 export interface ColorPalette {
   canvas: string;
   surface: string;
@@ -37,14 +52,16 @@ export interface ColorPalette {
   primaryAccentText: string;
   warningAccentText: string;
   surfaceSubtle: string;
+
+  glass: GlassTokens;
 }
 
 export const lightPalette: ColorPalette = {
-  canvas: '#FBF9F5',            // Warm off-white
+  canvas: '#F8F6F0',            // Warm organic canvas
   surface: '#FFFFFF',           // Crisp card background
   surfaceElevated: '#F3EFE8',   // Slightly elevated card
   surfaceSubtle: '#F7F4EE',     // Subtle pill/chip background
-  border: '#E3DDD3',            // Warm subtle divider
+  border: 'rgba(215, 207, 195, 0.7)', // Warm subtle divider
   borderFocus: '#87A96B',       // Sage Green focus ring
 
   textPrimary: '#5A3E2B',       // Walnut Brown editorial hierarchy
@@ -59,20 +76,35 @@ export const lightPalette: ColorPalette = {
   warningAccentText: '#9A5805', // High-contrast amber text
   urgentAccent: '#B23B2A',      // Calm emergency accent (accessible against off-white)
 
-  badgeBackground: '#EEF3EA',   // Light Sage tint
-  badgeBorder: '#87A96B',
+  badgeBackground: 'rgba(238, 243, 234, 0.85)', // Light Sage glass tint
+  badgeBorder: 'rgba(135, 169, 107, 0.45)',
 
-  emergencyBackground: '#FDF1EE', // Soft calm emergency pill
+  emergencyBackground: 'rgba(253, 241, 238, 0.85)', // Soft calm emergency glass
   emergencyText: '#942B1D',
-  emergencyBorder: '#E29A8E',
+  emergencyBorder: 'rgba(226, 154, 142, 0.55)',
+
+  glass: {
+    background: 'rgba(255, 255, 255, 0.78)',
+    backgroundSubtle: 'rgba(255, 255, 255, 0.55)',
+    backgroundElevated: 'rgba(255, 255, 255, 0.90)',
+    backgroundPill: 'rgba(255, 255, 255, 0.72)',
+    border: 'rgba(255, 255, 255, 0.92)',
+    borderHighlight: 'rgba(255, 255, 255, 1.0)',
+    borderSubtle: 'rgba(220, 212, 200, 0.55)',
+    shadowColor: '#5A3E2B',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.08,
+    shadowRadius: 16,
+    elevation: 3,
+  },
 };
 
 export const darkPalette: ColorPalette = {
-  canvas: '#050505',            // Jet Black base canvas
-  surface: '#111116',           // Dark surface
-  surfaceElevated: '#1A1824',   // Elevated charcoal surface
-  surfaceSubtle: '#161420',     // Subtle dark container
-  border: '#292535',            // Royal Amethyst muted border
+  canvas: '#06050A',            // Deep obsidian canvas
+  surface: '#111018',           // Dark surface
+  surfaceElevated: '#181624',   // Elevated charcoal surface
+  surfaceSubtle: '#141220',     // Subtle dark container
+  border: 'rgba(41, 37, 53, 0.7)', // Royal Amethyst muted border
   borderFocus: '#00E5FF',       // Electric Cyan focus ring
 
   textPrimary: '#EDEDED',       // Near-white primary text
@@ -87,12 +119,27 @@ export const darkPalette: ColorPalette = {
   warningAccentText: '#FFA940', // High-contrast amber text
   urgentAccent: '#FF5C5C',      // Calm high-contrast emergency signal
 
-  badgeBackground: '#0B2228',   // Dark cyan tint
-  badgeBorder: '#00E5FF',
+  badgeBackground: 'rgba(11, 34, 40, 0.75)', // Dark cyan glass tint
+  badgeBorder: 'rgba(0, 229, 255, 0.4)',
 
-  emergencyBackground: '#260B0F', // Dark calm emergency container
+  emergencyBackground: 'rgba(38, 11, 15, 0.75)', // Dark calm emergency glass
   emergencyText: '#FF7B7B',
-  emergencyBorder: '#5C1A22',
+  emergencyBorder: 'rgba(92, 26, 34, 0.6)',
+
+  glass: {
+    background: 'rgba(20, 18, 30, 0.76)',
+    backgroundSubtle: 'rgba(26, 24, 38, 0.55)',
+    backgroundElevated: 'rgba(32, 28, 48, 0.82)',
+    backgroundPill: 'rgba(255, 255, 255, 0.10)',
+    border: 'rgba(255, 255, 255, 0.15)',
+    borderHighlight: 'rgba(255, 255, 255, 0.28)',
+    borderSubtle: 'rgba(59, 10, 107, 0.45)',
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.45,
+    shadowRadius: 20,
+    elevation: 4,
+  },
 };
 
 export const typography = {
@@ -166,7 +213,7 @@ export const statusLabels = {
       },
       unavailable: {
         text: 'Unavailable',
-        symbol: '✕ Unavailable',
+        symbol: '— Unavailable',
         label: 'Reported: Unavailable',
         accessibilityLabel: 'Pharmacy snapshot reports medicine is currently unavailable',
       },
@@ -192,7 +239,7 @@ export const statusLabels = {
       },
       unavailable: {
         text: 'Unavailable',
-        symbol: '✕ Unavailable',
+        symbol: '— Unavailable',
         label: 'Sample availability: Unavailable',
         accessibilityLabel: 'Sample availability: Unavailable (demo record)',
       },

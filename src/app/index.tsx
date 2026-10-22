@@ -10,6 +10,8 @@ import {
   Modal,
   Keyboard,
   Image,
+  Platform,
+  StatusBar,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -21,6 +23,26 @@ import {
   DataSource,
 } from '../services/medicineSearch';
 import { DEMO_DATA_DISCLAIMER } from '../data/demoData';
+import {
+  InfoIcon,
+  MoonIcon,
+  SunIcon,
+  SearchIcon,
+  ClearIcon,
+  EmergencySirenIcon,
+  ArrowRightIcon,
+  ClockIcon,
+  PharmacyStoreIcon,
+  MapPinIcon,
+  PhoneIcon,
+  WarningIcon,
+  ShieldCheckIcon,
+  AcademicCapIcon,
+  MedicalCrossIcon,
+  LockIcon,
+  CloseIcon,
+  EmptyClipboardIcon,
+} from '../components/icons/AppIcons';
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -44,6 +66,10 @@ export default function HomeScreen() {
 
   // Dosage form filter list
   const dosageForms = ['All', 'Tablet', 'Capsule', 'Inhaler', 'Powder'];
+
+  // Status bar & notch-safe header padding
+  const statusBarHeight = Platform.OS === 'android' ? (StatusBar.currentHeight ?? 28) : 0;
+  const headerTopPadding = Math.max(insets.top, statusBarHeight) + 12;
 
   // Fetch search results whenever query or dosage form filter changes (debounced)
   useEffect(() => {
@@ -90,71 +116,98 @@ export default function HomeScreen() {
 
   return (
     <View style={[styles.screenRoot, { backgroundColor: theme.canvas }]}>
-      {/* 1. COMPACT APP HEADER */}
+      {/* 1. APPLE IOS LIQUID GLASS ENHANCED HEADER */}
       <View
         style={[
           styles.headerBar,
           {
-            paddingTop: Math.max(insets.top, 12),
-            backgroundColor: theme.surface,
-            borderBottomColor: theme.border,
+            paddingTop: headerTopPadding,
+            backgroundColor: theme.glass.background,
+            borderBottomColor: theme.glass.borderSubtle,
+            shadowColor: theme.glass.shadowColor,
+            shadowOffset: theme.glass.shadowOffset,
+            shadowOpacity: theme.glass.shadowOpacity,
+            shadowRadius: theme.glass.shadowRadius,
+            elevation: theme.glass.elevation,
           },
         ]}
       >
         <View style={styles.headerLeftGroup}>
-          <Image
-            source={require('../../assets/images/icon.png')}
-            style={[styles.logoImage, { borderColor: theme.border }]}
-            resizeMode="cover"
-            accessible={true}
-            accessibilityLabel="MedFind app logo"
-          />
+          <View
+            style={[
+              styles.logoWrapper,
+              {
+                backgroundColor: theme.surface,
+                borderColor: theme.glass.border,
+                shadowColor: theme.glass.shadowColor,
+              },
+            ]}
+          >
+            <Image
+              source={require('../../assets/images/icon.png')}
+              style={styles.logoImage}
+              resizeMode="cover"
+              accessible={true}
+              accessibilityLabel="MedFind app logo"
+            />
+          </View>
+
           <View style={styles.titleColumn}>
             <Text style={[styles.appTitle, { color: theme.textPrimary }]}>
               MedFind
             </Text>
-            <Text style={[styles.appTagline, { color: theme.textMuted }]}>
+            <Text style={[styles.appTagline, { color: theme.textSecondary }]}>
               Prescription & Care Directory
             </Text>
           </View>
         </View>
 
         <View style={styles.headerActionsGroup}>
-          {/* Info Modal Trigger */}
+          {/* Info Modal Trigger - Liquid Glass Capsule */}
           <TouchableOpacity
             onPress={() => setShowSafetyModal(true)}
             style={[
-              styles.headerIconButton,
-              { backgroundColor: theme.surfaceElevated, borderColor: theme.border },
+              styles.headerLiquidButton,
+              {
+                backgroundColor: theme.glass.backgroundPill,
+                borderColor: theme.glass.border,
+                shadowColor: theme.glass.shadowColor,
+              },
             ]}
             accessible={true}
             accessibilityRole="button"
             accessibilityLabel="View safety and pilot boundaries"
           >
+            <InfoIcon size={16} />
             <Text
-              style={[styles.headerButtonLabel, { color: theme.textSecondary }]}
+              style={[styles.headerButtonLabel, { color: theme.textPrimary }]}
               numberOfLines={1}
             >
-              ℹ️ Info
+              Info
             </Text>
           </TouchableOpacity>
 
-          {/* Theme Switcher */}
+          {/* Theme Switcher - Liquid Glass Capsule */}
           <TouchableOpacity
             onPress={toggleTheme}
             style={[
-              styles.headerIconButton,
-              { backgroundColor: theme.surfaceElevated, borderColor: theme.border },
+              styles.headerLiquidButton,
+              {
+                backgroundColor: theme.glass.backgroundPill,
+                borderColor: theme.glass.border,
+                shadowColor: theme.glass.shadowColor,
+              },
             ]}
             accessible={true}
             accessibilityRole="button"
             accessibilityLabel={`Toggle theme mode. Current theme is ${mode}`}
           >
+            {mode === 'light' ? <MoonIcon size={16} /> : <SunIcon size={16} />}
             <Text
-              style={[styles.headerButtonLabel, { color: theme.textSecondary }]}
+              style={[styles.headerButtonLabel, { color: theme.textPrimary }]}
               numberOfLines={1}
             >
-              {mode === 'light' ? '🌙 Dark' : '☀️ Light'}
+              {mode === 'light' ? 'Dark' : 'Light'}
             </Text>
           </TouchableOpacity>
         </View>
@@ -165,17 +218,18 @@ export default function HomeScreen() {
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
       >
-        {/* 2. ONE CLEAR DEMO / DATA NOTICE NEAR THE TOP */}
+        {/* 2. DEMO / LIVE DATA NOTICE (APPLE LIQUID GLASS BANNER) */}
         <View
           style={[
             styles.modeNoticeBanner,
             {
               backgroundColor: isDemoMode
                 ? mode === 'light'
-                  ? '#F6F3EE'
-                  : '#161420'
+                  ? 'rgba(255, 255, 255, 0.82)'
+                  : 'rgba(22, 19, 34, 0.82)'
                 : theme.badgeBackground,
-              borderColor: isDemoMode ? theme.border : theme.primaryAccent,
+              borderColor: isDemoMode ? theme.glass.border : theme.primaryAccent,
+              shadowColor: theme.glass.shadowColor,
             },
           ]}
           accessible={true}
@@ -186,24 +240,38 @@ export default function HomeScreen() {
           }
         >
           <View style={styles.modeNoticeContent}>
-            <Text
-              style={[
-                styles.modeNoticeText,
-                {
-                  color: isDemoMode
-                    ? theme.textSecondary
-                    : theme.primaryAccentText,
-                },
-              ]}
-            >
-              {isDemoMode
-                ? 'ℹ️ Demo data — sample records, not real pharmacy stock.'
-                : `● Supabase records — reported availability (${totalPublishedInDb} items in database).`}
-            </Text>
+            <View style={styles.modeNoticeTextRow}>
+              <View style={styles.noticeIconWrapper}>
+                <ShieldCheckIcon
+                  size={16}
+                  color={isDemoMode ? (mode === 'light' ? '#87A96B' : '#00E5FF') : '#10B981'}
+                />
+              </View>
+              <Text
+                style={[
+                  styles.modeNoticeText,
+                  {
+                    color: isDemoMode
+                      ? theme.textSecondary
+                      : theme.primaryAccentText,
+                  },
+                ]}
+              >
+                {isDemoMode
+                  ? 'Demo data — sample records, not real pharmacy stock.'
+                  : `Supabase records — reported availability (${totalPublishedInDb} items in database).`}
+              </Text>
+            </View>
 
             <TouchableOpacity
               onPress={() => setShowSafetyModal(true)}
-              style={styles.modeNoticeLink}
+              style={[
+                styles.modeNoticeLink,
+                {
+                  backgroundColor: theme.glass.backgroundPill,
+                  borderColor: theme.glass.borderSubtle,
+                },
+              ]}
               accessible={true}
               accessibilityRole="button"
               accessibilityLabel="View detailed safety and pilot notice"
@@ -211,25 +279,32 @@ export default function HomeScreen() {
               <Text
                 style={[
                   styles.modeNoticeLinkText,
-                  { color: isDemoMode ? theme.textMuted : theme.primaryAccentText },
+                  { color: isDemoMode ? theme.textSecondary : theme.primaryAccentText },
                 ]}
               >
-                Pilot info ›
+                Pilot info
               </Text>
+              <ArrowRightIcon
+                size={12}
+                color={isDemoMode ? theme.textSecondary : theme.primaryAccentText}
+              />
             </TouchableOpacity>
           </View>
 
           {/* Offline / Connection Diagnostic strip (expandable) */}
           {searchError && (
             <View style={styles.diagnosticRow}>
-              <Text
-                style={[
-                  styles.diagnosticNotice,
-                  { color: mode === 'light' ? theme.warningAccentText : theme.warningAccent },
-                ]}
-              >
-                ⚠️ Cloud offline: using local sample baseline.
-              </Text>
+              <View style={styles.diagnosticNoticeWrapper}>
+                <WarningIcon size={14} />
+                <Text
+                  style={[
+                    styles.diagnosticNotice,
+                    { color: mode === 'light' ? theme.warningAccentText : theme.warningAccent },
+                  ]}
+                >
+                  Cloud offline: using local sample baseline.
+                </Text>
+              </View>
               <TouchableOpacity
                 onPress={() => setShowErrorDetails((prev) => !prev)}
                 style={styles.diagnosticToggle}
@@ -254,19 +329,20 @@ export default function HomeScreen() {
             Find a medicine
           </Text>
 
-          {/* Search Box */}
+          {/* Search Box - Liquid Glass Field */}
           <View
             style={[
               styles.searchInputContainer,
               {
-                backgroundColor: theme.surface,
-                borderColor: theme.border,
+                backgroundColor: theme.glass.backgroundSubtle,
+                borderColor: theme.glass.border,
+                shadowColor: theme.glass.shadowColor,
               },
             ]}
           >
-            <Text style={[styles.searchPrefixIcon, { color: theme.textMuted }]}>
-              🔍
-            </Text>
+            <View style={styles.searchPrefixIconWrapper}>
+              <SearchIcon size={18} color={mode === 'light' ? '#87A96B' : '#00E5FF'} />
+            </View>
             <TextInput
               style={[styles.searchInput, { color: theme.textPrimary }]}
               placeholder="Search by brand or generic name..."
@@ -287,14 +363,12 @@ export default function HomeScreen() {
                 accessibilityRole="button"
                 accessibilityLabel="Clear search input"
               >
-                <Text style={[styles.clearButtonIcon, { color: theme.textMuted }]}>
-                  ✕
-                </Text>
+                <ClearIcon size={18} color={theme.textMuted} />
               </TouchableOpacity>
             )}
           </View>
 
-          {/* Compact Dosage-Form Filter Chips */}
+          {/* Compact Dosage-Form Filter Chips - Liquid Glass Pills */}
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
@@ -314,12 +388,13 @@ export default function HomeScreen() {
                         ? mode === 'light'
                           ? theme.primaryAccent
                           : theme.secondaryAccent
-                        : theme.surface,
+                        : theme.glass.backgroundPill,
                       borderColor: isSelected
                         ? mode === 'light'
                           ? theme.primaryAccent
                           : theme.primaryAccent
-                        : theme.border,
+                        : theme.glass.border,
+                      shadowColor: theme.glass.shadowColor,
                     },
                   ]}
                   accessible={true}
@@ -351,22 +426,26 @@ export default function HomeScreen() {
           </ScrollView>
         </View>
 
-        {/* 4. CALM & COMPACT EMERGENCY HELP ENTRY */}
+        {/* 4. CALM & COMPACT EMERGENCY HELP (LIQUID GLASS STRIP) */}
         <View
           style={[
             styles.emergencyStrip,
             {
               backgroundColor: theme.emergencyBackground,
               borderColor: theme.emergencyBorder,
+              shadowColor: theme.glass.shadowColor,
             },
           ]}
           accessible={true}
           accessibilityLabel="Emergency Help and Directory entry point"
         >
           <View style={styles.emergencyLeft}>
-            <Text style={[styles.emergencyTagText, { color: theme.emergencyText }]}>
-              🚨 Emergency & Nearby Care
-            </Text>
+            <View style={styles.emergencyTitleRow}>
+              <EmergencySirenIcon size={19} />
+              <Text style={[styles.emergencyTagText, { color: theme.emergencyText }]}>
+                Emergency & Nearby Care
+              </Text>
+            </View>
             <Text style={[styles.emergencyDescriptionText, { color: theme.textSecondary }]}>
               Hospitals, clinics & ambulance contacts (directory only)
             </Text>
@@ -377,8 +456,9 @@ export default function HomeScreen() {
             style={[
               styles.emergencyDirectoryButton,
               {
-                backgroundColor: theme.surface,
+                backgroundColor: theme.glass.backgroundPill,
                 borderColor: theme.emergencyBorder,
+                shadowColor: theme.glass.shadowColor,
               },
             ]}
             accessible={true}
@@ -389,8 +469,9 @@ export default function HomeScreen() {
               style={[styles.emergencyDirectoryButtonText, { color: theme.emergencyText }]}
               numberOfLines={1}
             >
-              Open Directory →
+              Open Directory
             </Text>
+            <ArrowRightIcon size={13} color={theme.emergencyText} />
           </TouchableOpacity>
         </View>
 
@@ -420,17 +501,24 @@ export default function HomeScreen() {
             </View>
           )}
 
-          {/* Empty State */}
+          {/* Empty State with Colorful SVG Document Icon */}
           {!isLoading && searchResults.length === 0 && (
             <View
               style={[
                 styles.emptyStateBox,
-                { backgroundColor: theme.surface, borderColor: theme.border },
+                {
+                  backgroundColor: theme.glass.background,
+                  borderColor: theme.glass.border,
+                  shadowColor: theme.glass.shadowColor,
+                },
               ]}
               accessible={true}
               accessibilityRole="text"
             >
-              <Text style={styles.emptyIcon}>📋</Text>
+              <EmptyClipboardIcon
+                size={48}
+                color={mode === 'light' ? '#87A96B' : '#00E5FF'}
+              />
               <Text style={[styles.emptyTitle, { color: theme.textPrimary }]}>
                 No stock records found
               </Text>
@@ -442,7 +530,7 @@ export default function HomeScreen() {
             </View>
           )}
 
-          {/* Quick-Scan Medicine Result Cards */}
+          {/* Quick-Scan Medicine Result Cards - Apple Liquid Glass Cards */}
           {!isLoading &&
             searchResults.map((item) => {
               const isDemo = item.isDemo || isDemoMode;
@@ -462,19 +550,19 @@ export default function HomeScreen() {
                 availabilityLabel = isDemo
                   ? 'Sample availability: Low Stock'
                   : 'Reported: Low Stock';
-                availabilityBg = mode === 'light' ? '#FFF8EE' : '#261708';
+                availabilityBg = mode === 'light' ? 'rgba(255, 248, 238, 0.9)' : 'rgba(38, 23, 8, 0.85)';
                 availabilityColor = mode === 'light' ? theme.warningAccentText : theme.warningAccent;
               } else if (item.state === 'unavailable') {
                 availabilityLabel = isDemo
                   ? 'Sample availability: Unavailable'
                   : 'Reported: Unavailable';
-                availabilityBg = theme.surfaceElevated;
+                availabilityBg = theme.glass.backgroundSubtle;
                 availabilityColor = theme.textSecondary;
               } else {
                 availabilityLabel = isDemo
                   ? 'Sample availability: Unknown'
                   : 'Reported: Unknown';
-                availabilityBg = theme.surfaceElevated;
+                availabilityBg = theme.glass.backgroundSubtle;
                 availabilityColor = theme.textSecondary;
               }
 
@@ -489,11 +577,13 @@ export default function HomeScreen() {
                   style={[
                     styles.medicineCard,
                     {
-                      backgroundColor: theme.surface,
+                      backgroundColor: theme.glass.background,
                       borderColor:
                         item.freshness.state === 'aging' && !isDemo
                           ? theme.warningAccent
-                          : theme.border,
+                          : theme.glass.border,
+                      borderTopColor: theme.glass.borderHighlight,
+                      shadowColor: theme.glass.shadowColor,
                     },
                   ]}
                   accessible={true}
@@ -512,14 +602,14 @@ export default function HomeScreen() {
                     </View>
 
                     <View style={styles.cardBadgesGroup}>
-                      {/* Strength / Form Badge */}
+                      {/* Strength / Form Badge - Liquid Glass Pill */}
                       {(item.strength || item.dosageForm) && (
                         <View
                           style={[
                             styles.dosagePill,
                             {
-                              backgroundColor: theme.surfaceElevated,
-                              borderColor: theme.border,
+                              backgroundColor: theme.glass.backgroundPill,
+                              borderColor: theme.glass.border,
                             },
                           ]}
                         >
@@ -537,8 +627,8 @@ export default function HomeScreen() {
                           style={[
                             styles.demoTagPill,
                             {
-                              backgroundColor: theme.surfaceElevated,
-                              borderColor: theme.border,
+                              backgroundColor: theme.glass.backgroundPill,
+                              borderColor: theme.glass.border,
                             },
                           ]}
                         >
@@ -562,7 +652,7 @@ export default function HomeScreen() {
                               ? theme.primaryAccent
                               : item.state === 'low_stock'
                               ? theme.warningAccent
-                              : theme.border,
+                              : theme.glass.border,
                         },
                       ]}
                     >
@@ -571,30 +661,56 @@ export default function HomeScreen() {
                       </Text>
                     </View>
 
-                    <Text style={[styles.updateTimeText, { color: theme.textMuted }]}>
-                      🕒 {updateTimeLabel}
-                    </Text>
+                    <View style={styles.updateTimeWrapper}>
+                      <ClockIcon size={13} color={theme.textMuted} />
+                      <Text style={[styles.updateTimeText, { color: theme.textMuted }]}>
+                        {updateTimeLabel}
+                      </Text>
+                    </View>
                   </View>
 
-                  {/* Pharmacy Name & Contact Info */}
+                  {/* Pharmacy Name & Contact Info - Inset Liquid Glass Box */}
                   <View
                     style={[
                       styles.pharmacyInfoBox,
                       {
-                        backgroundColor: theme.surfaceElevated,
-                        borderColor: theme.border,
+                        backgroundColor: theme.glass.backgroundSubtle,
+                        borderColor: theme.glass.borderSubtle,
                       },
                     ]}
                   >
-                    <Text style={[styles.pharmacyNameText, { color: theme.textPrimary }]}>
-                      🏪 {item.pharmacyName}
-                    </Text>
-                    <Text style={[styles.pharmacyLocationText, { color: theme.textSecondary }]}>
-                      📍 {item.pharmacyAddress}
-                    </Text>
-                    <Text style={[styles.pharmacyContactText, { color: theme.textMuted }]}>
-                      {isDemo ? '📞 Sample contact (no calls)' : `📞 ${item.pharmacyPhone}`}
-                    </Text>
+                    <View style={styles.pharmacyRow}>
+                      <PharmacyStoreIcon
+                        size={16}
+                        color={mode === 'light' ? '#87A96B' : '#00E5FF'}
+                      />
+                      <Text style={[styles.pharmacyNameText, { color: theme.textPrimary }]}>
+                        {item.pharmacyName}
+                      </Text>
+                    </View>
+
+                    <View style={styles.pharmacyRow}>
+                      <MapPinIcon size={14} />
+                      <Text style={[styles.pharmacyLocationText, { color: theme.textSecondary }]}>
+                        {item.pharmacyAddress}
+                      </Text>
+                    </View>
+
+                    <View style={styles.pharmacyRow}>
+                      <PhoneIcon
+                        size={14}
+                        color={
+                          isDemo
+                            ? theme.textMuted
+                            : mode === 'light'
+                            ? '#87A96B'
+                            : '#00E5FF'
+                        }
+                      />
+                      <Text style={[styles.pharmacyContactText, { color: theme.textMuted }]}>
+                        {isDemo ? 'Sample contact (no calls)' : item.pharmacyPhone}
+                      </Text>
+                    </View>
                   </View>
 
                   {/* Call-First warning if real store data is aging */}
@@ -603,11 +719,12 @@ export default function HomeScreen() {
                       style={[
                         styles.callFirstBox,
                         {
-                          backgroundColor: mode === 'light' ? '#FFF8EE' : '#231608',
+                          backgroundColor: mode === 'light' ? 'rgba(255, 248, 238, 0.9)' : 'rgba(35, 22, 8, 0.85)',
                           borderColor: theme.warningAccent,
                         },
                       ]}
                     >
+                      <WarningIcon size={15} />
                       <Text
                         style={[
                           styles.callFirstText,
@@ -619,7 +736,7 @@ export default function HomeScreen() {
                           },
                         ]}
                       >
-                        ⚠️ Stock snapshot is not live. Call pharmacy to verify before traveling.
+                        Stock snapshot is not live. Call pharmacy to verify before traveling.
                       </Text>
                     </View>
                   )}
@@ -629,7 +746,7 @@ export default function HomeScreen() {
         </View>
       </ScrollView>
 
-      {/* 6. CONCISE SAFETY & PILOT INFORMATION MODAL */}
+      {/* 6. CONCISE SAFETY & PILOT INFORMATION MODAL - APPLE LIQUID GLASS SHEET */}
       <Modal
         visible={showSafetyModal}
         transparent={true}
@@ -641,8 +758,9 @@ export default function HomeScreen() {
             style={[
               styles.modalSheet,
               {
-                backgroundColor: theme.surface,
-                borderColor: theme.border,
+                backgroundColor: theme.glass.backgroundElevated,
+                borderColor: theme.glass.borderHighlight,
+                shadowColor: '#000000',
               },
             ]}
             accessible={true}
@@ -664,32 +782,57 @@ export default function HomeScreen() {
                 onPress={() => setShowSafetyModal(false)}
                 style={[
                   styles.modalCloseBtn,
-                  { backgroundColor: theme.surfaceElevated, borderColor: theme.border },
+                  {
+                    backgroundColor: theme.glass.backgroundPill,
+                    borderColor: theme.glass.border,
+                  },
                 ]}
                 accessible={true}
                 accessibilityRole="button"
                 accessibilityLabel="Close safety modal"
               >
-                <Text style={[styles.modalCloseIcon, { color: theme.textPrimary }]}>✕</Text>
+                <CloseIcon size={16} color={theme.textPrimary} />
               </TouchableOpacity>
             </View>
 
             <ScrollView style={styles.modalScroll}>
               {/* Demo Data Notice */}
-              <View style={styles.modalSection}>
-                <Text style={[styles.modalSectionTitle, { color: theme.textPrimary }]}>
-                  🎓 Academic Demo Baseline
-                </Text>
+              <View
+                style={[
+                  styles.modalSectionCard,
+                  {
+                    backgroundColor: theme.glass.backgroundSubtle,
+                    borderColor: theme.glass.borderSubtle,
+                  },
+                ]}
+              >
+                <View style={styles.modalSectionTitleRow}>
+                  <AcademicCapIcon size={18} />
+                  <Text style={[styles.modalSectionTitle, { color: theme.textPrimary }]}>
+                    Academic Demo Baseline
+                  </Text>
+                </View>
                 <Text style={[styles.modalSectionText, { color: theme.textSecondary }]}>
                   {DEMO_DATA_DISCLAIMER}
                 </Text>
               </View>
 
               {/* Clinical Guardrails */}
-              <View style={styles.modalSection}>
-                <Text style={[styles.modalSectionTitle, { color: theme.textPrimary }]}>
-                  ⚕️ Clinical Safety Guardrails
-                </Text>
+              <View
+                style={[
+                  styles.modalSectionCard,
+                  {
+                    backgroundColor: theme.glass.backgroundSubtle,
+                    borderColor: theme.glass.borderSubtle,
+                  },
+                ]}
+              >
+                <View style={styles.modalSectionTitleRow}>
+                  <MedicalCrossIcon size={18} />
+                  <Text style={[styles.modalSectionTitle, { color: theme.textPrimary }]}>
+                    Clinical Safety Guardrails
+                  </Text>
+                </View>
                 <Text style={[styles.modalSectionText, { color: theme.textSecondary }]}>
                   • MedFind does not provide medical advice, clinical diagnoses, or automatic drug substitutions.{'\n'}
                   • Always consult a licensed pharmacist or physician to verify prescriptions.{'\n'}
@@ -698,10 +841,21 @@ export default function HomeScreen() {
               </View>
 
               {/* Privacy */}
-              <View style={styles.modalSection}>
-                <Text style={[styles.modalSectionTitle, { color: theme.textPrimary }]}>
-                  🔒 Privacy & Health Data
-                </Text>
+              <View
+                style={[
+                  styles.modalSectionCard,
+                  {
+                    backgroundColor: theme.glass.backgroundSubtle,
+                    borderColor: theme.glass.borderSubtle,
+                  },
+                ]}
+              >
+                <View style={styles.modalSectionTitleRow}>
+                  <LockIcon size={18} />
+                  <Text style={[styles.modalSectionTitle, { color: theme.textPrimary }]}>
+                    Privacy & Health Data
+                  </Text>
+                </View>
                 <Text style={[styles.modalSectionText, { color: theme.textSecondary }]}>
                   • MedFind does not collect, track, or upload patient health data or prescriptions.{'\n'}
                   • Location permissions are not required; listings are organized as an indexed directory.
@@ -709,12 +863,16 @@ export default function HomeScreen() {
               </View>
             </ScrollView>
 
-            {/* Dismiss Button */}
+            {/* Dismiss Button - Liquid Glass Pill */}
             <TouchableOpacity
               onPress={() => setShowSafetyModal(false)}
               style={[
                 styles.modalDismissBtn,
-                { backgroundColor: theme.primaryAccent },
+                {
+                  backgroundColor: theme.primaryAccent,
+                  borderColor: theme.glass.borderHighlight,
+                  shadowColor: theme.glass.shadowColor,
+                },
               ]}
               accessible={true}
               accessibilityRole="button"
@@ -736,11 +894,11 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 
-  // HEADER
+  // 1. APPLE IOS LIQUID GLASS HEADER
   headerBar: {
     paddingHorizontal: layout.spacing.md,
-    paddingBottom: layout.spacing.sm,
-    borderBottomWidth: 1,
+    paddingBottom: layout.spacing.sm + 4,
+    borderBottomWidth: StyleSheet.hairlineWidth,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -751,12 +909,24 @@ const styles = StyleSheet.create({
     flex: 1,
     marginRight: layout.spacing.xs,
   },
-  logoImage: {
-    width: 40,
-    height: 40,
-    borderRadius: layout.borderRadius.md,
+  logoWrapper: {
+    width: 42,
+    height: 42,
+    borderRadius: 12,
     borderWidth: 1,
+    padding: 2,
     marginRight: layout.spacing.sm,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  logoImage: {
+    width: 36,
+    height: 36,
+    borderRadius: 9,
   },
   titleColumn: {
     flex: 1,
@@ -765,28 +935,36 @@ const styles = StyleSheet.create({
     fontFamily: typography.fontFamilyBold,
     fontSize: typography.fontSize.lg,
     fontWeight: '700',
-    letterSpacing: -0.3,
+    letterSpacing: -0.4,
   },
   appTagline: {
-    fontFamily: typography.fontFamilyRegular,
+    fontFamily: typography.fontFamilyMedium,
     fontSize: typography.fontSize.xs,
+    fontWeight: '500',
     marginTop: 1,
+    letterSpacing: 0.1,
   },
   headerActionsGroup: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: layout.spacing.xs,
+    gap: layout.spacing.xs + 2,
     flexShrink: 0,
   },
-  headerIconButton: {
+  headerLiquidButton: {
     minHeight: layout.minTouchTarget,
     minWidth: 64,
-    paddingHorizontal: layout.spacing.sm + 2,
+    paddingHorizontal: layout.spacing.sm + 4,
     borderRadius: layout.borderRadius.pill,
     borderWidth: 1,
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 5,
     flexShrink: 0,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    elevation: 2,
   },
   headerButtonLabel: {
     fontFamily: typography.fontFamilyMedium,
@@ -805,11 +983,15 @@ const styles = StyleSheet.create({
 
   // 2. DEMO / DATA NOTICE BANNER
   modeNoticeBanner: {
-    borderRadius: layout.borderRadius.md,
+    borderRadius: layout.borderRadius.md + 4,
     borderWidth: 1,
     paddingHorizontal: layout.spacing.md,
-    paddingVertical: layout.spacing.sm,
+    paddingVertical: layout.spacing.sm + 2,
     marginBottom: layout.spacing.md,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
   },
   modeNoticeContent: {
     flexDirection: 'row',
@@ -818,22 +1000,36 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: layout.spacing.xs,
   },
+  modeNoticeTextRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    minWidth: 180,
+    gap: 6,
+  },
+  noticeIconWrapper: {
+    flexShrink: 0,
+  },
   modeNoticeText: {
     fontFamily: typography.fontFamilyRegular,
     fontSize: typography.fontSize.xs,
+    fontWeight: '400',
     flex: 1,
-    minWidth: 180,
     lineHeight: 18,
   },
   modeNoticeLink: {
-    minHeight: 32,
-    justifyContent: 'center',
-    paddingLeft: layout.spacing.sm,
+    minHeight: 30,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: layout.spacing.sm + 2,
+    borderRadius: layout.borderRadius.pill,
+    borderWidth: 1,
     flexShrink: 0,
   },
   modeNoticeLinkText: {
     fontFamily: typography.fontFamilySemibold,
-    fontSize: typography.fontSize.xs,
+    fontSize: typography.fontSize.xs - 1,
     fontWeight: '600',
   },
   diagnosticRow: {
@@ -842,16 +1038,23 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flexWrap: 'wrap',
     gap: layout.spacing.xs,
-    marginTop: 6,
-    paddingTop: 6,
+    marginTop: 8,
+    paddingTop: 8,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: '#DDD',
+    borderTopColor: 'rgba(200, 200, 200, 0.3)',
+  },
+  diagnosticNoticeWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    flex: 1,
+    minWidth: 180,
   },
   diagnosticNotice: {
     fontFamily: typography.fontFamilyRegular,
     fontSize: typography.fontSize.xs - 1,
+    fontWeight: '400',
     flex: 1,
-    minWidth: 180,
   },
   diagnosticToggle: {
     minHeight: 26,
@@ -878,25 +1081,32 @@ const styles = StyleSheet.create({
     fontFamily: typography.fontFamilyBold,
     fontSize: typography.fontSize.md + 1,
     fontWeight: '700',
+    letterSpacing: -0.3,
     marginBottom: layout.spacing.xs + 2,
   },
   searchInputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    minHeight: 48,
-    borderRadius: layout.borderRadius.md,
+    minHeight: 50,
+    borderRadius: layout.borderRadius.md + 4,
     borderWidth: 1,
     paddingHorizontal: layout.spacing.md,
     marginBottom: layout.spacing.sm,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 2,
   },
-  searchPrefixIcon: {
-    fontSize: 15,
+  searchPrefixIconWrapper: {
     marginRight: layout.spacing.sm,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   searchInput: {
     flex: 1,
     fontFamily: typography.fontFamilyRegular,
     fontSize: typography.fontSize.base,
+    fontWeight: '400',
     minHeight: 44,
   },
   clearButton: {
@@ -904,10 +1114,6 @@ const styles = StyleSheet.create({
     minHeight: 32,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  clearButtonIcon: {
-    fontSize: 14,
-    fontWeight: '700',
   },
   filterScrollView: {
     marginTop: 2,
@@ -923,9 +1129,12 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    elevation: 1,
   },
   filterChipLabel: {
-    fontFamily: typography.fontFamilyMedium,
     fontSize: typography.fontSize.sm,
   },
 
@@ -936,35 +1145,51 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     flexWrap: 'wrap',
     gap: layout.spacing.xs,
-    borderRadius: layout.borderRadius.md,
+    borderRadius: layout.borderRadius.md + 4,
     borderWidth: 1,
-    padding: layout.spacing.sm + 2,
+    padding: layout.spacing.sm + 4,
     marginBottom: layout.spacing.md,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.06,
+    shadowRadius: 10,
+    elevation: 2,
   },
   emergencyLeft: {
     flex: 1,
     minWidth: 160,
     marginRight: layout.spacing.sm,
   },
+  emergencyTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 3,
+  },
   emergencyTagText: {
     fontFamily: typography.fontFamilySemibold,
     fontSize: typography.fontSize.xs + 1,
     fontWeight: '600',
-    marginBottom: 2,
   },
   emergencyDescriptionText: {
     fontFamily: typography.fontFamilyRegular,
     fontSize: typography.fontSize.xs - 1,
-    lineHeight: 14,
+    fontWeight: '400',
+    lineHeight: 15,
   },
   emergencyDirectoryButton: {
     minHeight: layout.minTouchTarget,
-    paddingHorizontal: layout.spacing.sm + 4,
-    borderRadius: layout.borderRadius.sm + 2,
-    borderWidth: 1,
+    flexDirection: 'row',
     alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: layout.spacing.sm + 4,
+    borderRadius: layout.borderRadius.pill,
+    borderWidth: 1,
     justifyContent: 'center',
     flexShrink: 0,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    elevation: 2,
   },
   emergencyDirectoryButtonText: {
     fontFamily: typography.fontFamilySemibold,
@@ -974,7 +1199,7 @@ const styles = StyleSheet.create({
 
   // 5. RESULTS LIST
   resultsArea: {
-    gap: layout.spacing.sm,
+    gap: layout.spacing.sm + 2,
   },
   resultsHeaderRow: {
     flexDirection: 'row',
@@ -992,6 +1217,7 @@ const styles = StyleSheet.create({
   resultsBoundaryText: {
     fontFamily: typography.fontFamilyRegular,
     fontSize: typography.fontSize.xs,
+    fontWeight: '400',
   },
   loadingBox: {
     padding: layout.spacing.lg,
@@ -1001,39 +1227,45 @@ const styles = StyleSheet.create({
   loadingNoticeText: {
     fontFamily: typography.fontFamilyRegular,
     fontSize: typography.fontSize.xs,
+    fontWeight: '400',
     marginTop: layout.spacing.sm,
   },
   emptyStateBox: {
     padding: layout.spacing.xl,
-    borderRadius: layout.borderRadius.md,
+    borderRadius: layout.borderRadius.lg,
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: layout.spacing.sm,
-  },
-  emptyIcon: {
-    fontSize: 26,
-    marginBottom: layout.spacing.sm,
+    gap: 8,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.06,
+    shadowRadius: 14,
+    elevation: 2,
   },
   emptyTitle: {
     fontFamily: typography.fontFamilyBold,
     fontSize: typography.fontSize.base,
     fontWeight: '700',
-    marginBottom: 4,
   },
   emptyDescription: {
     fontFamily: typography.fontFamilyRegular,
     fontSize: typography.fontSize.xs,
+    fontWeight: '400',
     textAlign: 'center',
     lineHeight: 18,
   },
 
-  // MEDICINE CARD (QUICK-SCAN)
+  // MEDICINE CARD (APPLE LIQUID GLASS)
   medicineCard: {
-    borderRadius: layout.borderRadius.md,
+    borderRadius: layout.borderRadius.lg,
     borderWidth: 1,
     padding: layout.spacing.md,
-    gap: layout.spacing.xs + 4,
+    gap: layout.spacing.sm,
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.07,
+    shadowRadius: 14,
+    elevation: 3,
   },
   cardHeaderRow: {
     flexDirection: 'row',
@@ -1051,10 +1283,12 @@ const styles = StyleSheet.create({
     fontFamily: typography.fontFamilyBold,
     fontSize: typography.fontSize.base + 1,
     fontWeight: '700',
+    letterSpacing: -0.2,
   },
   genericSubtitle: {
     fontFamily: typography.fontFamilyRegular,
     fontSize: typography.fontSize.xs + 1,
+    fontWeight: '400',
     fontStyle: 'italic',
     marginTop: 2,
   },
@@ -1066,8 +1300,8 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
   },
   dosagePill: {
-    paddingHorizontal: layout.spacing.sm,
-    paddingVertical: 3,
+    paddingHorizontal: layout.spacing.sm + 2,
+    paddingVertical: 4,
     borderRadius: layout.borderRadius.pill,
     borderWidth: 1,
   },
@@ -1077,8 +1311,8 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   demoTagPill: {
-    paddingHorizontal: layout.spacing.xs + 3,
-    paddingVertical: 3,
+    paddingHorizontal: layout.spacing.xs + 4,
+    paddingVertical: 4,
     borderRadius: layout.borderRadius.pill,
     borderWidth: 1,
   },
@@ -1097,8 +1331,8 @@ const styles = StyleSheet.create({
     gap: layout.spacing.xs,
   },
   availabilityBadge: {
-    paddingHorizontal: layout.spacing.sm,
-    paddingVertical: 3,
+    paddingHorizontal: layout.spacing.sm + 2,
+    paddingVertical: 4,
     borderRadius: layout.borderRadius.pill,
     borderWidth: 1,
   },
@@ -1107,48 +1341,68 @@ const styles = StyleSheet.create({
     fontSize: typography.fontSize.xs,
     fontWeight: '600',
   },
+  updateTimeWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
   updateTimeText: {
     fontFamily: typography.fontFamilyRegular,
     fontSize: typography.fontSize.xs,
+    fontWeight: '400',
   },
 
-  // PHARMACY INFO BOX
+  // PHARMACY INFO BOX (INSET LIQUID GLASS)
   pharmacyInfoBox: {
-    borderRadius: layout.borderRadius.sm,
+    borderRadius: layout.borderRadius.md,
     borderWidth: 1,
-    padding: layout.spacing.sm,
-    gap: 2,
+    padding: layout.spacing.sm + 2,
+    gap: 6,
+  },
+  pharmacyRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
   pharmacyNameText: {
     fontFamily: typography.fontFamilySemibold,
     fontSize: typography.fontSize.sm,
     fontWeight: '600',
+    flex: 1,
   },
   pharmacyLocationText: {
     fontFamily: typography.fontFamilyRegular,
     fontSize: typography.fontSize.xs,
+    fontWeight: '400',
+    flex: 1,
   },
   pharmacyContactText: {
     fontFamily: typography.fontFamilyRegular,
     fontSize: typography.fontSize.xs,
+    fontWeight: '400',
+    flex: 1,
   },
 
   // CALL FIRST ALERT
   callFirstBox: {
-    borderRadius: layout.borderRadius.sm,
+    borderRadius: layout.borderRadius.md,
     borderWidth: 1,
     padding: layout.spacing.sm,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
   callFirstText: {
     fontFamily: typography.fontFamilyMedium,
     fontSize: typography.fontSize.xs,
     fontWeight: '500',
+    flex: 1,
   },
 
-  // 6. MODAL STYLES
+  // 6. MODAL STYLES (APPLE LIQUID GLASS SHEET)
   modalBackdrop: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    backgroundColor: 'rgba(0, 0, 0, 0.65)',
     justifyContent: 'center',
     alignItems: 'center',
     padding: layout.spacing.md,
@@ -1156,9 +1410,13 @@ const styles = StyleSheet.create({
   modalSheet: {
     width: '100%',
     maxHeight: '85%',
-    borderRadius: layout.borderRadius.lg,
+    borderRadius: 24,
     borderWidth: 1,
     padding: layout.spacing.lg,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.35,
+    shadowRadius: 28,
+    elevation: 8,
   },
   modalHeader: {
     flexDirection: 'row',
@@ -1168,12 +1426,14 @@ const styles = StyleSheet.create({
   },
   modalTitle: {
     fontFamily: typography.fontFamilyBold,
-    fontSize: typography.fontSize.md,
+    fontSize: typography.fontSize.md + 1,
     fontWeight: '700',
+    letterSpacing: -0.3,
   },
   modalSubtitle: {
-    fontFamily: typography.fontFamilyRegular,
+    fontFamily: typography.fontFamilyMedium,
     fontSize: typography.fontSize.xs,
+    fontWeight: '500',
     marginTop: 2,
   },
   modalCloseBtn: {
@@ -1184,33 +1444,43 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  modalCloseIcon: {
-    fontSize: 16,
-    fontWeight: '700',
-  },
   modalScroll: {
     marginBottom: layout.spacing.md,
   },
-  modalSection: {
-    marginBottom: layout.spacing.md,
+  modalSectionCard: {
+    borderRadius: layout.borderRadius.md + 2,
+    borderWidth: 1,
+    padding: layout.spacing.sm + 4,
+    marginBottom: layout.spacing.sm + 2,
+  },
+  modalSectionTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 4,
   },
   modalSectionTitle: {
     fontFamily: typography.fontFamilySemibold,
     fontSize: typography.fontSize.sm,
     fontWeight: '600',
-    marginBottom: 4,
   },
   modalSectionText: {
     fontFamily: typography.fontFamilyRegular,
     fontSize: typography.fontSize.xs,
+    fontWeight: '400',
     lineHeight: 18,
   },
   modalDismissBtn: {
     minHeight: layout.minTouchTarget,
-    borderRadius: layout.borderRadius.md,
+    borderRadius: layout.borderRadius.pill,
+    borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: layout.spacing.md,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 3,
   },
   modalDismissBtnText: {
     fontFamily: typography.fontFamilySemibold,
