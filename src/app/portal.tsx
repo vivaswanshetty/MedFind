@@ -390,7 +390,13 @@ export default function PharmacyPortalScreen() {
                           },
                         ]}
                       >
-                        {currentState.toUpperCase().replace('_', ' ')}
+                        {currentState === 'available'
+                          ? '● Available'
+                          : currentState === 'low_stock'
+                          ? '▲ Low Stock'
+                          : currentState === 'unavailable'
+                          ? '— Unavailable'
+                          : '○ Unknown'}
                       </Text>
                     </View>
                   </View>
@@ -426,7 +432,7 @@ export default function PharmacyPortalScreen() {
                           },
                         ]}
                       >
-                        Available
+                        ● Available
                       </Text>
                     </TouchableOpacity>
 
@@ -459,7 +465,7 @@ export default function PharmacyPortalScreen() {
                           },
                         ]}
                       >
-                        Low Stock
+                        ▲ Low Stock
                       </Text>
                     </TouchableOpacity>
 
@@ -494,7 +500,7 @@ export default function PharmacyPortalScreen() {
                           },
                         ]}
                       >
-                        Unavailable
+                        — Unavailable
                       </Text>
                     </TouchableOpacity>
 
@@ -529,7 +535,7 @@ export default function PharmacyPortalScreen() {
                           },
                         ]}
                       >
-                        Unknown
+                        ○ Unknown
                       </Text>
                     </TouchableOpacity>
                   </View>

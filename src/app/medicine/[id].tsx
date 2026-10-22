@@ -162,20 +162,20 @@ export default function MedicineDetailScreen() {
   const isDemo = item.isDemo;
 
   // Format availability
-  let availabilityLabel = isDemo ? 'Sample availability: Available' : 'Reported: Available';
+  let availabilityLabel = isDemo ? '● Sample: Available' : '● Reported: Available';
   let availabilityBg = theme.badgeBackground;
   let availabilityColor = theme.primaryAccentText;
 
   if (item.state === 'low_stock') {
-    availabilityLabel = isDemo ? 'Sample availability: Low Stock' : 'Reported: Low Stock';
+    availabilityLabel = isDemo ? '▲ Sample: Low Stock' : '▲ Reported: Low Stock';
     availabilityBg = mode === 'light' ? 'rgba(255, 248, 238, 0.95)' : 'rgba(38, 23, 8, 0.85)';
     availabilityColor = mode === 'light' ? theme.warningAccentText : theme.warningAccent;
   } else if (item.state === 'unavailable') {
-    availabilityLabel = isDemo ? 'Sample availability: Unavailable' : 'Reported: Unavailable';
+    availabilityLabel = isDemo ? '— Sample: Unavailable' : '— Reported: Unavailable';
     availabilityBg = theme.glass.backgroundSubtle;
     availabilityColor = theme.textSecondary;
   } else if (item.state === 'unknown') {
-    availabilityLabel = isDemo ? 'Sample availability: Unknown' : 'Reported: Unknown';
+    availabilityLabel = isDemo ? '○ Sample: Unknown' : '○ Reported: Unknown';
     availabilityBg = theme.glass.backgroundSubtle;
     availabilityColor = theme.textSecondary;
   }

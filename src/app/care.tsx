@@ -13,6 +13,7 @@ import {
   Platform,
   StatusBar,
 } from 'react-native';
+import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../theme/ThemeContext';
 import { layout, typography } from '../theme/tokens';
@@ -37,9 +38,11 @@ import {
   ClinicIcon,
   AmbulanceIcon,
   EmptyClipboardIcon,
+  BackArrowIcon,
 } from '../components/icons/AppIcons';
 
 export default function CareDirectoryScreen() {
+  const router = useRouter();
   const insets = useSafeAreaInsets();
   const { mode, theme, toggleTheme } = useTheme();
 
@@ -140,6 +143,23 @@ export default function CareDirectoryScreen() {
         ]}
       >
         <View style={styles.headerLeftGroup}>
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={[
+              styles.backIconButton,
+              {
+                backgroundColor: theme.glass.backgroundPill,
+                borderColor: theme.glass.border,
+                shadowColor: theme.glass.shadowColor,
+              },
+            ]}
+            accessible={true}
+            accessibilityRole="button"
+            accessibilityLabel="Back to Home screen"
+          >
+            <BackArrowIcon size={18} color={theme.textPrimary} />
+          </TouchableOpacity>
+
           <View
             style={[
               styles.logoWrapper,
@@ -700,6 +720,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flex: 1,
     marginRight: layout.spacing.sm,
+  },
+  backIconButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    borderWidth: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: layout.spacing.xs + 2,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 4,
+    elevation: 2,
   },
   logoWrapper: {
     width: 40,
