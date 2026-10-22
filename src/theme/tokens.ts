@@ -96,7 +96,11 @@ export const darkPalette: ColorPalette = {
 };
 
 export const typography = {
-  fontFamilySystem: 'System',
+  fontFamily: 'SF-Pro-Display-Bold',
+  fontFamilyBold: 'SF-Pro-Display-Bold',
+  fontFamilyMedium: 'SF-Pro-Display-Medium',
+  fontFamilyRegular: 'SF-Pro-Display-Regular',
+  fontFamilySystem: 'SF-Pro-Display-Bold',
   fontSize: {
     xs: 12,
     sm: 14,
