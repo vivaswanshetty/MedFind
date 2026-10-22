@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   Modal,
   Keyboard,
+  Image,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -101,18 +102,13 @@ export default function HomeScreen() {
         ]}
       >
         <View style={styles.headerLeftGroup}>
-          <View
-            style={[
-              styles.logoBadge,
-              {
-                backgroundColor:
-                  mode === 'light' ? theme.badgeBackground : theme.surfaceElevated,
-                borderColor: theme.primaryAccent,
-              },
-            ]}
-          >
-            <Text style={[styles.logoIcon, { color: theme.primaryAccent }]}>+</Text>
-          </View>
+          <Image
+            source={require('../../assets/images/icon.png')}
+            style={[styles.logoImage, { borderColor: theme.border }]}
+            resizeMode="cover"
+            accessible={true}
+            accessibilityLabel="MedFind app logo"
+          />
           <View style={styles.titleColumn}>
             <Text style={[styles.appTitle, { color: theme.textPrimary }]}>
               MedFind
@@ -742,19 +738,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flex: 1,
   },
-  logoBadge: {
-    width: 38,
-    height: 38,
+  logoImage: {
+    width: 40,
+    height: 40,
     borderRadius: layout.borderRadius.md,
-    borderWidth: 1.5,
-    alignItems: 'center',
-    justifyContent: 'center',
+    borderWidth: 1,
     marginRight: layout.spacing.sm,
-  },
-  logoIcon: {
-    fontSize: 22,
-    fontWeight: '800',
-    lineHeight: 24,
   },
   titleColumn: {
     flex: 1,
