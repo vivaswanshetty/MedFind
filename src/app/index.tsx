@@ -131,7 +131,10 @@ export default function HomeScreen() {
             accessibilityRole="button"
             accessibilityLabel="View safety and pilot boundaries"
           >
-            <Text style={[styles.headerButtonLabel, { color: theme.textSecondary }]}>
+            <Text
+              style={[styles.headerButtonLabel, { color: theme.textSecondary }]}
+              numberOfLines={1}
+            >
               ℹ️ Info
             </Text>
           </TouchableOpacity>
@@ -147,7 +150,10 @@ export default function HomeScreen() {
             accessibilityRole="button"
             accessibilityLabel={`Toggle theme mode. Current theme is ${mode}`}
           >
-            <Text style={[styles.headerButtonLabel, { color: theme.textSecondary }]}>
+            <Text
+              style={[styles.headerButtonLabel, { color: theme.textSecondary }]}
+              numberOfLines={1}
+            >
               {mode === 'light' ? '🌙 Dark' : '☀️ Light'}
             </Text>
           </TouchableOpacity>
@@ -335,6 +341,7 @@ export default function HomeScreen() {
                           : typography.fontFamilyMedium,
                       },
                     ]}
+                    numberOfLines={1}
                   >
                     {form}
                   </Text>
@@ -378,7 +385,10 @@ export default function HomeScreen() {
             accessibilityRole="button"
             accessibilityLabel="Open Care and Emergency Directory screen"
           >
-            <Text style={[styles.emergencyDirectoryButtonText, { color: theme.emergencyText }]}>
+            <Text
+              style={[styles.emergencyDirectoryButtonText, { color: theme.emergencyText }]}
+              numberOfLines={1}
+            >
               Open Directory →
             </Text>
           </TouchableOpacity>
@@ -739,6 +749,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
+    marginRight: layout.spacing.xs,
   },
   logoImage: {
     width: 40,
@@ -765,14 +776,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: layout.spacing.xs,
+    flexShrink: 0,
   },
   headerIconButton: {
     minHeight: layout.minTouchTarget,
+    minWidth: 64,
     paddingHorizontal: layout.spacing.sm + 2,
     borderRadius: layout.borderRadius.pill,
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
+    flexShrink: 0,
   },
   headerButtonLabel: {
     fontFamily: typography.fontFamilyMedium,
@@ -801,17 +815,21 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    flexWrap: 'wrap',
+    gap: layout.spacing.xs,
   },
   modeNoticeText: {
     fontFamily: typography.fontFamilyRegular,
     fontSize: typography.fontSize.xs,
     flex: 1,
+    minWidth: 180,
     lineHeight: 18,
   },
   modeNoticeLink: {
     minHeight: 32,
     justifyContent: 'center',
     paddingLeft: layout.spacing.sm,
+    flexShrink: 0,
   },
   modeNoticeLinkText: {
     fontFamily: typography.fontFamilySemibold,
@@ -822,6 +840,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: layout.spacing.xs,
     marginTop: 6,
     paddingTop: 6,
     borderTopWidth: StyleSheet.hairlineWidth,
@@ -831,11 +851,13 @@ const styles = StyleSheet.create({
     fontFamily: typography.fontFamilyRegular,
     fontSize: typography.fontSize.xs - 1,
     flex: 1,
+    minWidth: 180,
   },
   diagnosticToggle: {
     minHeight: 26,
     justifyContent: 'center',
     paddingLeft: layout.spacing.sm,
+    flexShrink: 0,
   },
   diagnosticToggleText: {
     fontFamily: typography.fontFamilyMedium,
@@ -912,6 +934,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    flexWrap: 'wrap',
+    gap: layout.spacing.xs,
     borderRadius: layout.borderRadius.md,
     borderWidth: 1,
     padding: layout.spacing.sm + 2,
@@ -919,6 +943,7 @@ const styles = StyleSheet.create({
   },
   emergencyLeft: {
     flex: 1,
+    minWidth: 160,
     marginRight: layout.spacing.sm,
   },
   emergencyTagText: {
@@ -939,6 +964,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
+    flexShrink: 0,
   },
   emergencyDirectoryButtonText: {
     fontFamily: typography.fontFamilySemibold,
@@ -954,6 +980,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: layout.spacing.xs,
     marginBottom: 2,
   },
   resultsCountText: {
@@ -1011,9 +1039,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
+    flexWrap: 'wrap',
+    gap: layout.spacing.xs,
   },
   cardTitleGroup: {
     flex: 1,
+    minWidth: 140,
     marginRight: layout.spacing.sm,
   },
   brandTitle: {
@@ -1031,6 +1062,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: layout.spacing.xs,
+    flexShrink: 0,
+    flexWrap: 'wrap',
   },
   dosagePill: {
     paddingHorizontal: layout.spacing.sm,

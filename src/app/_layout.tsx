@@ -36,7 +36,7 @@ function RootNavigation() {
         <Stack.Screen
           name="care"
           options={{
-            title: 'Care & Emergency Directory',
+            title: 'Care Directory',
             headerShadowVisible: false,
           }}
         />

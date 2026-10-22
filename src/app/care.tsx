@@ -122,38 +122,45 @@ export default function CareDirectoryScreen() {
 
       {/* 2. SCREEN HEADER & THEME TOGGLE */}
       <View style={styles.headerRow}>
-        <View style={styles.headerLeftGroup}>
-          <Image
-            source={require('../../assets/images/icon.png')}
-            style={[styles.logoImage, { borderColor: theme.border }]}
-            resizeMode="cover"
-            accessible={true}
-            accessibilityLabel="MedFind app logo"
-          />
-          <View style={styles.headerTextGroup}>
-            <Text style={[styles.screenTitle, { color: theme.textPrimary }]}>
+        <View style={styles.headerTopLine}>
+          <View style={styles.headerLeftGroup}>
+            <Image
+              source={require('../../assets/images/icon.png')}
+              style={[styles.logoImage, { borderColor: theme.border }]}
+              resizeMode="cover"
+              accessible={true}
+              accessibilityLabel="MedFind app logo"
+            />
+            <Text
+              style={[styles.screenTitle, { color: theme.textPrimary }]}
+              numberOfLines={1}
+            >
               Care Directory
             </Text>
-            <Text style={[styles.screenSubtitle, { color: theme.textSecondary }]}>
-              Hospitals, Clinics & Ambulance
-            </Text>
           </View>
+
+          <TouchableOpacity
+            onPress={toggleTheme}
+            accessible={true}
+            accessibilityRole="button"
+            accessibilityLabel={`Toggle theme mode. Current mode is ${mode}`}
+            style={[
+              styles.themeButton,
+              { backgroundColor: theme.surface, borderColor: theme.border },
+            ]}
+          >
+            <Text
+              style={[styles.themeButtonText, { color: theme.textPrimary }]}
+              numberOfLines={1}
+            >
+              {mode === 'light' ? '🌙 Dark' : '☀️ Light'}
+            </Text>
+          </TouchableOpacity>
         </View>
 
-        <TouchableOpacity
-          onPress={toggleTheme}
-          accessible={true}
-          accessibilityRole="button"
-          accessibilityLabel={`Toggle theme mode. Current mode is ${mode}`}
-          style={[
-            styles.themeButton,
-            { backgroundColor: theme.surface, borderColor: theme.border },
-          ]}
-        >
-          <Text style={[styles.themeButtonText, { color: theme.textPrimary }]}>
-            {mode === 'light' ? '🌙 Dark' : '☀️ Light'}
-          </Text>
-        </TouchableOpacity>
+        <Text style={[styles.screenSubtitle, { color: theme.textSecondary }]}>
+          Reviewed Hospitals, Clinics & Ambulance Contacts
+        </Text>
       </View>
 
       {/* 3. CALM EMERGENCY BOUNDARY CARD */}
@@ -437,10 +444,16 @@ export default function CareDirectoryScreen() {
                     { backgroundColor: theme.surfaceElevated, borderColor: theme.border },
                   ]}
                 >
-                  <Text style={[styles.provenanceText, { color: theme.textMuted }]}>
+                  <Text
+                    style={[styles.provenanceText, { color: theme.textMuted, flexShrink: 1 }]}
+                    numberOfLines={2}
+                  >
                     Source: {item.source}
                   </Text>
-                  <Text style={[styles.provenanceText, { color: theme.textMuted }]}>
+                  <Text
+                    style={[styles.provenanceText, { color: theme.textMuted, flexShrink: 0 }]}
+                    numberOfLines={1}
+                  >
                     Reviewed: {item.reviewed_at ? item.reviewed_at.split('T')[0] : 'Unrecorded'}
                   </Text>
                 </View>
@@ -520,47 +533,51 @@ const styles = StyleSheet.create({
     lineHeight: 16,
   },
   headerRow: {
+    marginBottom: layout.spacing.md,
+  },
+  headerTopLine: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: layout.spacing.md,
+    marginBottom: 4,
   },
   headerLeftGroup: {
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
+    marginRight: layout.spacing.sm,
   },
   logoImage: {
-    width: 38,
-    height: 38,
+    width: 36,
+    height: 36,
     borderRadius: layout.borderRadius.md,
     borderWidth: 1,
     marginRight: layout.spacing.sm,
-  },
-  headerTextGroup: {
-    flex: 1,
   },
   screenTitle: {
     fontFamily: typography.fontFamilyBold,
     fontSize: typography.fontSize.lg,
     fontWeight: '700',
+    flex: 1,
   },
   screenSubtitle: {
     fontFamily: typography.fontFamilyRegular,
     fontSize: typography.fontSize.xs,
-    marginTop: 2,
+    lineHeight: 18,
   },
   themeButton: {
-    minHeight: layout.minTouchTarget,
-    paddingHorizontal: layout.spacing.md,
+    minHeight: 38,
+    minWidth: 84,
+    paddingHorizontal: layout.spacing.sm + 4,
     borderRadius: layout.borderRadius.pill,
     borderWidth: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    flexShrink: 0,
   },
   themeButtonText: {
     fontFamily: typography.fontFamilyMedium,
-    fontSize: typography.fontSize.sm,
+    fontSize: typography.fontSize.xs + 1,
     fontWeight: '500',
   },
   emergencyCard: {
@@ -663,6 +680,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: layout.spacing.xs,
   },
   resultsCount: {
     fontFamily: typography.fontFamilySemibold,
@@ -712,16 +731,20 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: layout.spacing.xs,
   },
   categoryBadgeText: {
     fontFamily: typography.fontFamilySemibold,
     fontSize: typography.fontSize.xs,
     fontWeight: '600',
+    flexShrink: 1,
   },
   demoTag: {
     fontFamily: typography.fontFamilySemibold,
     fontSize: typography.fontSize.xs,
     fontWeight: '600',
+    flexShrink: 0,
   },
   facilityName: {
     fontFamily: typography.fontFamilyBold,
@@ -759,13 +782,18 @@ const styles = StyleSheet.create({
   provenanceContainer: {
     borderWidth: 1,
     borderRadius: layout.borderRadius.sm,
-    padding: layout.spacing.xs,
+    paddingHorizontal: layout.spacing.sm,
+    paddingVertical: 6,
     flexDirection: 'row',
     justifyContent: 'space-between',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 6,
   },
   provenanceText: {
     fontFamily: typography.fontFamilyRegular,
     fontSize: typography.fontSize.xs - 1,
+    lineHeight: 16,
   },
   phoneSection: {
     marginTop: 2,
