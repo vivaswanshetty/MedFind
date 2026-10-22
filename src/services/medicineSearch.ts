@@ -35,6 +35,8 @@ export interface MedicineSearchResultItem {
   pharmacyName: string;
   pharmacyAddress: string;
   pharmacyPhone: string;
+  openingHours?: string | null;
+  verifiedAt?: string | null;
   state: StockState;
   updatedAt: string;
   isDemo: boolean;
@@ -46,6 +48,15 @@ export interface MedicineSearchResponse {
   results: MedicineSearchResultItem[];
   totalPublishedInDb: number;
   errorMessage?: string;
+}
+
+/**
+ * Retrieves a single medicine search result by composite or item id
+ */
+export async function getMedicineResultById(id: string): Promise<MedicineSearchResultItem | null> {
+  const search = await searchMedicineStock('');
+  const found = search.results.find((r) => r.id === id || r.medicineId === id);
+  return found || null;
 }
 
 /**
@@ -134,6 +145,8 @@ export async function searchMedicineStock(
       pharmacyName: row.pharmacy_name,
       pharmacyAddress: row.pharmacy_address,
       pharmacyPhone: row.pharmacy_phone,
+      openingHours: row.opening_hours,
+      verifiedAt: row.verified_at,
       state: row.state as StockState,
       updatedAt: row.updated_at,
       isDemo: Boolean(row.is_demo),
@@ -196,6 +209,8 @@ function getFilteredDemoResults(
           pharmacyName: pharmacy.name,
           pharmacyAddress: pharmacy.address,
           pharmacyPhone: pharmacy.phone,
+          openingHours: pharmacy.opening_hours,
+          verifiedAt: pharmacy.verified_at,
           state: snap.state,
           updatedAt: snap.updated_at,
           isDemo: true,

@@ -474,3 +474,144 @@ export function EmptyClipboardIcon({ size = 44, color }: IconProps) {
     </Svg>
   );
 }
+
+/**
+ * 22. Bookmark / Favorite Icon
+ */
+export function BookmarkIcon({ size = 18, color, filled = false }: IconProps & { filled?: boolean }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Defs>
+        <LinearGradient id="bkmkGrad" x1="0" y1="0" x2="24" y2="24" gradientUnits="userSpaceOnUse">
+          <Stop offset="0%" stopColor="#F59E0B" />
+          <Stop offset="100%" stopColor="#D97706" />
+        </LinearGradient>
+      </Defs>
+      <Path
+        d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2v16z"
+        fill={filled ? (color || 'url(#bkmkGrad)') : 'none'}
+        stroke={color || (filled ? 'url(#bkmkGrad)' : '#D97706')}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
+/**
+ * 23. Check Circle Icon - Verified Stock Update Confirmation
+ */
+export function CheckCircleIcon({ size = 18, color }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Defs>
+        <LinearGradient id="chkGrad" x1="0" y1="0" x2="24" y2="24" gradientUnits="userSpaceOnUse">
+          <Stop offset="0%" stopColor="#10B981" />
+          <Stop offset="100%" stopColor="#047857" />
+        </LinearGradient>
+      </Defs>
+      <Circle cx="12" cy="12" r="10" fill={color || 'url(#chkGrad)'} />
+      <Path
+        d="M8.5 12.5l2.5 2.5 5-5"
+        stroke="#FFFFFF"
+        strokeWidth="2.2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
+/**
+ * 24. Staff Badge / ID Card Icon - Pharmacy Staff Portal
+ */
+export function StaffBadgeIcon({ size = 18, color }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Defs>
+        <LinearGradient id="staffGrad" x1="0" y1="0" x2="24" y2="24" gradientUnits="userSpaceOnUse">
+          <Stop offset="0%" stopColor="#8B5CF6" />
+          <Stop offset="100%" stopColor="#6D28D9" />
+        </LinearGradient>
+      </Defs>
+      <Rect x="4" y="3" width="16" height="18" rx="3" fill={color || 'url(#staffGrad)'} />
+      <Circle cx="12" cy="9" r="2.8" fill="#FFFFFF" />
+      <Path
+        d="M8 16c0-2 1.8-3 4-3s4 1 4 3"
+        stroke="#FFFFFF"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+      />
+      <Rect x="9" y="1" width="6" height="3" rx="1.5" fill="#C4B5FD" />
+    </Svg>
+  );
+}
+
+/**
+ * 25. Directions / Map Navigation Icon
+ */
+export function DirectionsIcon({ size = 16, color }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Defs>
+        <LinearGradient id="dirGrad" x1="0" y1="0" x2="24" y2="24" gradientUnits="userSpaceOnUse">
+          <Stop offset="0%" stopColor="#38BDF8" />
+          <Stop offset="100%" stopColor="#0284C7" />
+        </LinearGradient>
+      </Defs>
+      <Path
+        d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"
+        stroke={color || 'url(#dirGrad)'}
+        strokeWidth="2.2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
+/**
+ * 26. Pill Capsule Icon - Pharmaceutical details
+ */
+export function PillCapsuleIcon({ size = 18, color }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Defs>
+        <LinearGradient id="pillGrad" x1="0" y1="0" x2="24" y2="24" gradientUnits="userSpaceOnUse">
+          <Stop offset="0%" stopColor="#F43F5E" />
+          <Stop offset="100%" stopColor="#E11D48" />
+        </LinearGradient>
+      </Defs>
+      <Path
+        d="M10.5 4.5l9 9a4.24 4.24 0 01-6 6l-9-9a4.24 4.24 0 016-6z"
+        stroke={color || 'url(#pillGrad)'}
+        strokeWidth="2"
+      />
+      <Path
+        d="M7.5 13.5l3-3"
+        stroke={color || '#F43F5E'}
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+    </Svg>
+  );
+}
+
+/**
+ * 27. Back Arrow / Chevron Left Icon
+ */
+export function BackArrowIcon({ size = 20, color = '#5A3E2B' }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M15 19l-7-7 7-7"
+        stroke={color}
+        strokeWidth="2.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+

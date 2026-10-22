@@ -22,6 +22,7 @@ import {
   MedicineSearchResultItem,
   DataSource,
 } from '../services/medicineSearch';
+import { storageService } from '../services/storageService';
 import { DEMO_DATA_DISCLAIMER } from '../data/demoData';
 import {
   InfoIcon,
@@ -42,6 +43,8 @@ import {
   LockIcon,
   CloseIcon,
   EmptyClipboardIcon,
+  StaffBadgeIcon,
+  BookmarkIcon,
 } from '../components/icons/AppIcons';
 
 export default function HomeScreen() {
@@ -52,6 +55,9 @@ export default function HomeScreen() {
   // Search & filter state
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedDosageForm, setSelectedDosageForm] = useState<string>('All');
+  const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
+  const [recentSearches, setRecentSearches] = useState<string[]>([]);
+  const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
 
   // Async data state
   const [isLoading, setIsLoading] = useState(false);
@@ -71,6 +77,17 @@ export default function HomeScreen() {
   const statusBarHeight = Platform.OS === 'android' ? (StatusBar.currentHeight ?? 28) : 0;
   const headerTopPadding = Math.max(insets.top, statusBarHeight) + 12;
 
+  // Load recent searches & favorite IDs on mount
+  useEffect(() => {
+    async function loadStorage() {
+      const recents = await storageService.getRecentSearches();
+      const favs = await storageService.getFavoriteIds();
+      setRecentSearches(recents);
+      setFavoriteIds(favs);
+    }
+    loadStorage();
+  }, []);
+
   // Fetch search results whenever query or dosage form filter changes (debounced)
   useEffect(() => {
     let isCancelled = false;
@@ -86,6 +103,12 @@ export default function HomeScreen() {
           setTotalPublishedInDb(response.totalPublishedInDb);
           if (response.errorMessage) {
             setSearchError(response.errorMessage);
+          }
+
+          // Save search term to recent searches if length >= 2
+          if (searchQuery.trim().length >= 2) {
+            const updated = await storageService.saveRecentSearch(searchQuery.trim());
+            setRecentSearches(updated);
           }
         }
       } catch (err: unknown) {
@@ -113,6 +136,11 @@ export default function HomeScreen() {
   };
 
   const isDemoMode = dataSource === 'demo';
+
+  // Filter by favorites if toggle is active
+  const displayedResults = showFavoritesOnly
+    ? searchResults.filter((item) => favoriteIds.includes(item.id))
+    : searchResults;
 
   return (
     <View style={[styles.screenRoot, { backgroundColor: theme.canvas }]}>
@@ -163,7 +191,31 @@ export default function HomeScreen() {
         </View>
 
         <View style={styles.headerActionsGroup}>
-          {/* Info Modal Trigger - Liquid Glass Capsule */}
+          {/* Staff Stock Portal Trigger */}
+          <TouchableOpacity
+            onPress={() => router.push('/portal')}
+            style={[
+              styles.headerLiquidButton,
+              {
+                backgroundColor: theme.glass.backgroundPill,
+                borderColor: theme.glass.border,
+                shadowColor: theme.glass.shadowColor,
+              },
+            ]}
+            accessible={true}
+            accessibilityRole="button"
+            accessibilityLabel="Open Pharmacy Staff Portal"
+          >
+            <StaffBadgeIcon size={16} />
+            <Text
+              style={[styles.headerButtonLabel, { color: theme.textPrimary }]}
+              numberOfLines={1}
+            >
+              Portal
+            </Text>
+          </TouchableOpacity>
+
+          {/* Info Modal Trigger */}
           <TouchableOpacity
             onPress={() => setShowSafetyModal(true)}
             style={[
@@ -187,7 +239,7 @@ export default function HomeScreen() {
             </Text>
           </TouchableOpacity>
 
-          {/* Theme Switcher - Liquid Glass Capsule */}
+          {/* Theme Switcher */}
           <TouchableOpacity
             onPress={toggleTheme}
             style={[
@@ -368,19 +420,107 @@ export default function HomeScreen() {
             )}
           </View>
 
-          {/* Compact Dosage-Form Filter Chips - Liquid Glass Pills */}
+          {/* Recent Searches Pills (PRD FR 09 Data Minimization) */}
+          {recentSearches.length > 0 && searchQuery.length === 0 && (
+            <View style={styles.recentSearchesBox}>
+              <Text style={[styles.recentSearchesLabel, { color: theme.textMuted }]}>
+                Recent:
+              </Text>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.recentRow}
+              >
+                {recentSearches.map((term) => (
+                  <TouchableOpacity
+                    key={term}
+                    onPress={() => setSearchQuery(term)}
+                    style={[
+                      styles.recentChip,
+                      {
+                        backgroundColor: theme.glass.backgroundSubtle,
+                        borderColor: theme.glass.borderSubtle,
+                      },
+                    ]}
+                  >
+                    <Text style={[styles.recentChipText, { color: theme.textSecondary }]}>
+                      {term}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+                <TouchableOpacity
+                  onPress={async () => {
+                    await storageService.clearRecentSearches();
+                    setRecentSearches([]);
+                  }}
+                  style={styles.clearRecentsBtn}
+                >
+                  <Text style={[styles.clearRecentsText, { color: theme.textMuted }]}>
+                    Clear
+                  </Text>
+                </TouchableOpacity>
+              </ScrollView>
+            </View>
+          )}
+
+          {/* Compact Dosage-Form Filter Chips & Saved Bookmark Filter */}
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.filterChipRow}
             style={styles.filterScrollView}
           >
+            {/* Local Saved / Favorites Filter Chip */}
+            <TouchableOpacity
+              onPress={() => setShowFavoritesOnly((prev) => !prev)}
+              style={[
+                styles.filterChip,
+                {
+                  backgroundColor: showFavoritesOnly
+                    ? mode === 'light'
+                      ? theme.warningAccent
+                      : theme.warningAccent
+                    : theme.glass.backgroundPill,
+                  borderColor: showFavoritesOnly
+                    ? theme.warningAccent
+                    : theme.glass.border,
+                  shadowColor: theme.glass.shadowColor,
+                },
+              ]}
+              accessible={true}
+              accessibilityRole="button"
+              accessibilityState={{ selected: showFavoritesOnly }}
+              accessibilityLabel="Show saved bookmarked medicines only"
+            >
+              <BookmarkIcon
+                size={14}
+                filled={showFavoritesOnly}
+                color={showFavoritesOnly ? '#FFFFFF' : theme.textSecondary}
+              />
+              <Text
+                style={[
+                  styles.filterChipLabel,
+                  {
+                    color: showFavoritesOnly ? '#FFFFFF' : theme.textSecondary,
+                    fontFamily: showFavoritesOnly
+                      ? typography.fontFamilySemibold
+                      : typography.fontFamilyMedium,
+                  },
+                ]}
+              >
+                Saved ({favoriteIds.length})
+              </Text>
+            </TouchableOpacity>
+
             {dosageForms.map((form) => {
-              const isSelected = selectedDosageForm === form;
+              const isSelected = selectedDosageForm === form && !showFavoritesOnly;
               return (
                 <TouchableOpacity
                   key={form}
-                  onPress={() => setSelectedDosageForm(form)}
+                  onPress={() => {
+                    setSelectedDosageForm(form);
+                    setShowFavoritesOnly(false);
+                  }}
                   style={[
                     styles.filterChip,
                     {
@@ -481,10 +621,10 @@ export default function HomeScreen() {
             <Text style={[styles.resultsCountText, { color: theme.textPrimary }]}>
               {isLoading
                 ? 'Searching records...'
-                : `${searchResults.length} result(s) found`}
+                : `${displayedResults.length} result(s) found`}
             </Text>
             <Text style={[styles.resultsBoundaryText, { color: theme.textMuted }]}>
-              Participating stores only
+              Tap card to view details
             </Text>
           </View>
 
@@ -502,7 +642,7 @@ export default function HomeScreen() {
           )}
 
           {/* Empty State with Colorful SVG Document Icon */}
-          {!isLoading && searchResults.length === 0 && (
+          {!isLoading && displayedResults.length === 0 && (
             <View
               style={[
                 styles.emptyStateBox,
@@ -520,19 +660,21 @@ export default function HomeScreen() {
                 color={mode === 'light' ? '#87A96B' : '#00E5FF'}
               />
               <Text style={[styles.emptyTitle, { color: theme.textPrimary }]}>
-                No stock records found
+                {showFavoritesOnly ? 'No saved medicines' : 'No stock records found'}
               </Text>
               <Text style={[styles.emptyDescription, { color: theme.textSecondary }]}>
-                {searchQuery.trim()
-                  ? `No participating pharmacy has published stock for "${searchQuery}" under the "${selectedDosageForm}" filter.`
+                {showFavoritesOnly
+                  ? 'Tap the bookmark icon on any medicine detail page to save it here for quick 1-tap re-checks.'
+                  : searchQuery.trim()
+                  ? `No participating pharmacy has published stock for "${searchQuery}" under the selected filters.`
                   : 'No published stock records currently match this filter.'}
               </Text>
             </View>
           )}
 
-          {/* Quick-Scan Medicine Result Cards - Apple Liquid Glass Cards */}
+          {/* Quick-Scan Medicine Result Cards - Tap opens Detail Screen */}
           {!isLoading &&
-            searchResults.map((item) => {
+            displayedResults.map((item) => {
               const isDemo = item.isDemo || isDemoMode;
 
               // Format neutral availability labels
@@ -572,8 +714,10 @@ export default function HomeScreen() {
                 : `Updated ${item.freshness.relativeTimeText}`;
 
               return (
-                <View
+                <TouchableOpacity
                   key={item.id}
+                  activeOpacity={0.82}
+                  onPress={() => router.push({ pathname: '/medicine/[id]', params: { id: item.id } })}
                   style={[
                     styles.medicineCard,
                     {
@@ -587,8 +731,8 @@ export default function HomeScreen() {
                     },
                   ]}
                   accessible={true}
-                  accessibilityRole="summary"
-                  accessibilityLabel={`${item.brandName}, ${item.genericName}. ${availabilityLabel}. ${updateTimeLabel}`}
+                  accessibilityRole="button"
+                  accessibilityLabel={`${item.brandName}, ${item.genericName}. ${availabilityLabel}. ${updateTimeLabel}. Tap to view details.`}
                 >
                   {/* Top: Medicine Name & Badges */}
                   <View style={styles.cardHeaderRow}>
@@ -666,6 +810,7 @@ export default function HomeScreen() {
                       <Text style={[styles.updateTimeText, { color: theme.textMuted }]}>
                         {updateTimeLabel}
                       </Text>
+                      <ArrowRightIcon size={12} color={theme.textMuted} />
                     </View>
                   </View>
 
@@ -740,7 +885,7 @@ export default function HomeScreen() {
                       </Text>
                     </View>
                   )}
-                </View>
+                </TouchableOpacity>
               );
             })}
         </View>
@@ -952,14 +1097,14 @@ const styles = StyleSheet.create({
   },
   headerLiquidButton: {
     minHeight: layout.minTouchTarget,
-    minWidth: 64,
-    paddingHorizontal: layout.spacing.sm + 4,
+    minWidth: 54,
+    paddingHorizontal: layout.spacing.sm + 2,
     borderRadius: layout.borderRadius.pill,
     borderWidth: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 5,
+    gap: 4,
     flexShrink: 0,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.06,
@@ -1091,7 +1236,7 @@ const styles = StyleSheet.create({
     borderRadius: layout.borderRadius.md + 4,
     borderWidth: 1,
     paddingHorizontal: layout.spacing.md,
-    marginBottom: layout.spacing.sm,
+    marginBottom: layout.spacing.xs + 2,
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.05,
     shadowRadius: 10,
@@ -1115,6 +1260,43 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  recentSearchesBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: layout.spacing.xs + 4,
+    paddingHorizontal: 2,
+  },
+  recentSearchesLabel: {
+    fontFamily: typography.fontFamilyMedium,
+    fontSize: typography.fontSize.xs - 1,
+    fontWeight: '500',
+  },
+  recentRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  recentChip: {
+    paddingHorizontal: layout.spacing.sm + 2,
+    paddingVertical: 3,
+    borderRadius: layout.borderRadius.pill,
+    borderWidth: 1,
+  },
+  recentChipText: {
+    fontFamily: typography.fontFamilyRegular,
+    fontSize: typography.fontSize.xs - 1,
+    fontWeight: '400',
+  },
+  clearRecentsBtn: {
+    paddingHorizontal: 4,
+    paddingVertical: 2,
+  },
+  clearRecentsText: {
+    fontFamily: typography.fontFamilyRegular,
+    fontSize: typography.fontSize.xs - 1,
+    textDecorationLine: 'underline',
+  },
   filterScrollView: {
     marginTop: 2,
   },
@@ -1127,8 +1309,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: layout.spacing.md,
     borderRadius: layout.borderRadius.pill,
     borderWidth: 1,
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 5,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.04,
     shadowRadius: 6,

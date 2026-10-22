@@ -36,8 +36,19 @@ function RootNavigation() {
         <Stack.Screen
           name="care"
           options={{
-            title: 'Care Directory',
-            headerShadowVisible: false,
+            headerShown: false,
+          }}
+        />
+        <Stack.Screen
+          name="medicine/[id]"
+          options={{
+            headerShown: false,
+          }}
+        />
+        <Stack.Screen
+          name="portal"
+          options={{
+            headerShown: false,
           }}
         />
       </Stack>
