@@ -31,6 +31,13 @@ function RootNavigation() {
             headerShadowVisible: false,
           }}
         />
+        <Stack.Screen
+          name="care"
+          options={{
+            title: 'Care & Emergency Directory',
+            headerShadowVisible: false,
+          }}
+        />
       </Stack>
     </>
   );

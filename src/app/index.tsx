@@ -8,6 +8,7 @@ import {
   StyleSheet,
   ActivityIndicator,
 } from 'react-native';
+import { useRouter } from 'expo-router';
 import { useTheme } from '../theme/ThemeContext';
 import { layout, typography, statusLabels } from '../theme/tokens';
 import {
@@ -18,6 +19,7 @@ import {
 import { demoProviderListings, DEMO_DATA_DISCLAIMER } from '../data/demoData';
 
 export default function HomeScreen() {
+  const router = useRouter();
   const { mode, theme, toggleTheme } = useTheme();
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -156,6 +158,21 @@ export default function HomeScreen() {
           Directory contact information only. MedFind makes zero claims of live ambulance
           dispatch, response times, or hospital bed availability.
         </Text>
+
+        <TouchableOpacity
+          onPress={() => router.push('/care')}
+          style={[
+            styles.openDirectoryButton,
+            { backgroundColor: theme.surface, borderColor: theme.border },
+          ]}
+          accessible={true}
+          accessibilityRole="button"
+          accessibilityLabel="Open Care and Emergency Directory screen"
+        >
+          <Text style={[styles.openDirectoryButtonText, { color: theme.textPrimary }]}>
+            🏥 Open Full Care & Emergency Directory →
+          </Text>
+        </TouchableOpacity>
 
         {showEmergencyDetails && (
           <View style={styles.emergencyDetailsList}>
@@ -303,12 +320,12 @@ export default function HomeScreen() {
           ]}
         >
           {dataSource === 'database'
-            ? '● VERIFIED DATABASE RECORDS (SUPABASE)'
+            ? '● SUPABASE RECORDS (REPORTED AVAILABILITY)'
             : '○ DEMO DATA MODE (SIMULATED BASELINE)'}
         </Text>
         <Text style={[styles.dataSourceNotice, { color: theme.textSecondary }]}>
           {dataSource === 'database'
-            ? `Displaying verified stock snapshots from Supabase (${totalPublishedInDb} total published in database).`
+            ? `Displaying reported stock snapshots from Supabase (${totalPublishedInDb} recorded in database).`
             : 'Supabase currently has no published stock snapshot records. Displaying simulated demo fixtures.'}
         </Text>
       </View>
@@ -603,6 +620,19 @@ const styles = StyleSheet.create({
   emergencyDescription: {
     fontSize: typography.fontSize.xs,
     lineHeight: 16,
+  },
+  openDirectoryButton: {
+    minHeight: layout.minTouchTarget,
+    borderRadius: layout.borderRadius.md,
+    borderWidth: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: layout.spacing.md,
+    marginTop: layout.spacing.sm,
+  },
+  openDirectoryButtonText: {
+    fontSize: typography.fontSize.sm,
+    fontWeight: '700',
   },
   emergencyDetailsList: {
     marginTop: layout.spacing.sm,
