@@ -45,6 +45,7 @@ import {
   EmptyClipboardIcon,
   StaffBadgeIcon,
   BookmarkIcon,
+  SettingsIcon,
 } from '../components/icons/AppIcons';
 
 export default function HomeScreen() {
@@ -69,6 +70,8 @@ export default function HomeScreen() {
 
   // Safety & pilot information modal
   const [showSafetyModal, setShowSafetyModal] = useState(false);
+  // Settings & options dropdown menu
+  const [showSettingsMenu, setShowSettingsMenu] = useState(false);
 
   // Dosage form filter list
   const dosageForms = ['All', 'Tablet', 'Capsule', 'Inhaler', 'Powder'];
@@ -191,76 +194,26 @@ export default function HomeScreen() {
         </View>
 
         <View style={styles.headerActionsGroup}>
-          {/* Staff Stock Portal Trigger */}
           <TouchableOpacity
-            onPress={() => router.push('/portal')}
+            onPress={() => setShowSettingsMenu((prev) => !prev)}
             style={[
-              styles.headerLiquidButton,
+              styles.headerSettingsButton,
               {
-                backgroundColor: theme.glass.backgroundPill,
+                backgroundColor: showSettingsMenu
+                  ? (mode === 'light' ? theme.primaryAccent : '#00E5FF')
+                  : theme.glass.backgroundPill,
                 borderColor: theme.glass.border,
                 shadowColor: theme.glass.shadowColor,
               },
             ]}
             accessible={true}
             accessibilityRole="button"
-            accessibilityLabel="Open Pharmacy Staff Portal"
+            accessibilityLabel="Open settings and options menu"
           >
-            <StaffBadgeIcon size={16} />
-            <Text
-              style={[styles.headerButtonLabel, { color: theme.textPrimary }]}
-              numberOfLines={1}
-            >
-              Portal
-            </Text>
-          </TouchableOpacity>
-
-          {/* Info Modal Trigger */}
-          <TouchableOpacity
-            onPress={() => setShowSafetyModal(true)}
-            style={[
-              styles.headerLiquidButton,
-              {
-                backgroundColor: theme.glass.backgroundPill,
-                borderColor: theme.glass.border,
-                shadowColor: theme.glass.shadowColor,
-              },
-            ]}
-            accessible={true}
-            accessibilityRole="button"
-            accessibilityLabel="View safety and pilot boundaries"
-          >
-            <InfoIcon size={16} />
-            <Text
-              style={[styles.headerButtonLabel, { color: theme.textPrimary }]}
-              numberOfLines={1}
-            >
-              Info
-            </Text>
-          </TouchableOpacity>
-
-          {/* Theme Switcher */}
-          <TouchableOpacity
-            onPress={toggleTheme}
-            style={[
-              styles.headerLiquidButton,
-              {
-                backgroundColor: theme.glass.backgroundPill,
-                borderColor: theme.glass.border,
-                shadowColor: theme.glass.shadowColor,
-              },
-            ]}
-            accessible={true}
-            accessibilityRole="button"
-            accessibilityLabel={`Toggle theme mode. Current theme is ${mode}`}
-          >
-            {mode === 'light' ? <MoonIcon size={16} /> : <SunIcon size={16} />}
-            <Text
-              style={[styles.headerButtonLabel, { color: theme.textPrimary }]}
-              numberOfLines={1}
-            >
-              {mode === 'light' ? 'Dark' : 'Light'}
-            </Text>
+            <SettingsIcon
+              size={20}
+              color={showSettingsMenu ? '#FFFFFF' : (mode === 'light' ? theme.primaryAccent : '#00E5FF')}
+            />
           </TouchableOpacity>
         </View>
       </View>
@@ -270,30 +223,7 @@ export default function HomeScreen() {
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
       >
-        {/* 2. CONCISE SOURCING NOTICE */}
-        <View
-          style={[
-            styles.modeNoticeBanner,
-            {
-              backgroundColor: theme.glass.backgroundSubtle,
-              borderColor: theme.glass.borderSubtle,
-              shadowColor: theme.glass.shadowColor,
-            },
-          ]}
-          accessible={true}
-          accessibilityLabel="Stock availability policy notice"
-        >
-          <View style={styles.modeNoticeContent}>
-            <View style={styles.noticeIconWrapper}>
-              <InfoIcon size={16} color={mode === 'light' ? '#87A96B' : '#00E5FF'} />
-            </View>
-            <Text style={[styles.modeNoticeText, { color: theme.textSecondary }]}>
-              Stock availability is only shown when reported directly by a participating pharmacy.
-            </Text>
-          </View>
-        </View>
-
-        {/* 3. MEDICINE SEARCH (MAIN FOCUS) */}
+        {/* 2. MEDICINE SEARCH (MAIN FOCUS - MOVED TO TOP) */}
         <View style={styles.searchSection}>
           <Text style={[styles.searchSectionTitle, { color: theme.textPrimary }]}>
             Find a medicine
@@ -482,6 +412,29 @@ export default function HomeScreen() {
               );
             })}
           </ScrollView>
+        </View>
+
+        {/* 3. CONCISE SOURCING NOTICE (PLACED DIRECTLY BELOW SEARCH) */}
+        <View
+          style={[
+            styles.modeNoticeBanner,
+            {
+              backgroundColor: theme.glass.backgroundSubtle,
+              borderColor: theme.glass.borderSubtle,
+              shadowColor: theme.glass.shadowColor,
+            },
+          ]}
+          accessible={true}
+          accessibilityLabel="Stock availability policy notice"
+        >
+          <View style={styles.modeNoticeContent}>
+            <View style={styles.noticeIconWrapper}>
+              <InfoIcon size={16} color={mode === 'light' ? '#87A96B' : '#00E5FF'} />
+            </View>
+            <Text style={[styles.modeNoticeText, { color: theme.textSecondary }]}>
+              Stock availability is only shown when reported directly by a participating pharmacy.
+            </Text>
+          </View>
         </View>
 
         {/* 4. CALM & COMPACT EMERGENCY HELP (LIQUID GLASS STRIP) */}
@@ -866,6 +819,161 @@ export default function HomeScreen() {
           </View>
         </View>
       </Modal>
+
+      {/* 7. SETTINGS & OPTIONS DROPDOWN MENU */}
+      <Modal
+        visible={showSettingsMenu}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowSettingsMenu(false)}
+      >
+        <TouchableOpacity
+          style={styles.settingsOverlay}
+          activeOpacity={1}
+          onPress={() => setShowSettingsMenu(false)}
+        >
+          <View
+            style={[
+              styles.settingsDropdownCard,
+              {
+                top: headerTopPadding + 44,
+                backgroundColor: mode === 'light' ? 'rgba(255, 255, 255, 0.98)' : 'rgba(20, 20, 25, 0.98)',
+                borderColor: theme.glass.borderHighlight,
+                shadowColor: theme.glass.shadowColor,
+              },
+            ]}
+          >
+            {/* Dropdown Header */}
+            <View style={styles.settingsDropdownHeader}>
+              <View style={styles.settingsDropdownTitleRow}>
+                <SettingsIcon size={16} color={mode === 'light' ? theme.primaryAccent : '#00E5FF'} />
+                <Text style={[styles.settingsDropdownTitle, { color: theme.textPrimary }]}>
+                  Settings & Options
+                </Text>
+              </View>
+              <TouchableOpacity
+                onPress={() => setShowSettingsMenu(false)}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                accessible={true}
+                accessibilityRole="button"
+                accessibilityLabel="Close settings menu"
+              >
+                <CloseIcon size={15} color={theme.textMuted} />
+              </TouchableOpacity>
+            </View>
+
+            {/* Option 1: Theme Switcher */}
+            <TouchableOpacity
+              onPress={() => {
+                toggleTheme();
+              }}
+              style={[styles.settingsItemRow, { borderBottomColor: theme.glass.borderSubtle }]}
+              accessible={true}
+              accessibilityRole="button"
+              accessibilityLabel={`Toggle theme mode. Current theme is ${mode}`}
+            >
+              <View
+                style={[
+                  styles.settingsItemIconBox,
+                  {
+                    backgroundColor: theme.glass.backgroundPill,
+                    borderColor: theme.glass.border,
+                  },
+                ]}
+              >
+                {mode === 'light' ? <MoonIcon size={18} /> : <SunIcon size={18} />}
+              </View>
+              <View style={styles.settingsItemTextColumn}>
+                <Text style={[styles.settingsItemTitle, { color: theme.textPrimary }]}>
+                  {mode === 'light' ? 'Dark Mode' : 'Light Mode'}
+                </Text>
+                <Text style={[styles.settingsItemSubtitle, { color: theme.textSecondary }]}>
+                  {mode === 'light' ? 'Switch to dark theme' : 'Switch to light theme'}
+                </Text>
+              </View>
+              <View
+                style={[
+                  styles.settingsPill,
+                  {
+                    backgroundColor: theme.glass.backgroundPill,
+                    borderColor: theme.glass.border,
+                  },
+                ]}
+              >
+                <Text style={[styles.settingsPillText, { color: theme.primaryAccentText }]}>
+                  Switch
+                </Text>
+              </View>
+            </TouchableOpacity>
+
+            {/* Option 2: Pharmacy Staff Portal */}
+            <TouchableOpacity
+              onPress={() => {
+                setShowSettingsMenu(false);
+                router.push('/portal');
+              }}
+              style={[styles.settingsItemRow, { borderBottomColor: theme.glass.borderSubtle }]}
+              accessible={true}
+              accessibilityRole="button"
+              accessibilityLabel="Open Pharmacy Staff Portal"
+            >
+              <View
+                style={[
+                  styles.settingsItemIconBox,
+                  {
+                    backgroundColor: theme.glass.backgroundPill,
+                    borderColor: theme.glass.border,
+                  },
+                ]}
+              >
+                <StaffBadgeIcon size={18} />
+              </View>
+              <View style={styles.settingsItemTextColumn}>
+                <Text style={[styles.settingsItemTitle, { color: theme.textPrimary }]}>
+                  Pharmacy Staff Portal
+                </Text>
+                <Text style={[styles.settingsItemSubtitle, { color: theme.textSecondary }]}>
+                  1-tap stock updates for pharmacies
+                </Text>
+              </View>
+              <ArrowRightIcon size={13} color={theme.textMuted} />
+            </TouchableOpacity>
+
+            {/* Option 3: Info & Safety Boundaries */}
+            <TouchableOpacity
+              onPress={() => {
+                setShowSettingsMenu(false);
+                setShowSafetyModal(true);
+              }}
+              style={styles.settingsItemRow}
+              accessible={true}
+              accessibilityRole="button"
+              accessibilityLabel="View safety, clinical policies, and boundaries"
+            >
+              <View
+                style={[
+                  styles.settingsItemIconBox,
+                  {
+                    backgroundColor: theme.glass.backgroundPill,
+                    borderColor: theme.glass.border,
+                  },
+                ]}
+              >
+                <InfoIcon size={18} />
+              </View>
+              <View style={styles.settingsItemTextColumn}>
+                <Text style={[styles.settingsItemTitle, { color: theme.textPrimary }]}>
+                  About & Safety Info
+                </Text>
+                <Text style={[styles.settingsItemSubtitle, { color: theme.textSecondary }]}>
+                  NLEM catalog & clinical boundaries
+                </Text>
+              </View>
+              <ArrowRightIcon size={13} color={theme.textMuted} />
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </View>
   );
 }
@@ -888,7 +996,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
-    marginRight: layout.spacing.xs,
+    marginRight: layout.spacing.sm,
   },
   logoWrapper: {
     width: 42,
@@ -911,10 +1019,11 @@ const styles = StyleSheet.create({
   },
   titleColumn: {
     flex: 1,
+    justifyContent: 'center',
   },
   appTitle: {
     fontFamily: typography.fontFamilyBold,
-    fontSize: typography.fontSize.lg,
+    fontSize: typography.fontSize.xl,
     fontWeight: '700',
     letterSpacing: -0.4,
   },
@@ -928,29 +1037,101 @@ const styles = StyleSheet.create({
   headerActionsGroup: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: layout.spacing.xs + 2,
+    justifyContent: 'flex-end',
     flexShrink: 0,
   },
-  headerLiquidButton: {
-    minHeight: layout.minTouchTarget,
-    minWidth: 54,
-    paddingHorizontal: layout.spacing.sm + 2,
-    borderRadius: layout.borderRadius.pill,
+  headerSettingsButton: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
     borderWidth: 1,
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 4,
-    flexShrink: 0,
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
+    shadowOpacity: 0.08,
     shadowRadius: 6,
     elevation: 2,
   },
-  headerButtonLabel: {
-    fontFamily: typography.fontFamilyMedium,
-    fontSize: typography.fontSize.xs,
-    fontWeight: '500',
+
+  // SETTINGS DROPDOWN MENU
+  settingsOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.4)',
+    justifyContent: 'flex-start',
+    alignItems: 'flex-end',
+    paddingHorizontal: layout.spacing.md,
+  },
+  settingsDropdownCard: {
+    width: 300,
+    borderRadius: layout.borderRadius.lg,
+    borderWidth: 1,
+    padding: layout.spacing.md,
+    gap: 2,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.18,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  settingsDropdownHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingBottom: layout.spacing.xs + 2,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: 'rgba(150, 150, 150, 0.25)',
+    marginBottom: 4,
+  },
+  settingsDropdownTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  settingsDropdownTitle: {
+    fontFamily: typography.fontFamilyBold,
+    fontSize: typography.fontSize.sm + 1,
+    fontWeight: '700',
+    letterSpacing: -0.2,
+  },
+  settingsItemRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: layout.spacing.sm + 2,
+    gap: layout.spacing.sm,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  settingsItemIconBox: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+  },
+  settingsItemTextColumn: {
+    flex: 1,
+    gap: 2,
+  },
+  settingsItemTitle: {
+    fontFamily: typography.fontFamilySemibold,
+    fontSize: typography.fontSize.sm,
+    fontWeight: '600',
+  },
+  settingsItemSubtitle: {
+    fontFamily: typography.fontFamilyRegular,
+    fontSize: typography.fontSize.xs - 1,
+    fontWeight: '400',
+    lineHeight: 14,
+  },
+  settingsPill: {
+    paddingHorizontal: layout.spacing.sm,
+    paddingVertical: 4,
+    borderRadius: layout.borderRadius.pill,
+    borderWidth: 1,
+  },
+  settingsPillText: {
+    fontFamily: typography.fontFamilySemibold,
+    fontSize: typography.fontSize.xs - 1,
+    fontWeight: '600',
   },
 
   // SCROLL CONTAINER
