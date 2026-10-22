@@ -330,7 +330,9 @@ export default function HomeScreen() {
                             ? theme.textInverse
                             : theme.primaryAccent
                           : theme.textSecondary,
-                        fontWeight: isSelected ? '700' : '500',
+                        fontFamily: isSelected
+                          ? typography.fontFamilySemibold
+                          : typography.fontFamilyMedium,
                       },
                     ]}
                   >
@@ -751,11 +753,11 @@ const styles = StyleSheet.create({
   appTitle: {
     fontFamily: typography.fontFamilyBold,
     fontSize: typography.fontSize.lg,
-    fontWeight: '800',
+    fontWeight: '700',
     letterSpacing: -0.3,
   },
   appTagline: {
-    fontFamily: typography.fontFamilyBold,
+    fontFamily: typography.fontFamilyRegular,
     fontSize: typography.fontSize.xs,
     marginTop: 1,
   },
@@ -773,9 +775,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   headerButtonLabel: {
-    fontFamily: typography.fontFamilyBold,
+    fontFamily: typography.fontFamilyMedium,
     fontSize: typography.fontSize.xs,
-    fontWeight: '600',
+    fontWeight: '500',
   },
 
   // SCROLL CONTAINER
@@ -801,9 +803,8 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   modeNoticeText: {
-    fontFamily: typography.fontFamilyBold,
+    fontFamily: typography.fontFamilyRegular,
     fontSize: typography.fontSize.xs,
-    fontWeight: '600',
     flex: 1,
     lineHeight: 18,
   },
@@ -813,9 +814,9 @@ const styles = StyleSheet.create({
     paddingLeft: layout.spacing.sm,
   },
   modeNoticeLinkText: {
-    fontFamily: typography.fontFamilyBold,
+    fontFamily: typography.fontFamilySemibold,
     fontSize: typography.fontSize.xs,
-    fontWeight: '700',
+    fontWeight: '600',
   },
   diagnosticRow: {
     flexDirection: 'row',
@@ -827,9 +828,8 @@ const styles = StyleSheet.create({
     borderTopColor: '#DDD',
   },
   diagnosticNotice: {
-    fontFamily: typography.fontFamilyBold,
+    fontFamily: typography.fontFamilyRegular,
     fontSize: typography.fontSize.xs - 1,
-    fontWeight: '600',
     flex: 1,
   },
   diagnosticToggle: {
@@ -838,9 +838,9 @@ const styles = StyleSheet.create({
     paddingLeft: layout.spacing.sm,
   },
   diagnosticToggleText: {
-    fontFamily: typography.fontFamilyBold,
+    fontFamily: typography.fontFamilyMedium,
     fontSize: typography.fontSize.xs - 1,
-    fontWeight: '700',
+    fontWeight: '500',
   },
   diagnosticCode: {
     fontSize: typography.fontSize.xs - 2,
@@ -873,7 +873,7 @@ const styles = StyleSheet.create({
   },
   searchInput: {
     flex: 1,
-    fontFamily: typography.fontFamilyBold,
+    fontFamily: typography.fontFamilyRegular,
     fontSize: typography.fontSize.base,
     minHeight: 44,
   },
@@ -903,7 +903,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   filterChipLabel: {
-    fontFamily: typography.fontFamilyBold,
+    fontFamily: typography.fontFamilyMedium,
     fontSize: typography.fontSize.sm,
   },
 
@@ -922,13 +922,13 @@ const styles = StyleSheet.create({
     marginRight: layout.spacing.sm,
   },
   emergencyTagText: {
-    fontFamily: typography.fontFamilyBold,
+    fontFamily: typography.fontFamilySemibold,
     fontSize: typography.fontSize.xs + 1,
-    fontWeight: '700',
+    fontWeight: '600',
     marginBottom: 2,
   },
   emergencyDescriptionText: {
-    fontFamily: typography.fontFamilyBold,
+    fontFamily: typography.fontFamilyRegular,
     fontSize: typography.fontSize.xs - 1,
     lineHeight: 14,
   },
@@ -941,9 +941,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   emergencyDirectoryButtonText: {
-    fontFamily: typography.fontFamilyBold,
+    fontFamily: typography.fontFamilySemibold,
     fontSize: typography.fontSize.xs + 1,
-    fontWeight: '700',
+    fontWeight: '600',
   },
 
   // 5. RESULTS LIST
@@ -957,12 +957,12 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   resultsCountText: {
-    fontFamily: typography.fontFamilyBold,
+    fontFamily: typography.fontFamilySemibold,
     fontSize: typography.fontSize.sm,
-    fontWeight: '700',
+    fontWeight: '600',
   },
   resultsBoundaryText: {
-    fontFamily: typography.fontFamilyBold,
+    fontFamily: typography.fontFamilyRegular,
     fontSize: typography.fontSize.xs,
   },
   loadingBox: {
@@ -971,7 +971,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   loadingNoticeText: {
-    fontFamily: typography.fontFamilyBold,
+    fontFamily: typography.fontFamilyRegular,
     fontSize: typography.fontSize.xs,
     marginTop: layout.spacing.sm,
   },
@@ -994,7 +994,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   emptyDescription: {
-    fontFamily: typography.fontFamilyBold,
+    fontFamily: typography.fontFamilyRegular,
     fontSize: typography.fontSize.xs,
     textAlign: 'center',
     lineHeight: 18,
@@ -1019,10 +1019,10 @@ const styles = StyleSheet.create({
   brandTitle: {
     fontFamily: typography.fontFamilyBold,
     fontSize: typography.fontSize.base + 1,
-    fontWeight: '800',
+    fontWeight: '700',
   },
   genericSubtitle: {
-    fontFamily: typography.fontFamilyBold,
+    fontFamily: typography.fontFamilyRegular,
     fontSize: typography.fontSize.xs + 1,
     fontStyle: 'italic',
     marginTop: 2,
@@ -1039,9 +1039,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   dosagePillText: {
-    fontFamily: typography.fontFamilyBold,
+    fontFamily: typography.fontFamilyMedium,
     fontSize: typography.fontSize.xs,
-    fontWeight: '600',
+    fontWeight: '500',
   },
   demoTagPill: {
     paddingHorizontal: layout.spacing.xs + 3,
@@ -1050,9 +1050,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   demoTagPillText: {
-    fontFamily: typography.fontFamilyBold,
+    fontFamily: typography.fontFamilySemibold,
     fontSize: typography.fontSize.xs - 1,
-    fontWeight: '700',
+    fontWeight: '600',
   },
 
   // CARD META ROW
@@ -1070,12 +1070,12 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   availabilityBadgeText: {
-    fontFamily: typography.fontFamilyBold,
+    fontFamily: typography.fontFamilySemibold,
     fontSize: typography.fontSize.xs,
-    fontWeight: '700',
+    fontWeight: '600',
   },
   updateTimeText: {
-    fontFamily: typography.fontFamilyBold,
+    fontFamily: typography.fontFamilyRegular,
     fontSize: typography.fontSize.xs,
   },
 
@@ -1087,16 +1087,16 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   pharmacyNameText: {
-    fontFamily: typography.fontFamilyBold,
+    fontFamily: typography.fontFamilySemibold,
     fontSize: typography.fontSize.sm,
-    fontWeight: '700',
+    fontWeight: '600',
   },
   pharmacyLocationText: {
-    fontFamily: typography.fontFamilyBold,
+    fontFamily: typography.fontFamilyRegular,
     fontSize: typography.fontSize.xs,
   },
   pharmacyContactText: {
-    fontFamily: typography.fontFamilyBold,
+    fontFamily: typography.fontFamilyRegular,
     fontSize: typography.fontSize.xs,
   },
 
@@ -1107,9 +1107,9 @@ const styles = StyleSheet.create({
     padding: layout.spacing.sm,
   },
   callFirstText: {
-    fontFamily: typography.fontFamilyBold,
+    fontFamily: typography.fontFamilyMedium,
     fontSize: typography.fontSize.xs,
-    fontWeight: '600',
+    fontWeight: '500',
   },
 
   // 6. MODAL STYLES
@@ -1136,10 +1136,10 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontFamily: typography.fontFamilyBold,
     fontSize: typography.fontSize.md,
-    fontWeight: '800',
+    fontWeight: '700',
   },
   modalSubtitle: {
-    fontFamily: typography.fontFamilyBold,
+    fontFamily: typography.fontFamilyRegular,
     fontSize: typography.fontSize.xs,
     marginTop: 2,
   },
@@ -1152,7 +1152,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   modalCloseIcon: {
-    fontFamily: typography.fontFamilyBold,
     fontSize: 16,
     fontWeight: '700',
   },
@@ -1163,13 +1162,13 @@ const styles = StyleSheet.create({
     marginBottom: layout.spacing.md,
   },
   modalSectionTitle: {
-    fontFamily: typography.fontFamilyBold,
+    fontFamily: typography.fontFamilySemibold,
     fontSize: typography.fontSize.sm,
-    fontWeight: '700',
+    fontWeight: '600',
     marginBottom: 4,
   },
   modalSectionText: {
-    fontFamily: typography.fontFamilyBold,
+    fontFamily: typography.fontFamilyRegular,
     fontSize: typography.fontSize.xs,
     lineHeight: 18,
   },
@@ -1181,8 +1180,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: layout.spacing.md,
   },
   modalDismissBtnText: {
-    fontFamily: typography.fontFamilyBold,
+    fontFamily: typography.fontFamilySemibold,
     fontSize: typography.fontSize.sm,
-    fontWeight: '700',
+    fontWeight: '600',
   },
 });

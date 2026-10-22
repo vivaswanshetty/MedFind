@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   Linking,
   Alert,
+  Image,
 } from 'react-native';
 import { useTheme } from '../theme/ThemeContext';
 import { layout, typography } from '../theme/tokens';
@@ -121,13 +122,22 @@ export default function CareDirectoryScreen() {
 
       {/* 2. SCREEN HEADER & THEME TOGGLE */}
       <View style={styles.headerRow}>
-        <View style={styles.headerTextGroup}>
-          <Text style={[styles.screenTitle, { color: theme.textPrimary }]}>
-            Care & Emergency Directory
-          </Text>
-          <Text style={[styles.screenSubtitle, { color: theme.textSecondary }]}>
-            Reviewed Hospitals, Clinics & Ambulance Contacts
-          </Text>
+        <View style={styles.headerLeftGroup}>
+          <Image
+            source={require('../../assets/images/icon.png')}
+            style={[styles.logoImage, { borderColor: theme.border }]}
+            resizeMode="cover"
+            accessible={true}
+            accessibilityLabel="MedFind app logo"
+          />
+          <View style={styles.headerTextGroup}>
+            <Text style={[styles.screenTitle, { color: theme.textPrimary }]}>
+              Care Directory
+            </Text>
+            <Text style={[styles.screenSubtitle, { color: theme.textSecondary }]}>
+              Hospitals, Clinics & Ambulance
+            </Text>
+          </View>
         </View>
 
         <TouchableOpacity
@@ -237,7 +247,9 @@ export default function CareDirectoryScreen() {
                     styles.filterChipText,
                     {
                       color: isSelected ? theme.textInverse : theme.textPrimary,
-                      fontWeight: isSelected ? '700' : '500',
+                      fontFamily: isSelected
+                        ? typography.fontFamilySemibold
+                        : typography.fontFamilyMedium,
                     },
                   ]}
                 >
@@ -497,13 +509,13 @@ const styles = StyleSheet.create({
     marginBottom: layout.spacing.md,
   },
   disclaimerTag: {
-    fontFamily: typography.fontFamilyBold,
+    fontFamily: typography.fontFamilySemibold,
     fontSize: typography.fontSize.xs,
-    fontWeight: '700',
+    fontWeight: '600',
     marginBottom: 2,
   },
   disclaimerText: {
-    fontFamily: typography.fontFamilyBold,
+    fontFamily: typography.fontFamilyRegular,
     fontSize: typography.fontSize.xs,
     lineHeight: 16,
   },
@@ -513,17 +525,29 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: layout.spacing.md,
   },
+  headerLeftGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  logoImage: {
+    width: 38,
+    height: 38,
+    borderRadius: layout.borderRadius.md,
+    borderWidth: 1,
+    marginRight: layout.spacing.sm,
+  },
   headerTextGroup: {
     flex: 1,
   },
   screenTitle: {
     fontFamily: typography.fontFamilyBold,
-    fontSize: typography.fontSize.xl,
+    fontSize: typography.fontSize.lg,
     fontWeight: '700',
   },
   screenSubtitle: {
-    fontFamily: typography.fontFamilyBold,
-    fontSize: typography.fontSize.sm,
+    fontFamily: typography.fontFamilyRegular,
+    fontSize: typography.fontSize.xs,
     marginTop: 2,
   },
   themeButton: {
@@ -535,9 +559,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   themeButtonText: {
-    fontFamily: typography.fontFamilyBold,
+    fontFamily: typography.fontFamilyMedium,
     fontSize: typography.fontSize.sm,
-    fontWeight: '600',
+    fontWeight: '500',
   },
   emergencyCard: {
     borderWidth: 1,
@@ -546,13 +570,13 @@ const styles = StyleSheet.create({
     marginBottom: layout.spacing.md,
   },
   emergencyBadge: {
-    fontFamily: typography.fontFamilyBold,
+    fontFamily: typography.fontFamilySemibold,
     fontSize: typography.fontSize.sm,
-    fontWeight: '700',
+    fontWeight: '600',
     marginBottom: 4,
   },
   emergencyDescription: {
-    fontFamily: typography.fontFamilyBold,
+    fontFamily: typography.fontFamilyRegular,
     fontSize: typography.fontSize.xs,
     lineHeight: 16,
   },
@@ -563,7 +587,7 @@ const styles = StyleSheet.create({
     marginBottom: layout.spacing.md,
   },
   safetyNoticeText: {
-    fontFamily: typography.fontFamilyBold,
+    fontFamily: typography.fontFamilyRegular,
     fontSize: typography.fontSize.xs,
     lineHeight: 16,
   },
@@ -577,7 +601,7 @@ const styles = StyleSheet.create({
     marginBottom: layout.spacing.sm,
   },
   searchInput: {
-    fontFamily: typography.fontFamilyBold,
+    fontFamily: typography.fontFamilyRegular,
     minHeight: layout.minTouchTarget,
     borderWidth: 1,
     borderRadius: layout.borderRadius.md,
@@ -601,7 +625,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   filterChipText: {
-    fontFamily: typography.fontFamilyBold,
+    fontFamily: typography.fontFamilyMedium,
     fontSize: typography.fontSize.xs,
   },
   dataSourceBanner: {
@@ -611,13 +635,13 @@ const styles = StyleSheet.create({
     marginBottom: layout.spacing.md,
   },
   dataSourceTag: {
-    fontFamily: typography.fontFamilyBold,
+    fontFamily: typography.fontFamilySemibold,
     fontSize: typography.fontSize.xs,
-    fontWeight: '700',
+    fontWeight: '600',
     marginBottom: 2,
   },
   dataSourceNotice: {
-    fontFamily: typography.fontFamilyBold,
+    fontFamily: typography.fontFamilyRegular,
     fontSize: typography.fontSize.xs,
     lineHeight: 16,
   },
@@ -628,7 +652,7 @@ const styles = StyleSheet.create({
     marginBottom: layout.spacing.md,
   },
   errorText: {
-    fontFamily: typography.fontFamilyBold,
+    fontFamily: typography.fontFamilyRegular,
     fontSize: typography.fontSize.xs,
     lineHeight: 16,
   },
@@ -641,12 +665,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   resultsCount: {
-    fontFamily: typography.fontFamilyBold,
+    fontFamily: typography.fontFamilySemibold,
     fontSize: typography.fontSize.xs,
     fontWeight: '600',
   },
   resultsBoundaryTag: {
-    fontFamily: typography.fontFamilyBold,
+    fontFamily: typography.fontFamilyRegular,
     fontSize: typography.fontSize.xs,
   },
   loadingContainer: {
@@ -657,7 +681,7 @@ const styles = StyleSheet.create({
     gap: layout.spacing.sm,
   },
   loadingText: {
-    fontFamily: typography.fontFamilyBold,
+    fontFamily: typography.fontFamilyRegular,
     fontSize: typography.fontSize.sm,
   },
   emptyStateCard: {
@@ -673,7 +697,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   emptyStateText: {
-    fontFamily: typography.fontFamilyBold,
+    fontFamily: typography.fontFamilyRegular,
     fontSize: typography.fontSize.sm,
     textAlign: 'center',
     lineHeight: 20,
@@ -690,14 +714,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   categoryBadgeText: {
-    fontFamily: typography.fontFamilyBold,
+    fontFamily: typography.fontFamilySemibold,
     fontSize: typography.fontSize.xs,
-    fontWeight: '700',
+    fontWeight: '600',
   },
   demoTag: {
-    fontFamily: typography.fontFamilyBold,
+    fontFamily: typography.fontFamilySemibold,
     fontSize: typography.fontSize.xs,
-    fontWeight: '700',
+    fontWeight: '600',
   },
   facilityName: {
     fontFamily: typography.fontFamilyBold,
@@ -705,7 +729,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   addressText: {
-    fontFamily: typography.fontFamilyBold,
+    fontFamily: typography.fontFamilyRegular,
     fontSize: typography.fontSize.xs,
     lineHeight: 18,
   },
@@ -713,9 +737,9 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   servicesTitle: {
-    fontFamily: typography.fontFamilyBold,
+    fontFamily: typography.fontFamilyMedium,
     fontSize: typography.fontSize.xs - 1,
-    fontWeight: '600',
+    fontWeight: '500',
   },
   servicesTagsRow: {
     flexDirection: 'row',
@@ -729,7 +753,7 @@ const styles = StyleSheet.create({
     paddingVertical: 3,
   },
   serviceChipText: {
-    fontFamily: typography.fontFamilyBold,
+    fontFamily: typography.fontFamilyRegular,
     fontSize: typography.fontSize.xs - 1,
   },
   provenanceContainer: {
@@ -740,7 +764,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   provenanceText: {
-    fontFamily: typography.fontFamilyBold,
+    fontFamily: typography.fontFamilyRegular,
     fontSize: typography.fontSize.xs - 1,
   },
   phoneSection: {
@@ -748,9 +772,9 @@ const styles = StyleSheet.create({
     gap: layout.spacing.xs,
   },
   phoneLabel: {
-    fontFamily: typography.fontFamilyBold,
+    fontFamily: typography.fontFamilyMedium,
     fontSize: typography.fontSize.xs,
-    fontWeight: '600',
+    fontWeight: '500',
   },
   demoPhoneNotice: {
     borderWidth: 1,
@@ -759,9 +783,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   demoPhoneNoticeText: {
-    fontFamily: typography.fontFamilyBold,
+    fontFamily: typography.fontFamilyRegular,
     fontSize: typography.fontSize.xs - 1,
-    fontWeight: '600',
   },
   callButton: {
     minHeight: layout.minTouchTarget,
@@ -771,8 +794,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: layout.spacing.md,
   },
   callButtonText: {
-    fontFamily: typography.fontFamilyBold,
+    fontFamily: typography.fontFamilySemibold,
     fontSize: typography.fontSize.sm,
-    fontWeight: '700',
+    fontWeight: '600',
   },
 });
