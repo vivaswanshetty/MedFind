@@ -27,8 +27,7 @@ function RootNavigation() {
         <Stack.Screen
           name="index"
           options={{
-            title: 'MedFind',
-            headerShadowVisible: false,
+            headerShown: false,
           }}
         />
         <Stack.Screen

@@ -33,12 +33,17 @@ export interface ColorPalette {
   emergencyBackground: string;
   emergencyText: string;
   emergencyBorder: string;
+
+  primaryAccentText: string;
+  warningAccentText: string;
+  surfaceSubtle: string;
 }
 
 export const lightPalette: ColorPalette = {
   canvas: '#FBF9F5',            // Warm off-white
   surface: '#FFFFFF',           // Crisp card background
   surfaceElevated: '#F3EFE8',   // Slightly elevated card
+  surfaceSubtle: '#F7F4EE',     // Subtle pill/chip background
   border: '#E3DDD3',            // Warm subtle divider
   borderFocus: '#87A96B',       // Sage Green focus ring
 
@@ -48,8 +53,10 @@ export const lightPalette: ColorPalette = {
   textInverse: '#FFFFFF',
 
   primaryAccent: '#87A96B',     // Sage Green (verified availability, calm primary)
+  primaryAccentText: '#2B4A1D', // Deep Sage for accessible text on light backgrounds
   secondaryAccent: '#5A3E2B',   // Walnut Brown
   warningAccent: '#D5851F',     // Amber Glow (aging freshness warning)
+  warningAccentText: '#9A5805', // High-contrast amber text
   urgentAccent: '#B23B2A',      // Calm emergency accent (accessible against off-white)
 
   badgeBackground: '#EEF3EA',   // Light Sage tint
@@ -64,6 +71,7 @@ export const darkPalette: ColorPalette = {
   canvas: '#050505',            // Jet Black base canvas
   surface: '#111116',           // Dark surface
   surfaceElevated: '#1A1824',   // Elevated charcoal surface
+  surfaceSubtle: '#161420',     // Subtle dark container
   border: '#292535',            // Royal Amethyst muted border
   borderFocus: '#00E5FF',       // Electric Cyan focus ring
 
@@ -73,8 +81,10 @@ export const darkPalette: ColorPalette = {
   textInverse: '#050505',
 
   primaryAccent: '#00E5FF',     // Electric Cyan (urgent scan accent, verified signal)
+  primaryAccentText: '#00E5FF', // Electric Cyan
   secondaryAccent: '#3B0A6B',   // Royal Amethyst (brand accent, card accents)
   warningAccent: '#D5851F',     // Amber Glow (aging alert)
+  warningAccentText: '#FFA940', // High-contrast amber text
   urgentAccent: '#FF5C5C',      // Calm high-contrast emergency signal
 
   badgeBackground: '#0B2228',   // Dark cyan tint
