@@ -2,19 +2,17 @@ import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
   Text,
-  TouchableOpacity,
+  Pressable,
   StyleSheet,
   Animated,
-  Dimensions,
   TextInput,
   ScrollView,
-  Platform,
   Image,
   ActivityIndicator,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../theme/ThemeContext';
-import { layout, typography } from '../../theme/tokens';
+import { fonts, radii, MIN_TARGET } from '../../constants/theme';
 import { useLocation } from '../../context/LocationContext';
 import { PREDEFINED_AREAS, KnownArea } from '../../services/locationService';
 import {
@@ -22,7 +20,6 @@ import {
   CheckmarkCircleGraphic,
   CrosshairTargetIcon,
   MapPinIcon,
-  CloseIcon,
   ShieldCheckIcon,
   ArrowRightIcon,
   SearchIcon,
@@ -30,15 +27,13 @@ import {
   ClockIcon,
 } from '../icons/AppIcons';
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
-
 interface OnboardingFlowProps {
   onDismiss?: () => void;
 }
 
 export function OnboardingFlow({ onDismiss }: OnboardingFlowProps) {
   const insets = useSafeAreaInsets();
-  const { mode, theme } = useTheme();
+  const { scheme, palette } = useTheme();
   const {
     requestGpsLocation,
     selectManualArea,
@@ -120,7 +115,6 @@ export function OnboardingFlow({ onDismiss }: OnboardingFlowProps) {
     if (result.granted) {
       setStep(3); // Success step
     } else {
-      // Permission denied or unavailable -> proceed smoothly to manual area choice
       setErrorMessage(result.error || 'Location permission was denied. Choose an area below.');
       setStep(2); // Manual area step
     }
@@ -154,7 +148,7 @@ export function OnboardingFlow({ onDismiss }: OnboardingFlowProps) {
       style={[
         styles.overlayContainer,
         {
-          backgroundColor: mode === 'light' ? 'rgba(248, 246, 240, 0.98)' : 'rgba(6, 5, 10, 0.98)',
+          backgroundColor: palette.bg,
           paddingTop: Math.max(insets.top, 20),
           paddingBottom: Math.max(insets.bottom, 24),
         },
@@ -171,11 +165,9 @@ export function OnboardingFlow({ onDismiss }: OnboardingFlowProps) {
                 {
                   backgroundColor:
                     step === dotIndex
-                      ? mode === 'light'
-                        ? theme.primaryAccent
-                        : '#00E5FF'
-                      : theme.glass.borderSubtle,
-                  width: step === dotIndex ? 20 : 6,
+                      ? palette.accent
+                      : palette.line,
+                  width: step === dotIndex ? 22 : 6,
                 },
               ]}
             />
@@ -183,23 +175,23 @@ export function OnboardingFlow({ onDismiss }: OnboardingFlowProps) {
         </View>
 
         {step < 3 && (
-          <TouchableOpacity
+          <Pressable
             onPress={handleSkipAll}
             style={[
               styles.skipButton,
               {
-                backgroundColor: theme.glass.backgroundPill,
-                borderColor: theme.glass.borderSubtle,
+                backgroundColor: palette.surface2,
+                borderColor: palette.line,
               },
             ]}
             accessible={true}
             accessibilityRole="button"
             accessibilityLabel="Skip onboarding and go directly to medicine search"
           >
-            <Text style={[styles.skipButtonText, { color: theme.textSecondary }]}>
+            <Text style={[styles.skipButtonText, { color: palette.ink2 }]}>
               Skip
             </Text>
-          </TouchableOpacity>
+          </Pressable>
         )}
       </View>
 
@@ -225,9 +217,9 @@ export function OnboardingFlow({ onDismiss }: OnboardingFlowProps) {
                 style={[
                   styles.heroLogoWrapper,
                   {
-                    backgroundColor: theme.surface,
-                    borderColor: theme.glass.borderHighlight,
-                    shadowColor: theme.glass.shadowColor,
+                    backgroundColor: palette.surface,
+                    borderColor: palette.line,
+                    shadowColor: palette.shadow,
                     transform: [{ scale: pulseAnim }],
                   },
                 ]}
@@ -239,10 +231,10 @@ export function OnboardingFlow({ onDismiss }: OnboardingFlowProps) {
                 />
               </Animated.View>
 
-              <Text style={[styles.welcomeHeadline, { color: theme.textPrimary }]}>
+              <Text style={[styles.welcomeHeadline, { color: palette.ink }]}>
                 Welcome to MedFind
               </Text>
-              <Text style={[styles.welcomeSubtitle, { color: theme.textSecondary }]}>
+              <Text style={[styles.welcomeSubtitle, { color: palette.ink2 }]}>
                 Verified Medicine Discovery & Public Healthcare Directory
               </Text>
 
@@ -252,20 +244,19 @@ export function OnboardingFlow({ onDismiss }: OnboardingFlowProps) {
                   style={[
                     styles.previewCard,
                     {
-                      backgroundColor: theme.glass.background,
-                      borderColor: theme.glass.border,
-                      shadowColor: theme.glass.shadowColor,
+                      backgroundColor: palette.surface,
+                      borderColor: palette.line,
                     },
                   ]}
                 >
-                  <View style={[styles.cardIconBox, { backgroundColor: theme.badgeBackground }]}>
-                    <MedicalCrossIcon size={18} color={theme.primaryAccentText} />
+                  <View style={[styles.cardIconBox, { backgroundColor: palette.okTint }]}>
+                    <MedicalCrossIcon size={18} color={palette.okInk} />
                   </View>
                   <View style={styles.cardTextCol}>
-                    <Text style={[styles.cardTitle, { color: theme.textPrimary }]}>
+                    <Text style={[styles.cardTitle, { color: palette.ink }]}>
                       Real Essential Medicines
                     </Text>
-                    <Text style={[styles.cardDesc, { color: theme.textSecondary }]}>
+                    <Text style={[styles.cardDesc, { color: palette.ink2 }]}>
                       Sourced from National List of Essential Medicines (NLEM) with no synthetic stock claims.
                     </Text>
                   </View>
@@ -275,20 +266,19 @@ export function OnboardingFlow({ onDismiss }: OnboardingFlowProps) {
                   style={[
                     styles.previewCard,
                     {
-                      backgroundColor: theme.glass.background,
-                      borderColor: theme.glass.border,
-                      shadowColor: theme.glass.shadowColor,
+                      backgroundColor: palette.surface,
+                      borderColor: palette.line,
                     },
                   ]}
                 >
-                  <View style={[styles.cardIconBox, { backgroundColor: theme.glass.backgroundPill }]}>
-                    <MapPinIcon size={18} />
+                  <View style={[styles.cardIconBox, { backgroundColor: palette.surface2 }]}>
+                    <MapPinIcon size={18} color={palette.ink} />
                   </View>
                   <View style={styles.cardTextCol}>
-                    <Text style={[styles.cardTitle, { color: theme.textPrimary }]}>
+                    <Text style={[styles.cardTitle, { color: palette.ink }]}>
                       Nearby Ordering & Care
                     </Text>
-                    <Text style={[styles.cardDesc, { color: theme.textSecondary }]}>
+                    <Text style={[styles.cardDesc, { color: palette.ink2 }]}>
                       Calculate distance to verified hospitals, pharmacies, and 24x7 emergency contacts.
                     </Text>
                   </View>
@@ -298,20 +288,19 @@ export function OnboardingFlow({ onDismiss }: OnboardingFlowProps) {
                   style={[
                     styles.previewCard,
                     {
-                      backgroundColor: theme.glass.background,
-                      borderColor: theme.glass.border,
-                      shadowColor: theme.glass.shadowColor,
+                      backgroundColor: palette.surface,
+                      borderColor: palette.line,
                     },
                   ]}
                 >
-                  <View style={[styles.cardIconBox, { backgroundColor: theme.glass.backgroundPill }]}>
-                    <ShieldCheckIcon size={18} color={mode === 'light' ? '#87A96B' : '#00E5FF'} />
+                  <View style={[styles.cardIconBox, { backgroundColor: palette.okTint }]}>
+                    <ShieldCheckIcon size={18} color={palette.okInk} />
                   </View>
                   <View style={styles.cardTextCol}>
-                    <Text style={[styles.cardTitle, { color: theme.textPrimary }]}>
+                    <Text style={[styles.cardTitle, { color: palette.ink }]}>
                       Zero-Tracking Privacy
                     </Text>
-                    <Text style={[styles.cardDesc, { color: theme.textSecondary }]}>
+                    <Text style={[styles.cardDesc, { color: palette.ink2 }]}>
                       Foreground-only calculations. Your precise coordinates are never persisted or uploaded.
                     </Text>
                   </View>
@@ -319,25 +308,24 @@ export function OnboardingFlow({ onDismiss }: OnboardingFlowProps) {
               </View>
 
               {/* Action */}
-              <TouchableOpacity
+              <Pressable
                 onPress={handleNextFromWelcome}
                 style={[
                   styles.primaryButton,
                   {
-                    backgroundColor: theme.primaryAccent,
-                    borderColor: theme.glass.borderHighlight,
-                    shadowColor: theme.glass.shadowColor,
+                    backgroundColor: palette.btn,
+                    borderColor: palette.btnBorder,
                   },
                 ]}
                 accessible={true}
                 accessibilityRole="button"
                 accessibilityLabel="Get started with MedFind"
               >
-                <Text style={[styles.primaryButtonText, { color: theme.textInverse }]}>
+                <Text style={[styles.primaryButtonText, { color: palette.btnInk }]}>
                   Get Started
                 </Text>
-                <ArrowRightIcon size={16} color={theme.textInverse} />
-              </TouchableOpacity>
+                <ArrowRightIcon size={16} color={palette.btnInk} />
+              </Pressable>
             </View>
           )}
 
@@ -355,12 +343,11 @@ export function OnboardingFlow({ onDismiss }: OnboardingFlowProps) {
                 <RadarPulseGraphic size={130} />
               </Animated.View>
 
-              <Text style={[styles.welcomeHeadline, { color: theme.textPrimary }]}>
+              <Text style={[styles.welcomeHeadline, { color: palette.ink }]}>
                 Find Nearby Care & Stock
               </Text>
 
-              {/* Mandatory Requirement Text */}
-              <Text style={[styles.welcomeSubtitle, { color: theme.textSecondary }]}>
+              <Text style={[styles.welcomeSubtitle, { color: palette.ink2 }]}>
                 Use your location to find participating pharmacies and care listings near you.
               </Text>
 
@@ -369,31 +356,31 @@ export function OnboardingFlow({ onDismiss }: OnboardingFlowProps) {
                 style={[
                   styles.privacyCommitmentBox,
                   {
-                    backgroundColor: theme.glass.backgroundSubtle,
-                    borderColor: theme.glass.border,
+                    backgroundColor: palette.surface,
+                    borderColor: palette.line,
                   },
                 ]}
               >
                 <View style={styles.privacyItemRow}>
-                  <ShieldCheckIcon size={16} color={mode === 'light' ? '#87A96B' : '#00E5FF'} />
-                  <Text style={[styles.privacyItemText, { color: theme.textSecondary }]}>
-                    <Text style={{ fontWeight: '600', color: theme.textPrimary }}>Foreground only:</Text>{' '}
+                  <ShieldCheckIcon size={16} color={palette.okInk} />
+                  <Text style={[styles.privacyItemText, { color: palette.ink2 }]}>
+                    <Text style={{ fontFamily: fonts.sansBold, color: palette.ink }}>Foreground only:</Text>{' '}
                     Active only while using the app. Never runs in the background.
                   </Text>
                 </View>
 
                 <View style={styles.privacyItemRow}>
-                  <ShieldCheckIcon size={16} color={mode === 'light' ? '#87A96B' : '#00E5FF'} />
-                  <Text style={[styles.privacyItemText, { color: theme.textSecondary }]}>
-                    <Text style={{ fontWeight: '600', color: theme.textPrimary }}>In-memory only:</Text>{' '}
+                  <ShieldCheckIcon size={16} color={palette.okInk} />
+                  <Text style={[styles.privacyItemText, { color: palette.ink2 }]}>
+                    <Text style={{ fontFamily: fonts.sansBold, color: palette.ink }}>In-memory only:</Text>{' '}
                     Calculates distance for this session. Coordinates are never saved or uploaded.
                   </Text>
                 </View>
 
                 <View style={styles.privacyItemRow}>
-                  <ShieldCheckIcon size={16} color={mode === 'light' ? '#87A96B' : '#00E5FF'} />
-                  <Text style={[styles.privacyItemText, { color: theme.textSecondary }]}>
-                    <Text style={{ fontWeight: '600', color: theme.textPrimary }}>No fake stock:</Text>{' '}
+                  <ShieldCheckIcon size={16} color={palette.okInk} />
+                  <Text style={[styles.privacyItemText, { color: palette.ink2 }]}>
+                    <Text style={{ fontFamily: fonts.sansBold, color: palette.ink }}>No fake stock:</Text>{' '}
                     Proximity never implies a pharmacy has stock. Stock is only shown when reported.
                   </Text>
                 </View>
@@ -401,15 +388,14 @@ export function OnboardingFlow({ onDismiss }: OnboardingFlowProps) {
 
               {/* Actions: Allow & Not Now */}
               <View style={styles.buttonActionGroup}>
-                <TouchableOpacity
+                <Pressable
                   onPress={handleRequestLocation}
                   disabled={isLocating}
                   style={[
                     styles.primaryButton,
                     {
-                      backgroundColor: theme.primaryAccent,
-                      borderColor: theme.glass.borderHighlight,
-                      shadowColor: theme.glass.shadowColor,
+                      backgroundColor: palette.btn,
+                      borderColor: palette.btnBorder,
                     },
                   ]}
                   accessible={true}
@@ -417,34 +403,34 @@ export function OnboardingFlow({ onDismiss }: OnboardingFlowProps) {
                   accessibilityLabel="Enable foreground location permission"
                 >
                   {isLocating ? (
-                    <ActivityIndicator size="small" color="#FFFFFF" />
+                    <ActivityIndicator size="small" color={palette.btnInk} />
                   ) : (
                     <>
-                      <CrosshairTargetIcon size={18} color="#FFFFFF" />
-                      <Text style={[styles.primaryButtonText, { color: theme.textInverse }]}>
+                      <CrosshairTargetIcon size={18} color={palette.btnInk} />
+                      <Text style={[styles.primaryButtonText, { color: palette.btnInk }]}>
                         Enable Location
                       </Text>
                     </>
                   )}
-                </TouchableOpacity>
+                </Pressable>
 
-                <TouchableOpacity
+                <Pressable
                   onPress={handleSkipLocation}
                   style={[
                     styles.secondaryButton,
                     {
-                      backgroundColor: theme.glass.backgroundPill,
-                      borderColor: theme.glass.border,
+                      backgroundColor: palette.surface2,
+                      borderColor: palette.line,
                     },
                   ]}
                   accessible={true}
                   accessibilityRole="button"
                   accessibilityLabel="Skip location and select neighborhood manually"
                 >
-                  <Text style={[styles.secondaryButtonText, { color: theme.textSecondary }]}>
+                  <Text style={[styles.secondaryButtonText, { color: palette.ink2 }]}>
                     Not now
                   </Text>
-                </TouchableOpacity>
+                </Pressable>
               </View>
             </View>
           )}
@@ -456,18 +442,18 @@ export function OnboardingFlow({ onDismiss }: OnboardingFlowProps) {
                 style={[
                   styles.areaIconWrapper,
                   {
-                    backgroundColor: theme.glass.background,
-                    borderColor: theme.glass.border,
+                    backgroundColor: palette.surface,
+                    borderColor: palette.line,
                   },
                 ]}
               >
-                <MapPinIcon size={32} />
+                <MapPinIcon size={30} color={palette.okInk} />
               </View>
 
-              <Text style={[styles.welcomeHeadline, { color: theme.textPrimary }]}>
+              <Text style={[styles.welcomeHeadline, { color: palette.ink }]}>
                 Choose Your Area
               </Text>
-              <Text style={[styles.welcomeSubtitle, { color: theme.textSecondary }]}>
+              <Text style={[styles.welcomeSubtitle, { color: palette.ink2 }]}>
                 Select or enter your neighbourhood in Bengaluru to order nearby listings. You can still search all medicines freely.
               </Text>
 
@@ -476,12 +462,12 @@ export function OnboardingFlow({ onDismiss }: OnboardingFlowProps) {
                   style={[
                     styles.errorNotice,
                     {
-                      backgroundColor: theme.glass.backgroundSubtle,
-                      borderColor: theme.warningAccent,
+                      backgroundColor: palette.amberTint,
+                      borderColor: palette.amberLine,
                     },
                   ]}
                 >
-                  <Text style={[styles.errorNoticeText, { color: theme.textSecondary }]}>
+                  <Text style={[styles.errorNoticeText, { color: palette.amberInk }]}>
                     {errorMessage}
                   </Text>
                 </View>
@@ -492,16 +478,16 @@ export function OnboardingFlow({ onDismiss }: OnboardingFlowProps) {
                 style={[
                   styles.areaInputBox,
                   {
-                    backgroundColor: theme.glass.backgroundSubtle,
-                    borderColor: theme.glass.border,
+                    backgroundColor: palette.surface,
+                    borderColor: palette.line,
                   },
                 ]}
               >
-                <SearchIcon size={18} color={theme.textMuted} />
+                <SearchIcon size={18} color={palette.ink2} />
                 <TextInput
-                  style={[styles.areaTextInput, { color: theme.textPrimary }]}
+                  style={[styles.areaTextInput, { color: palette.ink }]}
                   placeholder="Enter neighborhood or pincode..."
-                  placeholderTextColor={theme.textMuted}
+                  placeholderTextColor={palette.ink2}
                   value={customAreaText}
                   onChangeText={(text) => {
                     setCustomAreaText(text);
@@ -512,14 +498,14 @@ export function OnboardingFlow({ onDismiss }: OnboardingFlowProps) {
               </View>
 
               {/* Quick Select Chips */}
-              <Text style={[styles.quickSelectLabel, { color: theme.textMuted }]}>
+              <Text style={[styles.quickSelectLabel, { color: palette.ink2 }]}>
                 Or pick a known locality:
               </Text>
               <View style={styles.areaChipsGrid}>
                 {PREDEFINED_AREAS.map((area) => {
                   const isChosen = selectedArea?.id === area.id && customAreaText.trim().length === 0;
                   return (
-                    <TouchableOpacity
+                    <Pressable
                       key={area.id}
                       onPress={() => {
                         setSelectedArea(area);
@@ -529,13 +515,11 @@ export function OnboardingFlow({ onDismiss }: OnboardingFlowProps) {
                         styles.areaChip,
                         {
                           backgroundColor: isChosen
-                            ? mode === 'light'
-                              ? theme.primaryAccent
-                              : '#00E5FF'
-                            : theme.glass.backgroundPill,
+                            ? palette.okTint
+                            : palette.surface2,
                           borderColor: isChosen
-                            ? theme.primaryAccent
-                            : theme.glass.border,
+                            ? palette.okLine
+                            : palette.line,
                         },
                       ]}
                       accessible={true}
@@ -547,58 +531,57 @@ export function OnboardingFlow({ onDismiss }: OnboardingFlowProps) {
                           styles.areaChipText,
                           {
                             color: isChosen
-                              ? theme.textInverse
-                              : theme.textSecondary,
-                            fontWeight: isChosen ? '600' : '500',
+                              ? palette.okInk
+                              : palette.ink2,
+                            fontFamily: isChosen ? fonts.sansBold : fonts.sansMedium,
                           },
                         ]}
                       >
                         {area.locality}
                       </Text>
-                    </TouchableOpacity>
+                    </Pressable>
                   );
                 })}
               </View>
 
               {/* Actions */}
               <View style={styles.buttonActionGroup}>
-                <TouchableOpacity
+                <Pressable
                   onPress={handleSelectAreaAndFinish}
                   style={[
                     styles.primaryButton,
                     {
-                      backgroundColor: theme.primaryAccent,
-                      borderColor: theme.glass.borderHighlight,
-                      shadowColor: theme.glass.shadowColor,
+                      backgroundColor: palette.btn,
+                      borderColor: palette.btnBorder,
                     },
                   ]}
                   accessible={true}
                   accessibilityRole="button"
                   accessibilityLabel="Continue with selected area"
                 >
-                  <Text style={[styles.primaryButtonText, { color: theme.textInverse }]}>
+                  <Text style={[styles.primaryButtonText, { color: palette.btnInk }]}>
                     Continue with Area
                   </Text>
-                  <ArrowRightIcon size={16} color={theme.textInverse} />
-                </TouchableOpacity>
+                  <ArrowRightIcon size={16} color={palette.btnInk} />
+                </Pressable>
 
-                <TouchableOpacity
+                <Pressable
                   onPress={handleSkipAll}
                   style={[
                     styles.secondaryButton,
                     {
-                      backgroundColor: theme.glass.backgroundPill,
-                      borderColor: theme.glass.border,
+                      backgroundColor: palette.surface2,
+                      borderColor: palette.line,
                     },
                   ]}
                   accessible={true}
                   accessibilityRole="button"
                   accessibilityLabel="Skip area choice and search all Bengaluru"
                 >
-                  <Text style={[styles.secondaryButtonText, { color: theme.textSecondary }]}>
+                  <Text style={[styles.secondaryButtonText, { color: palette.ink2 }]}>
                     Skip for now — Search All
                   </Text>
-                </TouchableOpacity>
+                </Pressable>
               </View>
             </View>
           )}
@@ -617,12 +600,12 @@ export function OnboardingFlow({ onDismiss }: OnboardingFlowProps) {
                 <CheckmarkCircleGraphic size={96} />
               </Animated.View>
 
-              <Text style={[styles.welcomeHeadline, { color: theme.textPrimary }]}>
+              <Text style={[styles.welcomeHeadline, { color: palette.ink }]}>
                 All Done!
               </Text>
-              <Text style={[styles.welcomeSubtitle, { color: theme.textSecondary }]}>
+              <Text style={[styles.welcomeSubtitle, { color: palette.ink2 }]}>
                 Discovery is ready for{' '}
-                <Text style={{ fontWeight: '700', color: theme.textPrimary }}>
+                <Text style={{ fontFamily: fonts.sansBold, color: palette.ink }}>
                   {areaName}
                 </Text>
                 .{'\n'}Distances to participating pharmacies and care centers will be calculated smoothly.
@@ -632,48 +615,47 @@ export function OnboardingFlow({ onDismiss }: OnboardingFlowProps) {
                 style={[
                   styles.readyCard,
                   {
-                    backgroundColor: theme.glass.backgroundSubtle,
-                    borderColor: theme.glass.border,
+                    backgroundColor: palette.surface,
+                    borderColor: palette.line,
                   },
                 ]}
               >
                 <View style={styles.readyRow}>
-                  <MapPinIcon size={16} />
-                  <Text style={[styles.readyText, { color: theme.textSecondary }]}>
+                  <MapPinIcon size={16} color={palette.okInk} />
+                  <Text style={[styles.readyText, { color: palette.ink2 }]}>
                     Active area:{' '}
-                    <Text style={{ fontWeight: '600', color: theme.textPrimary }}>
+                    <Text style={{ fontFamily: fonts.sansBold, color: palette.ink }}>
                       {areaName}
                     </Text>
                   </Text>
                 </View>
                 <View style={styles.readyRow}>
-                  <ClockIcon size={16} color={theme.textMuted} />
-                  <Text style={[styles.readyText, { color: theme.textSecondary }]}>
+                  <ClockIcon size={16} color={palette.ink2} />
+                  <Text style={[styles.readyText, { color: palette.ink2 }]}>
                     You can change your area anytime from the top bar.
                   </Text>
                 </View>
               </View>
 
-              <TouchableOpacity
+              <Pressable
                 onPress={handleFinish}
                 style={[
                   styles.primaryButton,
                   {
-                    backgroundColor: theme.primaryAccent,
-                    borderColor: theme.glass.borderHighlight,
-                    shadowColor: theme.glass.shadowColor,
-                    marginTop: layout.spacing.lg,
+                    backgroundColor: palette.btn,
+                    borderColor: palette.btnBorder,
+                    marginTop: 20,
                   },
                 ]}
                 accessible={true}
                 accessibilityRole="button"
                 accessibilityLabel="Start discovering medicines"
               >
-                <Text style={[styles.primaryButtonText, { color: theme.textInverse }]}>
+                <Text style={[styles.primaryButtonText, { color: palette.btnInk }]}>
                   Start Searching Medicines
                 </Text>
-                <ArrowRightIcon size={16} color={theme.textInverse} />
-              </TouchableOpacity>
+                <ArrowRightIcon size={16} color={palette.btnInk} />
+              </Pressable>
             </View>
           )}
         </Animated.View>
@@ -696,8 +678,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: layout.spacing.lg,
-    paddingVertical: layout.spacing.sm,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
     minHeight: 48,
   },
   dotsContainer: {
@@ -710,22 +692,24 @@ const styles = StyleSheet.create({
     borderRadius: 3,
   },
   skipButton: {
-    paddingHorizontal: layout.spacing.sm + 4,
-    paddingVertical: 6,
-    borderRadius: layout.borderRadius.pill,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: radii.pill,
     borderWidth: 1,
+    minHeight: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   skipButtonText: {
-    fontFamily: typography.fontFamilyMedium,
-    fontSize: typography.fontSize.xs,
-    fontWeight: '500',
+    fontFamily: fonts.sansSemi,
+    fontSize: 13,
   },
   scrollArea: {
     flex: 1,
   },
   scrollContent: {
-    paddingHorizontal: layout.spacing.lg,
-    paddingBottom: layout.spacing.xl,
+    paddingHorizontal: 24,
+    paddingBottom: 32,
     flexGrow: 1,
     justifyContent: 'center',
   },
@@ -739,198 +723,187 @@ const styles = StyleSheet.create({
   heroLogoWrapper: {
     width: 80,
     height: 80,
-    borderRadius: 22,
+    borderRadius: radii.card,
     borderWidth: 1.5,
     padding: 4,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: layout.spacing.md,
+    marginBottom: 16,
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.12,
     shadowRadius: 16,
     elevation: 4,
   },
   heroLogoImage: {
-    width: 70,
-    height: 70,
-    borderRadius: 18,
+    width: 68,
+    height: 68,
+    borderRadius: 16,
   },
   welcomeHeadline: {
-    fontFamily: typography.fontFamilyBold,
-    fontSize: typography.fontSize.xl + 2,
-    fontWeight: '700',
+    fontFamily: fonts.sansBold,
+    fontSize: 24,
     textAlign: 'center',
     letterSpacing: -0.4,
-    marginBottom: 6,
+    marginBottom: 8,
   },
   welcomeSubtitle: {
-    fontFamily: typography.fontFamilyRegular,
-    fontSize: typography.fontSize.sm + 1,
-    fontWeight: '400',
+    fontFamily: fonts.sans,
+    fontSize: 15,
     textAlign: 'center',
     lineHeight: 22,
-    paddingHorizontal: layout.spacing.sm,
-    marginBottom: layout.spacing.lg,
+    marginBottom: 20,
   },
   previewCardsColumn: {
     width: '100%',
-    gap: layout.spacing.sm + 2,
-    marginBottom: layout.spacing.xl,
+    gap: 12,
+    marginBottom: 24,
   },
   previewCard: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    padding: layout.spacing.md,
-    borderRadius: layout.borderRadius.lg,
+    padding: 14,
+    borderRadius: radii.card,
     borderWidth: 1,
-    gap: layout.spacing.md,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
-    elevation: 2,
+    gap: 12,
   },
   cardIconBox: {
-    width: 38,
-    height: 38,
-    borderRadius: 12,
+    width: 36,
+    height: 36,
+    borderRadius: radii.pill,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 2,
   },
   cardTextCol: {
     flex: 1,
     gap: 3,
   },
   cardTitle: {
-    fontFamily: typography.fontFamilySemibold,
-    fontSize: typography.fontSize.sm + 1,
-    fontWeight: '600',
+    fontFamily: fonts.sansBold,
+    fontSize: 15,
   },
   cardDesc: {
-    fontFamily: typography.fontFamilyRegular,
-    fontSize: typography.fontSize.xs,
-    fontWeight: '400',
+    fontFamily: fonts.sans,
+    fontSize: 13,
     lineHeight: 18,
   },
   radarGraphicWrapper: {
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: layout.spacing.md,
+    marginBottom: 16,
   },
   privacyCommitmentBox: {
     width: '100%',
-    borderRadius: layout.borderRadius.lg,
+    borderRadius: radii.card,
     borderWidth: 1,
-    padding: layout.spacing.md,
-    gap: layout.spacing.sm,
-    marginBottom: layout.spacing.xl,
+    padding: 16,
+    gap: 12,
+    marginBottom: 24,
   },
   privacyItemRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    gap: 8,
+    gap: 10,
   },
   privacyItemText: {
-    fontFamily: typography.fontFamilyRegular,
-    fontSize: typography.fontSize.xs,
-    fontWeight: '400',
+    fontFamily: fonts.sans,
+    fontSize: 13,
     lineHeight: 18,
     flex: 1,
   },
   areaIconWrapper: {
-    width: 68,
-    height: 68,
-    borderRadius: 34,
+    width: 64,
+    height: 64,
+    borderRadius: 32,
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: layout.spacing.md,
+    marginBottom: 16,
   },
   errorNotice: {
     width: '100%',
-    padding: layout.spacing.sm + 2,
-    borderRadius: layout.borderRadius.md,
+    padding: 10,
+    borderRadius: radii.chip,
     borderWidth: 1,
-    marginBottom: layout.spacing.md,
+    marginBottom: 14,
   },
   errorNoticeText: {
-    fontFamily: typography.fontFamilyMedium,
-    fontSize: typography.fontSize.xs,
-    fontWeight: '500',
+    fontFamily: fonts.sansSemi,
+    fontSize: 13,
     textAlign: 'center',
   },
   areaInputBox: {
     width: '100%',
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: layout.borderRadius.md + 4,
+    borderRadius: radii.pill,
     borderWidth: 1,
-    paddingHorizontal: layout.spacing.md,
+    paddingHorizontal: 16,
     minHeight: 48,
-    marginBottom: layout.spacing.md,
-    gap: 8,
+    marginBottom: 16,
+    gap: 10,
   },
   areaTextInput: {
     flex: 1,
-    fontFamily: typography.fontFamilyRegular,
-    fontSize: typography.fontSize.sm + 1,
-    fontWeight: '400',
+    fontFamily: fonts.sans,
+    fontSize: 14,
   },
   quickSelectLabel: {
     alignSelf: 'flex-start',
-    fontFamily: typography.fontFamilyMedium,
-    fontSize: typography.fontSize.xs,
-    fontWeight: '500',
-    marginBottom: layout.spacing.xs + 2,
+    fontFamily: fonts.sansSemi,
+    fontSize: 12,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 10,
   },
   areaChipsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: layout.spacing.xs + 4,
+    gap: 8,
     width: '100%',
-    marginBottom: layout.spacing.xl,
+    marginBottom: 24,
   },
   areaChip: {
-    paddingHorizontal: layout.spacing.md,
-    paddingVertical: layout.spacing.sm,
-    borderRadius: layout.borderRadius.pill,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: radii.pill,
     borderWidth: 1,
+    minHeight: MIN_TARGET,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   areaChipText: {
-    fontFamily: typography.fontFamilyMedium,
-    fontSize: typography.fontSize.xs + 1,
+    fontSize: 13,
   },
   successGraphicWrapper: {
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: layout.spacing.lg,
+    marginBottom: 20,
   },
   readyCard: {
     width: '100%',
-    borderRadius: layout.borderRadius.lg,
+    borderRadius: radii.card,
     borderWidth: 1,
-    padding: layout.spacing.md,
-    gap: layout.spacing.sm,
-    marginTop: layout.spacing.sm,
+    padding: 16,
+    gap: 10,
+    marginTop: 8,
   },
   readyRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 10,
   },
   readyText: {
-    fontFamily: typography.fontFamilyRegular,
-    fontSize: typography.fontSize.xs + 1,
-    fontWeight: '400',
+    fontFamily: fonts.sans,
+    fontSize: 13,
   },
   buttonActionGroup: {
     width: '100%',
-    gap: layout.spacing.sm + 2,
+    gap: 12,
   },
   primaryButton: {
     width: '100%',
-    minHeight: layout.minTouchTarget + 6,
-    borderRadius: layout.borderRadius.pill,
+    minHeight: MIN_TARGET + 6,
+    borderRadius: radii.pill,
     borderWidth: 1,
     flexDirection: 'row',
     alignItems: 'center',
@@ -942,22 +915,20 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   primaryButtonText: {
-    fontFamily: typography.fontFamilySemibold,
-    fontSize: typography.fontSize.base,
-    fontWeight: '600',
+    fontFamily: fonts.sansBold,
+    fontSize: 16,
     letterSpacing: -0.2,
   },
   secondaryButton: {
     width: '100%',
-    minHeight: layout.minTouchTarget,
-    borderRadius: layout.borderRadius.pill,
+    minHeight: MIN_TARGET,
+    borderRadius: radii.pill,
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },
   secondaryButtonText: {
-    fontFamily: typography.fontFamilyMedium,
-    fontSize: typography.fontSize.sm,
-    fontWeight: '500',
+    fontFamily: fonts.sansSemi,
+    fontSize: 14,
   },
 });

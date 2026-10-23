@@ -3,14 +3,14 @@ import {
   View,
   Text,
   Modal,
-  TouchableOpacity,
+  Pressable,
   TextInput,
   ScrollView,
   StyleSheet,
   ActivityIndicator,
 } from 'react-native';
 import { useTheme } from '../../theme/ThemeContext';
-import { layout, typography } from '../../theme/tokens';
+import { fonts, radii, MIN_TARGET } from '../../constants/theme';
 import { useLocation } from '../../context/LocationContext';
 import { PREDEFINED_AREAS, KnownArea } from '../../services/locationService';
 import {
@@ -27,7 +27,7 @@ interface AreaPickerModalProps {
 }
 
 export function AreaPickerModal({ visible, onClose }: AreaPickerModalProps) {
-  const { mode, theme } = useTheme();
+  const { scheme, palette } = useTheme();
   const {
     areaName,
     locationSource,
@@ -78,54 +78,56 @@ export function AreaPickerModal({ visible, onClose }: AreaPickerModalProps) {
       animationType="fade"
       onRequestClose={onClose}
     >
-      <TouchableOpacity
+      <Pressable
         style={styles.modalBackdrop}
-        activeOpacity={1}
         onPress={onClose}
       >
-        <TouchableOpacity
-          activeOpacity={1}
+        <Pressable
           style={[
             styles.modalCard,
             {
-              backgroundColor: mode === 'light' ? 'rgba(255, 255, 255, 0.98)' : 'rgba(18, 16, 26, 0.98)',
-              borderColor: theme.glass.borderHighlight,
-              shadowColor: theme.glass.shadowColor,
+              backgroundColor: palette.surface,
+              borderColor: palette.line,
+              shadowColor: palette.shadow,
             },
           ]}
+          onPress={(e) => e.stopPropagation()}
         >
           {/* Header */}
-          <View style={styles.modalHeader}>
+          <View style={[styles.modalHeader, { borderBottomColor: palette.line }]}>
             <View style={styles.titleRow}>
-              <MapPinIcon size={20} />
-              <Text style={[styles.modalTitle, { color: theme.textPrimary }]}>
+              <View style={[styles.titleIconBadge, { backgroundColor: palette.okTint }]}>
+                <MapPinIcon size={18} color={palette.okInk} />
+              </View>
+              <Text style={[styles.modalTitle, { color: palette.ink }]}>
                 Choose Location
               </Text>
             </View>
-            <TouchableOpacity
+            <Pressable
               onPress={onClose}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              hitSlop={12}
+              style={[styles.closeBtn, { backgroundColor: palette.surface2, minHeight: MIN_TARGET, minWidth: MIN_TARGET }]}
               accessible={true}
               accessibilityRole="button"
               accessibilityLabel="Close location chooser"
             >
-              <CloseIcon size={16} color={theme.textMuted} />
-            </TouchableOpacity>
+              <CloseIcon size={16} color={palette.ink2} />
+            </Pressable>
           </View>
 
           {/* Quick Action: Device GPS */}
-          <TouchableOpacity
+          <Pressable
             onPress={handleUseGps}
             disabled={isLocating}
             style={[
               styles.gpsButton,
               {
                 backgroundColor: locationSource === 'gps'
-                  ? (mode === 'light' ? theme.badgeBackground : 'rgba(0, 229, 255, 0.15)')
-                  : theme.glass.backgroundPill,
+                  ? palette.okTint
+                  : palette.surface2,
                 borderColor: locationSource === 'gps'
-                  ? theme.primaryAccent
-                  : theme.glass.border,
+                  ? palette.okLine
+                  : palette.line,
               },
             ]}
             accessible={true}
@@ -133,38 +135,42 @@ export function AreaPickerModal({ visible, onClose }: AreaPickerModalProps) {
             accessibilityLabel="Use current device GPS location"
           >
             {isLocating ? (
-              <ActivityIndicator size="small" color={theme.primaryAccent} />
+              <ActivityIndicator size="small" color={palette.okInk} />
             ) : (
-              <CrosshairTargetIcon size={18} color={theme.primaryAccentText} />
+              <View style={[styles.gpsIconCircle, { backgroundColor: locationSource === 'gps' ? palette.okInk : palette.line }]}>
+                <CrosshairTargetIcon size={16} color={locationSource === 'gps' ? palette.btnInk : palette.ink} />
+              </View>
             )}
             <View style={styles.gpsTextCol}>
-              <Text style={[styles.gpsButtonTitle, { color: theme.textPrimary }]}>
+              <Text style={[styles.gpsButtonTitle, { color: palette.ink }]}>
                 Use Current Device Location
               </Text>
-              <Text style={[styles.gpsButtonSubtitle, { color: theme.textSecondary }]}>
+              <Text style={[styles.gpsButtonSubtitle, { color: palette.ink2 }]}>
                 Calculates real distances without saving coordinates
               </Text>
             </View>
             {locationSource === 'gps' && (
-              <CheckmarkIcon size={14} color={theme.primaryAccentText} />
+              <View style={[styles.checkCircle, { backgroundColor: palette.okInk }]}>
+                <CheckmarkIcon size={12} color={palette.surface} />
+              </View>
             )}
-          </TouchableOpacity>
+          </Pressable>
 
           {/* Search Input for Neighborhoods */}
           <View
             style={[
               styles.searchBar,
               {
-                backgroundColor: theme.glass.backgroundSubtle,
-                borderColor: theme.glass.border,
+                backgroundColor: palette.surface2,
+                borderColor: palette.line,
               },
             ]}
           >
-            <SearchIcon size={16} color={theme.textMuted} />
+            <SearchIcon size={16} color={palette.ink2} />
             <TextInput
-              style={[styles.searchInput, { color: theme.textPrimary }]}
+              style={[styles.searchInput, { color: palette.ink }]}
               placeholder="Search or enter area name..."
-              placeholderTextColor={theme.textMuted}
+              placeholderTextColor={palette.ink2}
               value={filterText}
               onChangeText={setFilterText}
               onSubmitEditing={handleCustomAreaSubmit}
@@ -173,7 +179,7 @@ export function AreaPickerModal({ visible, onClose }: AreaPickerModalProps) {
           </View>
 
           {/* Predefined Areas List */}
-          <Text style={[styles.sectionSubtitle, { color: theme.textMuted }]}>
+          <Text style={[styles.sectionSubtitle, { color: palette.ink2 }]}>
             Bengaluru Neighborhoods
           </Text>
 
@@ -181,13 +187,14 @@ export function AreaPickerModal({ visible, onClose }: AreaPickerModalProps) {
             {matchingAreas.map((item) => {
               const isSelected = areaName.toLowerCase().includes(item.locality.toLowerCase());
               return (
-                <TouchableOpacity
+                <Pressable
                   key={item.id}
                   onPress={() => handleSelectArea(item)}
                   style={[
                     styles.areaRow,
                     {
-                      borderBottomColor: theme.glass.borderSubtle,
+                      borderBottomColor: palette.line,
+                      backgroundColor: isSelected ? (scheme === 'dark' ? 'rgba(0,229,255,0.08)' : 'rgba(135,169,107,0.12)') : 'transparent',
                     },
                   ]}
                   accessible={true}
@@ -195,52 +202,54 @@ export function AreaPickerModal({ visible, onClose }: AreaPickerModalProps) {
                   accessibilityState={{ selected: isSelected }}
                 >
                   <View style={styles.areaRowLeft}>
-                    <Text style={[styles.areaNameText, { color: theme.textPrimary, fontWeight: isSelected ? '700' : '500' }]}>
+                    <Text style={[styles.areaNameText, { color: palette.ink, fontFamily: isSelected ? fonts.sansBold : fonts.sansMedium }]}>
                       {item.name}
                     </Text>
-                    <Text style={[styles.areaPincodeText, { color: theme.textMuted }]}>
+                    <Text style={[styles.areaPincodeText, { color: palette.ink2 }]}>
                       Pincode: {item.pincode}
                     </Text>
                   </View>
                   {isSelected && (
-                    <CheckmarkIcon size={16} color={theme.primaryAccentText} />
+                    <View style={[styles.checkCircle, { backgroundColor: palette.okInk }]}>
+                      <CheckmarkIcon size={12} color={palette.surface} />
+                    </View>
                   )}
-                </TouchableOpacity>
+                </Pressable>
               );
             })}
 
             {filterText.trim().length > 0 && matchingAreas.length === 0 && (
-              <TouchableOpacity
+              <Pressable
                 onPress={handleCustomAreaSubmit}
                 style={[
                   styles.customSubmitBtn,
                   {
-                    backgroundColor: theme.glass.backgroundPill,
-                    borderColor: theme.glass.border,
+                    backgroundColor: palette.surface2,
+                    borderColor: palette.line,
                   },
                 ]}
               >
-                <Text style={[styles.customSubmitText, { color: theme.primaryAccentText }]}>
+                <Text style={[styles.customSubmitText, { color: palette.ink }]}>
                   Select "{filterText.trim()}"
                 </Text>
-              </TouchableOpacity>
+              </Pressable>
             )}
           </ScrollView>
 
           {/* Reset / All Bengaluru */}
-          <TouchableOpacity
+          <Pressable
             onPress={handleResetLocation}
             style={styles.resetButton}
             accessible={true}
             accessibilityRole="button"
             accessibilityLabel="Clear location and search all Bengaluru"
           >
-            <Text style={[styles.resetButtonText, { color: theme.textMuted }]}>
+            <Text style={[styles.resetButtonText, { color: palette.ink2 }]}>
               Clear location & search all areas
             </Text>
-          </TouchableOpacity>
-        </TouchableOpacity>
-      </TouchableOpacity>
+          </Pressable>
+        </Pressable>
+      </Pressable>
     </Modal>
   );
 }
@@ -248,131 +257,157 @@ export function AreaPickerModal({ visible, onClose }: AreaPickerModalProps) {
 const styles = StyleSheet.create({
   modalBackdrop: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.45)',
+    backgroundColor: 'rgba(0, 0, 0, 0.55)',
     justifyContent: 'center',
     alignItems: 'center',
-    padding: layout.spacing.md,
+    padding: 16,
   },
   modalCard: {
     width: '100%',
-    maxWidth: 400,
-    maxHeight: '82%',
-    borderRadius: layout.borderRadius.lg + 4,
+    maxWidth: 420,
+    maxHeight: '84%',
+    borderRadius: radii.card,
     borderWidth: 1,
-    padding: layout.spacing.md + 2,
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.22,
-    shadowRadius: 24,
-    elevation: 10,
+    padding: 20,
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.25,
+    shadowRadius: 28,
+    elevation: 12,
   },
   modalHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingBottom: layout.spacing.sm + 2,
+    paddingBottom: 14,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: 'rgba(150, 150, 150, 0.2)',
-    marginBottom: layout.spacing.sm,
+    marginBottom: 16,
   },
   titleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 10,
+  },
+  titleIconBadge: {
+    width: 32,
+    height: 32,
+    borderRadius: radii.pill,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   modalTitle: {
-    fontFamily: typography.fontFamilyBold,
-    fontSize: typography.fontSize.md,
-    fontWeight: '700',
-    letterSpacing: -0.2,
+    fontFamily: fonts.sansBold,
+    fontSize: 18,
+    letterSpacing: -0.3,
+  },
+  closeBtn: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: radii.pill,
   },
   gpsButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: layout.spacing.sm + 4,
-    borderRadius: layout.borderRadius.md + 2,
+    padding: 12,
+    borderRadius: radii.chip,
     borderWidth: 1,
-    marginBottom: layout.spacing.md,
-    gap: 10,
+    marginBottom: 16,
+    gap: 12,
+    minHeight: MIN_TARGET,
+  },
+  gpsIconCircle: {
+    width: 28,
+    height: 28,
+    borderRadius: radii.pill,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   gpsTextCol: {
     flex: 1,
     gap: 2,
   },
   gpsButtonTitle: {
-    fontFamily: typography.fontFamilySemibold,
-    fontSize: typography.fontSize.sm,
-    fontWeight: '600',
+    fontFamily: fonts.sansBold,
+    fontSize: 14,
   },
   gpsButtonSubtitle: {
-    fontFamily: typography.fontFamilyRegular,
-    fontSize: typography.fontSize.xs - 1,
-    fontWeight: '400',
+    fontFamily: fonts.sans,
+    fontSize: 12,
+  },
+  checkCircle: {
+    width: 20,
+    height: 20,
+    borderRadius: radii.pill,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: layout.spacing.sm + 4,
-    borderRadius: layout.borderRadius.pill,
+    paddingHorizontal: 14,
+    borderRadius: radii.pill,
     borderWidth: 1,
-    minHeight: 42,
-    marginBottom: layout.spacing.sm,
-    gap: 8,
+    minHeight: 46,
+    marginBottom: 14,
+    gap: 10,
   },
   searchInput: {
     flex: 1,
-    fontFamily: typography.fontFamilyRegular,
-    fontSize: typography.fontSize.sm,
-    fontWeight: '400',
+    fontFamily: fonts.sans,
+    fontSize: 14,
   },
   sectionSubtitle: {
-    fontFamily: typography.fontFamilyMedium,
-    fontSize: typography.fontSize.xs,
-    fontWeight: '500',
-    marginBottom: 6,
+    fontFamily: fonts.sansSemi,
+    fontSize: 12,
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+    marginBottom: 8,
     paddingHorizontal: 2,
   },
   areasList: {
     maxHeight: 220,
-    marginBottom: layout.spacing.sm,
+    marginBottom: 12,
   },
   areaRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: layout.spacing.sm + 2,
+    paddingVertical: 12,
+    paddingHorizontal: 10,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    paddingHorizontal: 4,
+    borderRadius: 8,
+    minHeight: MIN_TARGET,
   },
   areaRowLeft: {
-    gap: 2,
+    gap: 3,
   },
   areaNameText: {
-    fontFamily: typography.fontFamilyMedium,
-    fontSize: typography.fontSize.sm,
+    fontSize: 14,
   },
   areaPincodeText: {
-    fontFamily: typography.fontFamilyRegular,
-    fontSize: typography.fontSize.xs - 1,
+    fontFamily: fonts.sans,
+    fontSize: 12,
   },
   customSubmitBtn: {
-    padding: layout.spacing.sm + 2,
-    borderRadius: layout.borderRadius.pill,
+    padding: 12,
+    borderRadius: radii.pill,
     borderWidth: 1,
     alignItems: 'center',
     marginTop: 8,
+    minHeight: MIN_TARGET,
+    justifyContent: 'center',
   },
   customSubmitText: {
-    fontFamily: typography.fontFamilySemibold,
-    fontSize: typography.fontSize.sm,
-    fontWeight: '600',
+    fontFamily: fonts.sansBold,
+    fontSize: 14,
   },
   resetButton: {
     alignItems: 'center',
-    paddingVertical: layout.spacing.xs + 2,
+    justifyContent: 'center',
+    paddingVertical: 10,
+    minHeight: MIN_TARGET,
   },
   resetButtonText: {
-    fontFamily: typography.fontFamilyMedium,
-    fontSize: typography.fontSize.xs,
-    fontWeight: '500',
+    fontFamily: fonts.sansMedium,
+    fontSize: 13,
   },
 });

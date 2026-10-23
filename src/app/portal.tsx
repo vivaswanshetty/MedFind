@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
-  TouchableOpacity,
+  Pressable,
   ScrollView,
   StyleSheet,
   ActivityIndicator,
@@ -12,7 +12,8 @@ import {
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../theme/ThemeContext';
-import { layout, typography } from '../theme/tokens';
+import { fonts, radii, MIN_TARGET } from '../constants/theme';
+import { AtmosphereBackground } from '../components/AtmosphereBackground';
 import { Pharmacy, StockState } from '../types/models';
 import {
   pharmacyPortalService,
@@ -26,14 +27,15 @@ import {
   ShieldCheckIcon,
   ClockIcon,
   CheckCircleIcon,
-  WarningIcon,
+  MinusCircleIcon,
+  TriangleAlertIcon,
   PillCapsuleIcon,
 } from '../components/icons/AppIcons';
 
 export default function PharmacyPortalScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { mode, theme } = useTheme();
+  const { scheme, palette } = useTheme();
 
   const [pharmacies, setPharmacies] = useState<Pharmacy[]>([]);
   const [selectedPharmacy, setSelectedPharmacy] = useState<Pharmacy | null>(null);
@@ -43,9 +45,8 @@ export default function PharmacyPortalScreen() {
   const [updatingMedicineId, setUpdatingMedicineId] = useState<string | null>(null);
   const [successToast, setSuccessToast] = useState<string | null>(null);
 
-  // Status bar & notch-safe header padding
-  const statusBarHeight = Platform.OS === 'android' ? (StatusBar.currentHeight ?? 28) : 0;
-  const headerTopPadding = Math.max(insets.top, statusBarHeight) + 12;
+  const statusBarHeight = Platform.OS === 'android' ? (StatusBar.currentHeight ?? 24) : 0;
+  const paddingTop = Math.max(insets.top, statusBarHeight) + 8;
 
   useEffect(() => {
     let isCancelled = false;
@@ -91,80 +92,61 @@ export default function PharmacyPortalScreen() {
         medicineId,
         medicineName,
         state,
-        'Staff On-Duty'
+        'Desk Pharmacist'
       );
 
-      // Refresh inventory
       const updated = await pharmacyPortalService.getInventory(selectedPharmacy.id);
       setInventory(updated);
       setAuditLog([...pharmacyPortalService.getAuditLog()]);
 
-      // Show confirmation toast
-      setSuccessToast(`${medicineName} updated to ${state.toUpperCase()}`);
+      const stateLabel = state === 'available' ? 'IN STOCK' : state === 'low_stock' ? 'LOW STOCK' : 'OUT OF STOCK';
+      setSuccessToast(`${medicineName} updated to ${stateLabel}`);
       setTimeout(() => {
         setSuccessToast(null);
-      }, 2500);
+      }, 3000);
     } finally {
       setUpdatingMedicineId(null);
     }
   };
 
   return (
-    <View style={[styles.screenRoot, { backgroundColor: theme.canvas }]}>
-      {/* 1. APPLE IOS LIQUID GLASS HEADER */}
-      <View
-        style={[
-          styles.headerBar,
-          {
-            paddingTop: headerTopPadding,
-            backgroundColor: theme.glass.background,
-            borderBottomColor: theme.glass.borderSubtle,
-            shadowColor: theme.glass.shadowColor,
-            shadowOffset: theme.glass.shadowOffset,
-            shadowOpacity: theme.glass.shadowOpacity,
-            shadowRadius: theme.glass.shadowRadius,
-            elevation: theme.glass.elevation,
-          },
-        ]}
-      >
-        <TouchableOpacity
+    <View style={[styles.screenRoot, { backgroundColor: palette.bg }]}>
+      <AtmosphereBackground />
+
+      {/* TOP HEADER */}
+      <View style={[styles.headerBar, { paddingTop, backgroundColor: 'transparent' }]}>
+        <Pressable
           onPress={() => router.back()}
-          style={[
-            styles.headerLiquidButton,
-            {
-              backgroundColor: theme.glass.backgroundPill,
-              borderColor: theme.glass.border,
-              shadowColor: theme.glass.shadowColor,
-            },
-          ]}
           accessible={true}
           accessibilityRole="button"
           accessibilityLabel="Back to Home screen"
+          style={({ pressed }) => [
+            styles.headerButton,
+            {
+              backgroundColor: palette.surface,
+              borderColor: palette.line,
+              opacity: pressed ? 0.85 : 1.0,
+            },
+          ]}
         >
-          <BackArrowIcon size={18} color={theme.textPrimary} />
-          <Text style={[styles.headerButtonText, { color: theme.textPrimary }]}>
-            Back
-          </Text>
-        </TouchableOpacity>
+          <BackArrowIcon size={18} color={palette.ink} />
+        </Pressable>
 
         <View style={styles.headerTitleGroup}>
-          <Text
-            style={[styles.headerTitleText, { color: theme.textPrimary }]}
-            numberOfLines={1}
-          >
-            Staff Stock Portal
+          <Text style={[styles.headerTitleText, { color: palette.ink }]} numberOfLines={1}>
+            Pharmacy Staff Portal
           </Text>
-          <Text style={[styles.headerSubtitleText, { color: theme.textSecondary }]}>
-            PRD FR 06 Fast Update Flow
+          <Text style={[styles.headerSubtitleText, { color: palette.ink2 }]}>
+            1-Tap Stock Verification & Audit
           </Text>
         </View>
 
         <View
           style={[
-            styles.staffIndicator,
+            styles.staffBadgeContainer,
             {
-              backgroundColor: theme.glass.backgroundPill,
-              borderColor: theme.glass.border,
+              backgroundColor: palette.surface,
+              borderColor: palette.line,
             },
           ]}
         >
@@ -174,469 +156,251 @@ export default function PharmacyPortalScreen() {
 
       <ScrollView
         style={styles.scrollArea}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: 120 }]}
+        showsVerticalScrollIndicator={false}
       >
-        {/* 2. SUCCESS CONFIRMATION TOAST */}
+        {/* SUCCESS CONFIRMATION TOAST */}
         {successToast && (
           <View
             style={[
               styles.toastBox,
               {
-                backgroundColor: mode === 'light' ? 'rgba(238, 243, 234, 0.95)' : 'rgba(11, 34, 40, 0.9)',
-                borderColor: theme.primaryAccent,
+                backgroundColor: palette.okTint,
+                borderColor: palette.okLine,
               },
             ]}
           >
-            <CheckCircleIcon size={18} />
-            <Text
-              style={[
-                styles.toastText,
-                { color: mode === 'light' ? theme.primaryAccentText : theme.primaryAccent },
-              ]}
-            >
+            <CheckCircleIcon size={16} color={palette.okInk} />
+            <Text style={[styles.toastText, { color: palette.okInk }]} numberOfLines={1}>
               {successToast}
             </Text>
           </View>
         )}
 
-        {/* 3. STORE SELECTOR CARD (LIQUID GLASS) */}
-        <View
-          style={[
-            styles.cardBox,
-            {
-              backgroundColor: theme.glass.background,
-              borderColor: theme.glass.border,
-              shadowColor: theme.glass.shadowColor,
-            },
-          ]}
-        >
-          <View style={styles.cardHeaderRow}>
-            <PharmacyStoreIcon size={18} color={mode === 'light' ? '#87A96B' : '#00E5FF'} />
-            <Text style={[styles.cardTitle, { color: theme.textPrimary }]}>
-              Select Assigned Pharmacy
-            </Text>
-          </View>
-
-          {/* Pharmacy Pill Selector */}
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.storePickerContainer}
-          >
-            {pharmacies.map((store) => {
-              const isSelected = selectedPharmacy?.id === store.id;
-              return (
-                <TouchableOpacity
-                  key={store.id}
-                  onPress={() => handleSelectPharmacy(store)}
-                  style={[
-                    styles.storeChip,
-                    {
-                      backgroundColor: isSelected
-                        ? mode === 'light'
-                          ? theme.primaryAccent
-                          : theme.secondaryAccent
-                        : theme.glass.backgroundPill,
-                      borderColor: isSelected
-                        ? theme.primaryAccent
-                        : theme.glass.border,
-                      shadowColor: theme.glass.shadowColor,
-                    },
-                  ]}
-                  accessible={true}
-                  accessibilityRole="button"
-                  accessibilityState={{ selected: isSelected }}
-                >
-                  <Text
-                    style={[
-                      styles.storeChipText,
-                      {
-                        color: isSelected
-                          ? mode === 'light'
-                            ? theme.textInverse
-                            : theme.primaryAccent
-                          : theme.textPrimary,
-                        fontFamily: isSelected
-                          ? typography.fontFamilySemibold
-                          : typography.fontFamilyMedium,
-                      },
-                    ]}
-                  >
-                    {store.name.split(' (')[0]}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </ScrollView>
-
-          {/* Active Store Details Inset */}
-          {selectedPharmacy && (
-            <View
-              style={[
-                styles.activeStoreInset,
-                {
-                  backgroundColor: theme.glass.backgroundSubtle,
-                  borderColor: theme.glass.borderSubtle,
-                },
-              ]}
-            >
-              <View style={styles.activeStoreRow}>
-                <ShieldCheckIcon size={16} color={theme.primaryAccent} />
-                <Text style={[styles.activeStoreName, { color: theme.textPrimary }]}>
-                  {selectedPharmacy.name}
-                </Text>
-              </View>
-              <Text style={[styles.activeStoreAddress, { color: theme.textSecondary }]}>
-                {selectedPharmacy.address}
-              </Text>
-              <Text style={[styles.activeStoreHours, { color: theme.textMuted }]}>
-                Hours: {selectedPharmacy.opening_hours || 'Standard Business Hours'}
-              </Text>
-            </View>
-          )}
+        {/* 1. PHARMACY SELECTOR PILLS */}
+        <View style={styles.sectionHeader}>
+          <Text style={[styles.sectionHeading, { color: palette.ink2 }]}>
+            SELECT OPERATING PHARMACY
+          </Text>
         </View>
 
-        {/* 4. INVENTORY RAPID 1-TAP UPDATE LIST */}
-        <View
-          style={[
-            styles.cardBox,
-            {
-              backgroundColor: theme.glass.background,
-              borderColor: theme.glass.border,
-              shadowColor: theme.glass.shadowColor,
-            },
-          ]}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.storeChipsRow}
         >
-          <View style={styles.cardHeaderRow}>
-            <PillCapsuleIcon size={18} />
-            <Text style={[styles.cardTitle, { color: theme.textPrimary }]}>
-              Medicine Stock Visibility
-            </Text>
-          </View>
-          <Text style={[styles.cardSubtitle, { color: theme.textSecondary }]}>
-            Tap a state below to record an append-only snapshot in under 1 minute.
-          </Text>
+          {pharmacies.map((store) => {
+            const isSelected = selectedPharmacy?.id === store.id;
 
-          {isLoading ? (
-            <View style={styles.loadingArea}>
-              <ActivityIndicator size="small" color={theme.primaryAccent} />
-              <Text style={[styles.loadingLabel, { color: theme.textSecondary }]}>
-                Loading store inventory...
-              </Text>
-            </View>
-          ) : (
-            inventory.map((row) => {
-              const med = row.medicine;
-              const snap = row.currentSnapshot;
-              const currentState = snap?.state || 'unknown';
-              const isUpdating = updatingMedicineId === med.id;
-
-              return (
-                <View
-                  key={med.id}
-                  style={[
-                    styles.medicineItemRow,
-                    {
-                      backgroundColor: theme.glass.backgroundSubtle,
-                      borderColor: theme.glass.borderSubtle,
-                    },
-                  ]}
-                >
-                  {/* Medicine Name & Current State */}
-                  <View style={styles.itemHeader}>
-                    <View style={styles.itemTitleGroup}>
-                      <Text style={[styles.brandName, { color: theme.textPrimary }]}>
-                        {med.brand_name}
-                      </Text>
-                      <Text style={[styles.genericName, { color: theme.textSecondary }]}>
-                        {med.generic_name} ({med.strength} • {med.dosage_form})
-                      </Text>
-                    </View>
-
-                    {/* Current State Pill */}
-                    <View
-                      style={[
-                        styles.currentStateBadge,
-                        {
-                          backgroundColor:
-                            currentState === 'available'
-                              ? theme.badgeBackground
-                              : currentState === 'low_stock'
-                              ? mode === 'light'
-                                ? 'rgba(255, 248, 238, 0.95)'
-                                : 'rgba(38, 23, 8, 0.85)'
-                              : theme.glass.backgroundPill,
-                          borderColor:
-                            currentState === 'available'
-                              ? theme.primaryAccent
-                              : currentState === 'low_stock'
-                              ? theme.warningAccent
-                              : theme.glass.border,
-                        },
-                      ]}
-                    >
-                      <Text
-                        style={[
-                          styles.currentStateText,
-                          {
-                            color:
-                              currentState === 'available'
-                                ? theme.primaryAccentText
-                                : currentState === 'low_stock'
-                                ? mode === 'light'
-                                  ? theme.warningAccentText
-                                  : theme.warningAccent
-                                : theme.textSecondary,
-                          },
-                        ]}
-                      >
-                        {currentState === 'available'
-                          ? '● Available'
-                          : currentState === 'low_stock'
-                          ? '▲ Low Stock'
-                          : currentState === 'unavailable'
-                          ? '— Unavailable'
-                          : '○ Unknown'}
-                      </Text>
-                    </View>
-                  </View>
-
-                  {/* 4 Rapid 1-Tap Update Buttons */}
-                  <View style={styles.buttonsGrid}>
-                    <TouchableOpacity
-                      disabled={isUpdating}
-                      onPress={() => handleUpdateStock(med.id, med.brand_name, 'available')}
-                      style={[
-                        styles.quickStateBtn,
-                        currentState === 'available' && styles.quickStateBtnActive,
-                        {
-                          backgroundColor:
-                            currentState === 'available'
-                              ? theme.primaryAccent
-                              : theme.glass.backgroundPill,
-                          borderColor:
-                            currentState === 'available'
-                              ? theme.primaryAccent
-                              : theme.glass.border,
-                        },
-                      ]}
-                    >
-                      <Text
-                        style={[
-                          styles.quickBtnText,
-                          {
-                            color:
-                              currentState === 'available'
-                                ? theme.textInverse
-                                : theme.textPrimary,
-                          },
-                        ]}
-                      >
-                        ● Available
-                      </Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                      disabled={isUpdating}
-                      onPress={() => handleUpdateStock(med.id, med.brand_name, 'low_stock')}
-                      style={[
-                        styles.quickStateBtn,
-                        currentState === 'low_stock' && styles.quickStateBtnActive,
-                        {
-                          backgroundColor:
-                            currentState === 'low_stock'
-                              ? theme.warningAccent
-                              : theme.glass.backgroundPill,
-                          borderColor:
-                            currentState === 'low_stock'
-                              ? theme.warningAccent
-                              : theme.glass.border,
-                        },
-                      ]}
-                    >
-                      <Text
-                        style={[
-                          styles.quickBtnText,
-                          {
-                            color:
-                              currentState === 'low_stock'
-                                ? '#FFFFFF'
-                                : theme.textPrimary,
-                          },
-                        ]}
-                      >
-                        ▲ Low Stock
-                      </Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                      disabled={isUpdating}
-                      onPress={() => handleUpdateStock(med.id, med.brand_name, 'unavailable')}
-                      style={[
-                        styles.quickStateBtn,
-                        currentState === 'unavailable' && styles.quickStateBtnActive,
-                        {
-                          backgroundColor:
-                            currentState === 'unavailable'
-                              ? mode === 'light'
-                                ? '#6B7280'
-                                : '#374151'
-                              : theme.glass.backgroundPill,
-                          borderColor:
-                            currentState === 'unavailable'
-                              ? '#6B7280'
-                              : theme.glass.border,
-                        },
-                      ]}
-                    >
-                      <Text
-                        style={[
-                          styles.quickBtnText,
-                          {
-                            color:
-                              currentState === 'unavailable'
-                                ? '#FFFFFF'
-                                : theme.textSecondary,
-                          },
-                        ]}
-                      >
-                        — Unavailable
-                      </Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                      disabled={isUpdating}
-                      onPress={() => handleUpdateStock(med.id, med.brand_name, 'unknown')}
-                      style={[
-                        styles.quickStateBtn,
-                        currentState === 'unknown' && styles.quickStateBtnActive,
-                        {
-                          backgroundColor:
-                            currentState === 'unknown'
-                              ? mode === 'light'
-                                ? '#9CA3AF'
-                                : '#4B5563'
-                              : theme.glass.backgroundPill,
-                          borderColor:
-                            currentState === 'unknown'
-                              ? '#9CA3AF'
-                              : theme.glass.border,
-                        },
-                      ]}
-                    >
-                      <Text
-                        style={[
-                          styles.quickBtnText,
-                          {
-                            color:
-                              currentState === 'unknown'
-                                ? '#FFFFFF'
-                                : theme.textMuted,
-                          },
-                        ]}
-                      >
-                        ○ Unknown
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              );
-            })
-          )}
-        </View>
-
-        {/* 5. AUDIT LOG SUMMARY (PRD FR 07 AUDITABILITY) */}
-        <View
-          style={[
-            styles.cardBox,
-            {
-              backgroundColor: theme.glass.background,
-              borderColor: theme.glass.border,
-              shadowColor: theme.glass.shadowColor,
-            },
-          ]}
-        >
-          <View style={styles.cardHeaderRow}>
-            <ClockIcon size={16} />
-            <Text style={[styles.cardTitle, { color: theme.textPrimary }]}>
-              Recent Append-Only Audit Log
-            </Text>
-          </View>
-          <Text style={[styles.cardSubtitle, { color: theme.textSecondary }]}>
-            All snapshot changes preserve immutable timestamps and staff updater identities.
-          </Text>
-
-          {auditLog.map((log) => (
-            <View
-              key={log.id}
-              style={[
-                styles.auditRow,
-                {
-                  backgroundColor: theme.glass.backgroundSubtle,
-                  borderColor: theme.glass.borderSubtle,
-                },
-              ]}
-            >
-              <View style={styles.auditLeft}>
-                <Text style={[styles.auditMedText, { color: theme.textPrimary }]}>
-                  {log.medicineName}
-                </Text>
-                <Text style={[styles.auditMetaText, { color: theme.textMuted }]}>
-                  By {log.updater} • {new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                </Text>
-              </View>
-              <View
+            return (
+              <Pressable
+                key={store.id}
+                onPress={() => handleSelectPharmacy(store)}
+                accessible={true}
+                accessibilityRole="button"
+                accessibilityState={{ selected: isSelected }}
+                accessibilityLabel={`Select store: ${store.name}`}
                 style={[
-                  styles.auditBadge,
+                  styles.storeChip,
                   {
-                    backgroundColor:
-                      log.newState === 'available'
-                        ? theme.badgeBackground
-                        : log.newState === 'low_stock'
-                        ? mode === 'light'
-                          ? 'rgba(255, 248, 238, 0.95)'
-                          : 'rgba(38, 23, 8, 0.85)'
-                        : theme.glass.backgroundPill,
-                    borderColor: theme.glass.border,
+                    backgroundColor: isSelected ? palette.btn : palette.surface,
+                    borderColor: isSelected ? palette.selBorder : palette.line,
                   },
                 ]}
               >
+                <PharmacyStoreIcon
+                  size={15}
+                  color={isSelected ? palette.btnInk : palette.ink}
+                />
                 <Text
                   style={[
-                    styles.auditBadgeText,
-                    {
-                      color:
-                        log.newState === 'available'
-                          ? theme.primaryAccentText
-                          : log.newState === 'low_stock'
-                          ? mode === 'light'
-                            ? theme.warningAccentText
-                            : theme.warningAccent
-                          : theme.textSecondary,
-                    },
+                    styles.storeChipText,
+                    { color: isSelected ? palette.btnInk : palette.ink },
                   ]}
+                  numberOfLines={1}
                 >
-                  {log.newState.toUpperCase()}
+                  {store.name}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </ScrollView>
+
+        {/* 2. INVENTORY ITEMS & 1-TAP ACTION BUTTONS */}
+        <View style={styles.sectionHeader}>
+          <Text style={[styles.sectionHeading, { color: palette.ink2 }]}>
+            INSTANT STOCK UPDATE (TAP TO CONFIRM)
+          </Text>
+        </View>
+
+        {isLoading ? (
+          <View style={styles.loadingArea}>
+            <ActivityIndicator size="small" color={palette.accent} />
+            <Text style={[styles.loadingText, { color: palette.ink2 }]}>
+              Loading pharmacy records...
+            </Text>
+          </View>
+        ) : (
+          inventory.map((row) => {
+            const isUpdating = updatingMedicineId === row.medicine.id;
+            const currentState = row.currentSnapshot?.state || 'unavailable';
+
+            let stateToneLabel = 'Out of Stock';
+            let stateBadgeBg = palette.badTint;
+            let stateBadgeInk = palette.badInk;
+
+            if (currentState === 'available') {
+              stateToneLabel = 'In Stock';
+              stateBadgeBg = palette.okTint;
+              stateBadgeInk = palette.okInk;
+            } else if (currentState === 'low_stock') {
+              stateToneLabel = 'Low Stock';
+              stateBadgeBg = palette.amberTint;
+              stateBadgeInk = palette.amberInk;
+            }
+
+            return (
+              <View
+                key={row.medicine.id}
+                style={[
+                  styles.inventoryCard,
+                  {
+                    backgroundColor: palette.surface,
+                    borderColor: palette.line,
+                    shadowColor: palette.shadow,
+                  },
+                ]}
+              >
+                {/* Medicine Title & Form */}
+                <View style={styles.medicineTitleRow}>
+                  <View style={styles.medicineTitleGroup}>
+                    <Text style={[styles.medicineBrandText, { color: palette.ink }]}>
+                      {row.medicine.brand_name}
+                    </Text>
+                    <Text style={[styles.medicineGenericText, { color: palette.ink2 }]}>
+                      {row.medicine.strength} • {row.medicine.dosage_form}
+                    </Text>
+                  </View>
+
+                  {/* Current Status Pill */}
+                  <View style={[styles.currentStatusBadge, { backgroundColor: stateBadgeBg }]}>
+                    <Text style={[styles.currentStatusText, { color: stateBadgeInk }]}>
+                      {stateToneLabel}
+                    </Text>
+                  </View>
+                </View>
+
+                {/* Last Verified Time */}
+                <View style={styles.verifyMetaRow}>
+                  <ClockIcon size={12} color={palette.ink2} />
+                  <Text style={[styles.verifyMetaText, { color: palette.ink2 }]}>
+                    Last reported: {row.currentSnapshot ? 'Today, recently' : 'No report yet'}
+                  </Text>
+                </View>
+
+                {/* 1-Tap Fast Action Pills */}
+                <View style={styles.tapActionsRow}>
+                  {/* IN STOCK */}
+                  <Pressable
+                    onPress={() => handleUpdateStock(row.medicine.id, row.medicine.brand_name, 'available')}
+                    disabled={isUpdating}
+                    accessible={true}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Set ${row.medicine.brand_name} to In Stock`}
+                    style={({ pressed }) => [
+                      styles.actionPillBtn,
+                      {
+                        backgroundColor: currentState === 'available' ? palette.okTint : palette.surface2,
+                        borderColor: currentState === 'available' ? palette.okLine : palette.line,
+                        opacity: pressed || isUpdating ? 0.75 : 1.0,
+                      },
+                    ]}
+                  >
+                    <CheckCircleIcon size={14} color={palette.okInk} />
+                    <Text style={[styles.actionPillText, { color: palette.okInk }]}>
+                      In Stock
+                    </Text>
+                  </Pressable>
+
+                  {/* LOW STOCK */}
+                  <Pressable
+                    onPress={() => handleUpdateStock(row.medicine.id, row.medicine.brand_name, 'low_stock')}
+                    disabled={isUpdating}
+                    accessible={true}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Set ${row.medicine.brand_name} to Low Stock`}
+                    style={({ pressed }) => [
+                      styles.actionPillBtn,
+                      {
+                        backgroundColor: currentState === 'low_stock' ? palette.amberTint : palette.surface2,
+                        borderColor: currentState === 'low_stock' ? palette.amberLine : palette.line,
+                        opacity: pressed || isUpdating ? 0.75 : 1.0,
+                      },
+                    ]}
+                  >
+                    <ClockIcon size={14} color={palette.amberInk} />
+                    <Text style={[styles.actionPillText, { color: palette.amberInk }]}>
+                      Low Stock
+                    </Text>
+                  </Pressable>
+
+                  {/* OUT OF STOCK */}
+                  <Pressable
+                    onPress={() => handleUpdateStock(row.medicine.id, row.medicine.brand_name, 'unavailable')}
+                    disabled={isUpdating}
+                    accessible={true}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Set ${row.medicine.brand_name} to Out of Stock`}
+                    style={({ pressed }) => [
+                      styles.actionPillBtn,
+                      {
+                        backgroundColor: currentState === 'unavailable' ? palette.badTint : palette.surface2,
+                        borderColor: currentState === 'unavailable' ? palette.line : palette.line,
+                        opacity: pressed || isUpdating ? 0.75 : 1.0,
+                      },
+                    ]}
+                  >
+                    <MinusCircleIcon size={14} color={palette.badInk} />
+                    <Text style={[styles.actionPillText, { color: palette.badInk }]}>
+                      Out of Stock
+                    </Text>
+                  </Pressable>
+                </View>
+              </View>
+            );
+          })
+        )}
+
+        {/* 3. VERIFIED AUDIT TRAIL */}
+        <View style={styles.sectionHeader}>
+          <Text style={[styles.sectionHeading, { color: palette.ink2 }]}>
+            IMMUTABLE AUDIT TRAIL (LAST 5 UPDATES)
+          </Text>
+        </View>
+
+        <View
+          style={[
+            styles.auditContainer,
+            {
+              backgroundColor: palette.surface,
+              borderColor: palette.line,
+              shadowColor: palette.shadow,
+            },
+          ]}
+        >
+          {auditLog.slice(0, 5).map((log) => (
+            <View key={log.id} style={styles.auditRow}>
+              <ShieldCheckIcon size={14} color={palette.okInk} />
+              <View style={styles.auditTextCol}>
+                <Text style={[styles.auditPrimaryText, { color: palette.ink }]}>
+                  {log.medicineName} • {log.newState.toUpperCase()}
+                </Text>
+                <Text style={[styles.auditMetaText, { color: palette.ink2 }]}>
+                  By {log.updater} • {new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                 </Text>
               </View>
             </View>
           ))}
-        </View>
-
-        {/* 6. ETHICAL & CLINICAL SAFETY NOTICE */}
-        <View
-          style={[
-            styles.safetyCard,
-            {
-              backgroundColor: theme.glass.backgroundSubtle,
-              borderColor: theme.glass.borderSubtle,
-            },
-          ]}
-        >
-          <WarningIcon size={16} />
-          <Text style={[styles.safetyText, { color: theme.textSecondary }]}>
-            Clinical Integrity: Staff snapshots represent verified snapshot availability, not automatic reserves or continuous feeds. Missing inputs strictly resolve to Unknown.
-          </Text>
         </View>
       </ScrollView>
     </View>
@@ -648,271 +412,205 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   headerBar: {
-    paddingHorizontal: layout.spacing.md,
-    paddingBottom: layout.spacing.sm + 4,
-    borderBottomWidth: StyleSheet.hairlineWidth,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingBottom: 10,
+    gap: 12,
   },
-  headerLiquidButton: {
-    minHeight: layout.minTouchTarget,
-    paddingHorizontal: layout.spacing.sm + 4,
-    borderRadius: layout.borderRadius.pill,
+  headerButton: {
+    width: 42,
+    height: 42,
+    borderRadius: 14,
     borderWidth: 1,
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 5,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 6,
-    elevation: 2,
-  },
-  headerButtonText: {
-    fontFamily: typography.fontFamilyMedium,
-    fontSize: typography.fontSize.xs + 1,
-    fontWeight: '500',
   },
   headerTitleGroup: {
+    flex: 1,
     alignItems: 'center',
   },
   headerTitleText: {
-    fontFamily: typography.fontFamilyBold,
-    fontSize: typography.fontSize.base,
+    fontFamily: fonts.serif,
+    fontSize: 17,
     fontWeight: '700',
   },
   headerSubtitleText: {
-    fontFamily: typography.fontFamilyRegular,
-    fontSize: typography.fontSize.xs - 1,
-    fontWeight: '400',
-    marginTop: 1,
+    fontFamily: fonts.sans,
+    fontSize: 11,
   },
-  staffIndicator: {
-    width: 38,
-    height: 38,
-    borderRadius: layout.borderRadius.pill,
+  staffBadgeContainer: {
+    width: 42,
+    height: 42,
+    borderRadius: 14,
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },
+
   scrollArea: {
     flex: 1,
   },
   scrollContent: {
-    padding: layout.spacing.md,
-    paddingBottom: layout.spacing.xl * 2,
-    gap: layout.spacing.md,
+    paddingHorizontal: 20,
+    paddingTop: 8,
+    gap: 12,
   },
+
   toastBox: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    paddingHorizontal: layout.spacing.md,
-    paddingVertical: layout.spacing.sm + 2,
-    borderRadius: layout.borderRadius.md,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: radii.chip,
     borderWidth: 1,
   },
   toastText: {
-    fontFamily: typography.fontFamilySemibold,
-    fontSize: typography.fontSize.xs + 1,
-    fontWeight: '600',
+    fontFamily: fonts.sansBold,
+    fontSize: 13,
+    fontWeight: '700',
     flex: 1,
   },
-  cardBox: {
-    borderRadius: layout.borderRadius.lg,
-    borderWidth: 1,
-    padding: layout.spacing.md + 2,
-    gap: layout.spacing.sm,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.06,
-    shadowRadius: 14,
-    elevation: 3,
-  },
-  cardHeaderRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  cardTitle: {
-    fontFamily: typography.fontFamilyBold,
-    fontSize: typography.fontSize.base,
-    fontWeight: '700',
-    letterSpacing: -0.2,
-  },
-  cardSubtitle: {
-    fontFamily: typography.fontFamilyRegular,
-    fontSize: typography.fontSize.xs,
-    fontWeight: '400',
-    lineHeight: 16,
-  },
-  storePickerContainer: {
-    flexDirection: 'row',
-    gap: layout.spacing.sm,
-    paddingVertical: 2,
-  },
-  storeChip: {
-    minHeight: layout.minTouchTarget,
-    paddingHorizontal: layout.spacing.md,
-    borderRadius: layout.borderRadius.pill,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 6,
-    elevation: 1,
-  },
-  storeChipText: {
-    fontSize: typography.fontSize.xs + 1,
-  },
-  activeStoreInset: {
-    borderRadius: layout.borderRadius.md,
-    borderWidth: 1,
-    padding: layout.spacing.sm + 2,
-    gap: 4,
+
+  sectionHeader: {
     marginTop: 4,
   },
-  activeStoreRow: {
+  sectionHeading: {
+    fontFamily: fonts.sansBold,
+    fontSize: 11.5,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+  },
+
+  storeChipsRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  storeChip: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-  },
-  activeStoreName: {
-    fontFamily: typography.fontFamilySemibold,
-    fontSize: typography.fontSize.sm,
-    fontWeight: '600',
-  },
-  activeStoreAddress: {
-    fontFamily: typography.fontFamilyRegular,
-    fontSize: typography.fontSize.xs,
-    fontWeight: '400',
-  },
-  activeStoreHours: {
-    fontFamily: typography.fontFamilyRegular,
-    fontSize: typography.fontSize.xs - 1,
-    fontWeight: '400',
-  },
-  loadingArea: {
-    padding: layout.spacing.lg,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-  },
-  loadingLabel: {
-    fontFamily: typography.fontFamilyRegular,
-    fontSize: typography.fontSize.xs,
-    fontWeight: '400',
-  },
-  medicineItemRow: {
-    borderRadius: layout.borderRadius.md + 2,
+    minHeight: 40,
+    paddingHorizontal: 14,
+    borderRadius: radii.pill,
     borderWidth: 1,
-    padding: layout.spacing.sm + 4,
-    gap: 10,
-    marginTop: 2,
   },
-  itemHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    gap: layout.spacing.xs,
-  },
-  itemTitleGroup: {
-    flex: 1,
-  },
-  brandName: {
-    fontFamily: typography.fontFamilyBold,
-    fontSize: typography.fontSize.base,
+  storeChipText: {
+    fontFamily: fonts.sansBold,
+    fontSize: 13,
     fontWeight: '700',
   },
-  genericName: {
-    fontFamily: typography.fontFamilyRegular,
-    fontSize: typography.fontSize.xs,
-    fontWeight: '400',
-    marginTop: 1,
-  },
-  currentStateBadge: {
-    paddingHorizontal: layout.spacing.sm,
-    paddingVertical: 3,
-    borderRadius: layout.borderRadius.pill,
-    borderWidth: 1,
-  },
-  currentStateText: {
-    fontFamily: typography.fontFamilySemibold,
-    fontSize: typography.fontSize.xs - 1,
-    fontWeight: '600',
-  },
-  buttonsGrid: {
-    flexDirection: 'row',
-    gap: layout.spacing.xs + 2,
-  },
-  quickStateBtn: {
-    flex: 1,
-    minHeight: 38,
-    borderRadius: layout.borderRadius.pill,
-    borderWidth: 1,
+
+  loadingArea: {
+    padding: 30,
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 4,
+    gap: 10,
   },
-  quickStateBtnActive: {
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+  loadingText: {
+    fontFamily: fonts.sansMedium,
+    fontSize: 13,
+  },
+
+  inventoryCard: {
+    padding: 16,
+    borderRadius: radii.card,
+    borderWidth: 1,
+    gap: 10,
+    shadowOffset: { width: 0, height: 4 },
+    shadowRadius: 8,
+    shadowOpacity: 0.08,
     elevation: 2,
   },
-  quickBtnText: {
-    fontFamily: typography.fontFamilyMedium,
-    fontSize: typography.fontSize.xs - 1,
-    fontWeight: '500',
+  medicineTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: 10,
+  },
+  medicineTitleGroup: {
+    flex: 1,
+    gap: 2,
+  },
+  medicineBrandText: {
+    fontFamily: fonts.serif,
+    fontSize: 17,
+    fontWeight: '700',
+  },
+  medicineGenericText: {
+    fontFamily: fonts.sans,
+    fontSize: 13,
+  },
+  currentStatusBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: radii.pill,
+  },
+  currentStatusText: {
+    fontFamily: fonts.sansBold,
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  verifyMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+  },
+  verifyMetaText: {
+    fontFamily: fonts.sans,
+    fontSize: 11.5,
+  },
+
+  tapActionsRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 4,
+  },
+  actionPillBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 5,
+    minHeight: 38,
+    paddingHorizontal: 8,
+    borderRadius: radii.pill,
+    borderWidth: 1,
+  },
+  actionPillText: {
+    fontFamily: fonts.sansBold,
+    fontSize: 12,
+    fontWeight: '700',
+  },
+
+  auditContainer: {
+    padding: 14,
+    borderRadius: radii.card,
+    borderWidth: 1,
+    gap: 10,
+    shadowOffset: { width: 0, height: 4 },
+    shadowRadius: 8,
+    shadowOpacity: 0.08,
+    elevation: 2,
   },
   auditRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    padding: layout.spacing.sm + 2,
-    borderRadius: layout.borderRadius.md,
-    borderWidth: 1,
-    gap: 8,
+    gap: 10,
+    paddingVertical: 4,
   },
-  auditLeft: {
+  auditTextCol: {
     flex: 1,
+    gap: 2,
   },
-  auditMedText: {
-    fontFamily: typography.fontFamilySemibold,
-    fontSize: typography.fontSize.xs + 1,
-    fontWeight: '600',
+  auditPrimaryText: {
+    fontFamily: fonts.sansBold,
+    fontSize: 12.5,
+    fontWeight: '700',
   },
   auditMetaText: {
-    fontFamily: typography.fontFamilyRegular,
-    fontSize: typography.fontSize.xs - 1,
-    fontWeight: '400',
-    marginTop: 2,
-  },
-  auditBadge: {
-    paddingHorizontal: layout.spacing.sm,
-    paddingVertical: 3,
-    borderRadius: layout.borderRadius.pill,
-    borderWidth: 1,
-  },
-  auditBadgeText: {
-    fontFamily: typography.fontFamilySemibold,
-    fontSize: typography.fontSize.xs - 1,
-    fontWeight: '600',
-  },
-  safetyCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    padding: layout.spacing.md,
-    borderRadius: layout.borderRadius.md,
-    borderWidth: 1,
-  },
-  safetyText: {
-    fontFamily: typography.fontFamilyRegular,
-    fontSize: typography.fontSize.xs,
-    fontWeight: '400',
-    lineHeight: 16,
-    flex: 1,
+    fontFamily: fonts.sans,
+    fontSize: 11,
   },
 });

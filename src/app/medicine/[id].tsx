@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
-  TouchableOpacity,
+  Pressable,
   ScrollView,
   StyleSheet,
   ActivityIndicator,
@@ -14,7 +14,8 @@ import {
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../theme/ThemeContext';
-import { layout, typography } from '../../theme/tokens';
+import { fonts, radii, MIN_TARGET } from '../../constants/theme';
+import { AtmosphereBackground } from '../../components/AtmosphereBackground';
 import {
   getMedicineResultById,
   MedicineSearchResultItem,
@@ -28,25 +29,27 @@ import {
   MapPinIcon,
   PhoneIcon,
   DirectionsIcon,
-  WarningIcon,
   ShieldCheckIcon,
   MedicalCrossIcon,
   PillCapsuleIcon,
+  CheckCircleIcon,
+  TriangleAlertIcon,
+  CircleHelpIcon,
+  InfoIcon,
 } from '../../components/icons/AppIcons';
 
 export default function MedicineDetailScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { mode, theme } = useTheme();
+  const { scheme, palette } = useTheme();
 
   const [item, setItem] = useState<MedicineSearchResultItem | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isFavorite, setIsFavorite] = useState(false);
 
-  // Status bar & notch-safe header padding
-  const statusBarHeight = Platform.OS === 'android' ? (StatusBar.currentHeight ?? 28) : 0;
-  const headerTopPadding = Math.max(insets.top, statusBarHeight) + 12;
+  const statusBarHeight = Platform.OS === 'android' ? (StatusBar.currentHeight ?? 24) : 0;
+  const paddingTop = Math.max(insets.top, statusBarHeight) + 8;
 
   useEffect(() => {
     let isCancelled = false;
@@ -90,30 +93,18 @@ export default function MedicineDetailScreen() {
       return;
     }
 
-    Alert.alert(
-      'Contact Information Only',
-      `MedFind provides directory contact numbers only and does not place calls, reserve stock, or dispatch services.\n\nOpen device dialer with ${item.pharmacyPhone}?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Open Dialer',
-          onPress: async () => {
-            const cleanNumber = item.pharmacyPhone.replace(/[^\d+]/g, '');
-            const telUrl = `tel:${cleanNumber}`;
-            try {
-              const supported = await Linking.canOpenURL(telUrl);
-              if (supported) {
-                await Linking.openURL(telUrl);
-              } else {
-                Alert.alert('Phone Dialing Unavailable', `Cannot place calls to ${item.pharmacyPhone} from this device.`);
-              }
-            } catch {
-              Alert.alert('Error', 'Unable to initiate phone call.');
-            }
-          },
-        },
-      ]
-    );
+    const cleanNumber = item.pharmacyPhone.replace(/[^\d+]/g, '');
+    const telUrl = `tel:${cleanNumber}`;
+    try {
+      const supported = await Linking.canOpenURL(telUrl);
+      if (supported) {
+        await Linking.openURL(telUrl);
+      } else {
+        Alert.alert('Phone Dialing Unavailable', `Cannot place calls to ${item.pharmacyPhone} from this device.`);
+      }
+    } catch {
+      Alert.alert('Error', 'Unable to initiate phone call.');
+    }
   };
 
   const handleOpenMaps = async () => {
@@ -149,10 +140,11 @@ export default function MedicineDetailScreen() {
 
   if (isLoading) {
     return (
-      <View style={[styles.centerContainer, { backgroundColor: theme.canvas }]}>
-        <ActivityIndicator size="large" color={theme.primaryAccent} />
-        <Text style={[styles.loadingText, { color: theme.textSecondary }]}>
-          Loading medicine verification record...
+      <View style={[styles.centerContainer, { backgroundColor: palette.bg }]}>
+        <AtmosphereBackground />
+        <ActivityIndicator size="large" color={palette.accent} />
+        <Text style={[styles.loadingText, { color: palette.ink2 }]}>
+          Loading verified medicine record...
         </Text>
       </View>
     );
@@ -160,176 +152,162 @@ export default function MedicineDetailScreen() {
 
   if (!item) {
     return (
-      <View style={[styles.centerContainer, { backgroundColor: theme.canvas }]}>
-        <Text style={[styles.errorTitle, { color: theme.textPrimary }]}>
+      <View style={[styles.centerContainer, { backgroundColor: palette.bg }]}>
+        <AtmosphereBackground />
+        <Text style={[styles.errorTitle, { color: palette.ink }]}>
           Record Not Found
         </Text>
-        <Text style={[styles.errorSubtitle, { color: theme.textSecondary }]}>
+        <Text style={[styles.errorSubtitle, { color: palette.ink2 }]}>
           This medicine record may have expired or is unavailable.
         </Text>
-        <TouchableOpacity
+        <Pressable
           onPress={() => router.back()}
-          style={[styles.backButton, { backgroundColor: theme.primaryAccent }]}
+          style={[styles.backActionButton, { backgroundColor: palette.btn }]}
         >
-          <Text style={[styles.backButtonText, { color: theme.textInverse }]}>
+          <Text style={[styles.backActionButtonText, { color: palette.btnInk }]}>
             Go Back
           </Text>
-        </TouchableOpacity>
+        </Pressable>
       </View>
     );
   }
 
   const isReported = item.isReported === true;
 
-  // Format availability
-  let availabilityLabel = '○ Availability not reported';
-  let availabilityBg = theme.glass.backgroundSubtle;
-  let availabilityColor = theme.textSecondary;
+  // Format availability badge
+  let availabilityLabel = 'Availability unrecorded';
+  let availabilityBg = palette.naTint;
+  let availabilityColor = palette.naInk;
+  let availabilityIcon = <CircleHelpIcon size={16} color={palette.naInk} />;
 
   if (isReported) {
     if (item.state === 'available') {
-      availabilityLabel = '● Reported: Available';
-      availabilityBg = theme.badgeBackground;
-      availabilityColor = theme.primaryAccentText;
+      availabilityLabel = 'Reported: In Stock';
+      availabilityBg = palette.okTint;
+      availabilityColor = palette.okInk;
+      availabilityIcon = <CheckCircleIcon size={16} color={palette.okInk} />;
     } else if (item.state === 'low_stock') {
-      availabilityLabel = '▲ Reported: Low Stock';
-      availabilityBg = mode === 'light' ? 'rgba(255, 248, 238, 0.95)' : 'rgba(38, 23, 8, 0.85)';
-      availabilityColor = mode === 'light' ? theme.warningAccentText : theme.warningAccent;
+      availabilityLabel = 'Reported: Low Stock';
+      availabilityBg = palette.amberTint;
+      availabilityColor = palette.amberInk;
+      availabilityIcon = <ClockIcon size={16} color={palette.amberInk} />;
     } else if (item.state === 'unavailable') {
-      availabilityLabel = '— Reported: Unavailable';
-      availabilityBg = theme.glass.backgroundSubtle;
-      availabilityColor = theme.textSecondary;
+      availabilityLabel = 'Reported: Out of Stock';
+      availabilityBg = palette.badTint;
+      availabilityColor = palette.badInk;
+      availabilityIcon = <TriangleAlertIcon size={16} color={palette.badInk} />;
     }
   }
 
-  const updateTimeText = isReported && item.freshness.rawTimestamp
-    ? `Updated ${item.freshness.relativeTimeText}`
-    : 'Availability not reported';
+  const updateTimeText = isReported && item.freshness?.rawTimestamp
+    ? `Verified by pharmacy ${item.freshness.relativeTimeText || 'recently'}`
+    : 'No live verification received today';
 
   return (
-    <View style={[styles.screenRoot, { backgroundColor: theme.canvas }]}>
-      {/* 1. APPLE IOS LIQUID GLASS HEADER WITH BACK & BOOKMARK */}
-      <View
-        style={[
-          styles.headerBar,
-          {
-            paddingTop: headerTopPadding,
-            backgroundColor: theme.glass.background,
-            borderBottomColor: theme.glass.borderSubtle,
-            shadowColor: theme.glass.shadowColor,
-            shadowOffset: theme.glass.shadowOffset,
-            shadowOpacity: theme.glass.shadowOpacity,
-            shadowRadius: theme.glass.shadowRadius,
-            elevation: theme.glass.elevation,
-          },
-        ]}
-      >
-        <TouchableOpacity
+    <View style={[styles.screenRoot, { backgroundColor: palette.bg }]}>
+      <AtmosphereBackground />
+
+      {/* TOP HEADER BAR */}
+      <View style={[styles.headerBar, { paddingTop, backgroundColor: 'transparent' }]}>
+        <Pressable
           onPress={() => router.back()}
-          style={[
-            styles.headerLiquidButton,
-            {
-              backgroundColor: theme.glass.backgroundPill,
-              borderColor: theme.glass.border,
-              shadowColor: theme.glass.shadowColor,
-            },
-          ]}
           accessible={true}
           accessibilityRole="button"
-          accessibilityLabel="Back to search results"
+          accessibilityLabel="Back to previous screen"
+          style={({ pressed }) => [
+            styles.headerButton,
+            {
+              backgroundColor: palette.surface,
+              borderColor: palette.line,
+              opacity: pressed ? 0.85 : 1.0,
+            },
+          ]}
         >
-          <BackArrowIcon size={18} color={theme.textPrimary} />
-          <Text style={[styles.headerButtonText, { color: theme.textPrimary }]}>
-            Back
-          </Text>
-        </TouchableOpacity>
+          <BackArrowIcon size={18} color={palette.ink} />
+        </Pressable>
 
-        <Text
-          style={[styles.headerTitleText, { color: theme.textPrimary }]}
-          numberOfLines={1}
-        >
+        <Text style={[styles.headerTitleText, { color: palette.ink }]} numberOfLines={1}>
           Medicine Details
         </Text>
 
-        <TouchableOpacity
+        <Pressable
           onPress={handleToggleFavorite}
-          style={[
-            styles.headerLiquidButton,
-            {
-              backgroundColor: theme.glass.backgroundPill,
-              borderColor: theme.glass.border,
-              shadowColor: theme.glass.shadowColor,
-            },
-          ]}
           accessible={true}
           accessibilityRole="button"
-          accessibilityLabel={isFavorite ? 'Remove from saved medicines' : 'Save medicine locally'}
+          accessibilityLabel={isFavorite ? 'Remove from saved' : 'Save medicine locally'}
+          style={({ pressed }) => [
+            styles.headerButton,
+            {
+              backgroundColor: palette.surface,
+              borderColor: palette.line,
+              opacity: pressed ? 0.85 : 1.0,
+            },
+          ]}
         >
           <BookmarkIcon size={18} filled={isFavorite} />
-        </TouchableOpacity>
+        </Pressable>
       </View>
 
       <ScrollView
         style={styles.scrollArea}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: 120 }]}
+        showsVerticalScrollIndicator={false}
       >
-        {/* 2. HERO MEDICINE CARD (APPLE LIQUID GLASS) */}
+        {/* 1. HERO MEDICINE CARD */}
         <View
           style={[
             styles.heroCard,
             {
-              backgroundColor: theme.glass.background,
-              borderColor: theme.glass.border,
-              borderTopColor: theme.glass.borderHighlight,
-              shadowColor: theme.glass.shadowColor,
+              backgroundColor: palette.surface,
+              borderColor: palette.line,
+              shadowColor: palette.shadow,
             },
           ]}
         >
-          <View style={styles.heroHeaderRow}>
-            <View style={styles.heroTitleColumn}>
-              <Text style={[styles.heroBrandTitle, { color: theme.textPrimary }]}>
-                {item.brandName}
-              </Text>
-              <Text style={[styles.heroGenericSubtitle, { color: theme.textSecondary }]}>
-                {item.genericName}
-              </Text>
-            </View>
+          <View style={styles.heroTitleColumn}>
+            <Text style={[styles.heroBrandTitle, { color: palette.ink }]}>
+              {item.brandName}
+            </Text>
+            <Text style={[styles.heroGenericSubtitle, { color: palette.ink2 }]}>
+              {item.genericName}
+            </Text>
+          </View>
 
-            <View style={styles.heroBadgesRow}>
-              {(item.strength || item.dosageForm) && (
-                <View
-                  style={[
-                    styles.capsulePill,
-                    {
-                      backgroundColor: theme.glass.backgroundPill,
-                      borderColor: theme.glass.border,
-                    },
-                  ]}
-                >
-                  <PillCapsuleIcon size={14} />
-                  <Text style={[styles.capsulePillText, { color: theme.textSecondary }]}>
-                    {item.strength}
-                    {item.strength && item.dosageForm ? ' • ' : ''}
-                    {item.dosageForm}
-                  </Text>
-                </View>
-              )}
-
+          {/* Form / Strength Pills */}
+          <View style={styles.heroBadgesRow}>
+            {(item.strength || item.dosageForm) && (
               <View
                 style={[
-                  styles.sourcePill,
+                  styles.metaPill,
                   {
-                    backgroundColor: theme.glass.backgroundPill,
-                    borderColor: theme.glass.border,
+                    backgroundColor: palette.surface2,
+                    borderColor: palette.line,
                   },
                 ]}
               >
-                <Text style={[styles.sourcePillText, { color: theme.textMuted }]}>
-                  {item.sourceType === 'provider_confirmed'
-                    ? 'Provider Confirmed'
-                    : (item.sourceName || 'NLEM India 2022')}
+                <PillCapsuleIcon size={14} />
+                <Text style={[styles.metaPillText, { color: palette.ink }]}>
+                  {item.strength}
+                  {item.strength && item.dosageForm ? ' • ' : ''}
+                  {item.dosageForm}
                 </Text>
               </View>
+            )}
+
+            <View
+              style={[
+                styles.metaPill,
+                {
+                  backgroundColor: palette.surface2,
+                  borderColor: palette.line,
+                },
+              ]}
+            >
+              <Text style={[styles.metaPillText, { color: palette.ink2 }]}>
+                {item.sourceType === 'provider_confirmed'
+                  ? 'Provider Confirmed'
+                  : item.sourceName || 'NLEM India'}
+              </Text>
             </View>
           </View>
 
@@ -339,189 +317,158 @@ export default function MedicineDetailScreen() {
               styles.availabilityBox,
               {
                 backgroundColor: availabilityBg,
-                borderColor:
-                  isReported && item.state === 'available'
-                    ? theme.primaryAccent
-                    : isReported && item.state === 'low_stock'
-                    ? theme.warningAccent
-                    : theme.glass.border,
+                borderColor: palette.line,
               },
             ]}
           >
-            <ShieldCheckIcon
-              size={18}
-              color={
-                isReported && item.state === 'available'
-                  ? theme.primaryAccent
-                  : isReported && item.state === 'low_stock'
-                  ? theme.warningAccent
-                  : theme.textSecondary
-              }
-            />
-            <Text style={[styles.availabilityText, { color: availabilityColor }]}>
+            {availabilityIcon}
+            <Text
+              style={[styles.availabilityText, { color: availabilityColor }]}
+              numberOfLines={1}
+            >
               {availabilityLabel}
             </Text>
           </View>
 
-          {/* Timestamp / Status Notice */}
+          {/* Timestamp Notice */}
           <View style={styles.updateRow}>
-            <ClockIcon size={14} color={theme.textMuted} />
-            <Text style={[styles.updateText, { color: theme.textMuted }]}>
+            <ClockIcon size={14} color={palette.ink2} />
+            <Text style={[styles.updateText, { color: palette.ink2 }]}>
               {updateTimeText}
-            </Text>
-          </View>
-
-          {/* Concise Stock Notice */}
-          <View style={styles.policyNoticeBox}>
-            <Text style={[styles.policyNoticeText, { color: theme.textMuted }]}>
-              Stock availability is only shown when reported directly by a participating pharmacy.
             </Text>
           </View>
         </View>
 
-        {/* 3. PARTICIPATING PHARMACY OR SOURCE DETAILS */}
+        {/* 2. PARTICIPATING STORE DETAILS CARD */}
         <View
           style={[
-            styles.sectionCard,
+            styles.storeCard,
             {
-              backgroundColor: theme.glass.background,
-              borderColor: theme.glass.border,
-              shadowColor: theme.glass.shadowColor,
+              backgroundColor: palette.surface,
+              borderColor: palette.line,
+              shadowColor: palette.shadow,
             },
           ]}
         >
           <View style={styles.sectionHeaderRow}>
-            <PharmacyStoreIcon size={18} color={mode === 'light' ? '#87A96B' : '#00E5FF'} />
-            <Text style={[styles.sectionTitle, { color: theme.textPrimary }]}>
-              {isReported ? 'Participating Store Details' : 'Catalog Source & Inventory Status'}
+            <PharmacyStoreIcon size={18} color={palette.accent} />
+            <Text style={[styles.sectionTitle, { color: palette.ink }]}>
+              {isReported ? 'Participating Pharmacy' : 'Catalog Source & Status'}
             </Text>
           </View>
 
-          <Text style={[styles.pharmacyName, { color: theme.textPrimary }]}>
+          <Text style={[styles.pharmacyName, { color: palette.ink }]}>
             {item.pharmacyName}
           </Text>
 
-          {/* Address or Catalog Citation */}
+          {/* Address */}
           <View style={styles.infoRow}>
-            <MapPinIcon size={16} />
-            <Text style={[styles.infoText, { color: theme.textSecondary }]}>
+            <MapPinIcon size={15} color={palette.ink2} />
+            <Text style={[styles.infoText, { color: palette.ink2 }]}>
               {item.pharmacyAddress}
             </Text>
           </View>
 
-          {/* Opening Hours if reported */}
+          {/* Hours */}
           {item.openingHours && (
             <View style={styles.infoRow}>
-              <ClockIcon size={15} color={theme.textMuted} />
-              <Text style={[styles.infoText, { color: theme.textSecondary }]}>
+              <ClockIcon size={14} color={palette.ink2} />
+              <Text style={[styles.infoText, { color: palette.ink2 }]}>
                 Hours: {item.openingHours}
               </Text>
             </View>
           )}
 
-          {/* Verified Source Attribution */}
+          {/* Source Attribution */}
           {item.sourceName && (
-            <View style={styles.sourceMetaBox}>
-              <Text style={[styles.sourceMetaText, { color: theme.textMuted }]}>
-                Source: <Text style={{ color: theme.textSecondary, fontWeight: '500' }}>{item.sourceName}</Text>
+            <View
+              style={[
+                styles.sourceAttributionBox,
+                {
+                  backgroundColor: palette.surface2,
+                  borderColor: palette.line,
+                },
+              ]}
+            >
+              <ShieldCheckIcon size={14} color={palette.okInk} />
+              <Text style={[styles.sourceAttributionText, { color: palette.ink2 }]}>
+                Verified listing • {item.sourceName} • {item.verifiedDate || 'Oct 2026'}
               </Text>
-              {item.verifiedDate && (
-                <Text style={[styles.sourceMetaText, { color: theme.textMuted }]}>
-                  Verified: <Text style={{ color: theme.textSecondary, fontWeight: '500' }}>{item.verifiedDate}</Text>
-                </Text>
-              )}
             </View>
           )}
 
-          {/* Actions */}
+          {/* Action Buttons Row */}
           <View style={styles.actionsRow}>
             {isReported && item.pharmacyPhone ? (
-              <TouchableOpacity
+              <Pressable
                 onPress={handleCallPress}
-                style={[
-                  styles.actionButton,
-                  {
-                    backgroundColor: theme.primaryAccent,
-                    borderColor: theme.glass.borderHighlight,
-                    shadowColor: theme.glass.shadowColor,
-                  },
-                ]}
                 accessible={true}
                 accessibilityRole="button"
-                accessibilityLabel={`Call store at ${item.pharmacyPhone}`}
+                accessibilityLabel={`Call pharmacy at ${item.pharmacyPhone}`}
+                style={({ pressed }) => [
+                  styles.callButton,
+                  {
+                    backgroundColor: palette.btn,
+                    borderColor: palette.btnBorder,
+                    opacity: pressed ? 0.88 : 1.0,
+                  },
+                ]}
               >
-                <PhoneIcon size={16} color="#FFFFFF" />
-                <Text style={[styles.actionButtonText, { color: theme.textInverse }]}>
-                  Call Pharmacy
+                <PhoneIcon size={16} color={palette.btnInk} />
+                <Text
+                  style={[styles.callButtonText, { color: palette.btnInk }]}
+                  numberOfLines={1}
+                >
+                  Call pharmacy
                 </Text>
-              </TouchableOpacity>
+              </Pressable>
             ) : null}
 
             {isReported && item.pharmacyAddress ? (
-              <TouchableOpacity
+              <Pressable
                 onPress={handleOpenMaps}
-                style={[
-                  styles.actionButton,
-                  {
-                    backgroundColor: theme.glass.backgroundPill,
-                    borderColor: theme.glass.border,
-                    shadowColor: theme.glass.shadowColor,
-                  },
-                ]}
                 accessible={true}
                 accessibilityRole="button"
-                accessibilityLabel="Open pharmacy address in maps"
-              >
-                <DirectionsIcon size={16} />
-                <Text style={[styles.actionButtonText, { color: theme.textPrimary }]}>
-                  Open in Maps
-                </Text>
-              </TouchableOpacity>
-            ) : null}
-
-            {item.sourceUrl ? (
-              <TouchableOpacity
-                onPress={() => Linking.openURL(item.sourceUrl!)}
-                style={[
-                  styles.actionButton,
+                accessibilityLabel="Open pharmacy address in Maps"
+                style={({ pressed }) => [
+                  styles.directionsButton,
                   {
-                    backgroundColor: theme.glass.backgroundPill,
-                    borderColor: theme.glass.border,
-                    shadowColor: theme.glass.shadowColor,
+                    backgroundColor: palette.surface2,
+                    borderColor: palette.line,
+                    opacity: pressed ? 0.85 : 1.0,
                   },
                 ]}
-                accessible={true}
-                accessibilityRole="button"
-                accessibilityLabel="View official public source link"
               >
-                <Text style={[styles.actionButtonText, { color: theme.primaryAccentText }]}>
-                  View Official Source
+                <DirectionsIcon size={15} color={palette.ink} />
+                <Text
+                  style={[styles.directionsButtonText, { color: palette.ink }]}
+                  numberOfLines={1}
+                >
+                  Directions
                 </Text>
-              </TouchableOpacity>
+              </Pressable>
             ) : null}
           </View>
         </View>
 
-        {/* 4. CLINICAL GUIDANCE NOTICE */}
+        {/* 3. CLINICAL POLICY BOUNDARY NOTICE */}
         <View
           style={[
             styles.noticeCard,
             {
-              backgroundColor: theme.glass.backgroundSubtle,
-              borderColor: theme.glass.borderSubtle,
+              backgroundColor: palette.surface2,
+              borderColor: palette.line,
             },
           ]}
         >
           <View style={styles.noticeHeaderRow}>
-            <MedicalCrossIcon size={16} />
-            <Text style={[styles.noticeTitle, { color: theme.textPrimary }]}>
-              Important Guidance
+            <InfoIcon size={16} color={palette.ink2} />
+            <Text style={[styles.noticeTitle, { color: palette.ink }]}>
+              Clinical Policy Notice
             </Text>
           </View>
-          <Text style={[styles.noticeBody, { color: theme.textSecondary }]}>
-            • MedFind shows stock reports only; it does not dispense or reserve medication.{'\n'}
-            • Always carry a valid prescription from a registered medical practitioner.{'\n'}
-            • Never adjust dosages or substitute medicines without consulting your physician or pharmacist.
+          <Text style={[styles.noticeBody, { color: palette.ink2 }]}>
+            MedFind reports exact description matches directly confirmed by participating desks. MedFind gives no medical advice, does not substitute medications, and never accepts compensation to rank pharmacies.
           </Text>
         </View>
       </ScrollView>
@@ -535,163 +482,130 @@ const styles = StyleSheet.create({
   },
   centerContainer: {
     flex: 1,
-    justifyContent: 'center',
     alignItems: 'center',
-    padding: layout.spacing.lg,
+    justifyContent: 'center',
+    padding: 24,
     gap: 12,
   },
   loadingText: {
-    fontFamily: typography.fontFamilyRegular,
-    fontSize: typography.fontSize.sm,
-    fontWeight: '400',
+    fontFamily: fonts.sansMedium,
+    fontSize: 15,
+    marginTop: 8,
   },
   errorTitle: {
-    fontFamily: typography.fontFamilyBold,
-    fontSize: typography.fontSize.lg,
+    fontFamily: fonts.serif,
+    fontSize: 22,
     fontWeight: '700',
   },
   errorSubtitle: {
-    fontFamily: typography.fontFamilyRegular,
-    fontSize: typography.fontSize.sm,
-    fontWeight: '400',
+    fontFamily: fonts.sans,
+    fontSize: 14,
     textAlign: 'center',
   },
-  backButton: {
-    paddingHorizontal: layout.spacing.md,
-    paddingVertical: layout.spacing.sm,
-    borderRadius: layout.borderRadius.pill,
+  backActionButton: {
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: radii.pill,
     marginTop: 8,
   },
-  backButtonText: {
-    fontFamily: typography.fontFamilySemibold,
-    fontSize: typography.fontSize.sm,
-    fontWeight: '600',
+  backActionButtonText: {
+    fontFamily: fonts.sansSemi,
+    fontSize: 15,
   },
 
   // HEADER
   headerBar: {
-    paddingHorizontal: layout.spacing.md,
-    paddingBottom: layout.spacing.sm + 4,
-    borderBottomWidth: StyleSheet.hairlineWidth,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingBottom: 10,
+    gap: 12,
   },
-  headerLiquidButton: {
-    minHeight: layout.minTouchTarget,
-    paddingHorizontal: layout.spacing.sm + 4,
-    borderRadius: layout.borderRadius.pill,
+  headerButton: {
+    width: 42,
+    height: 42,
+    borderRadius: 14,
     borderWidth: 1,
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 5,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 6,
-    elevation: 2,
-  },
-  headerButtonText: {
-    fontFamily: typography.fontFamilyMedium,
-    fontSize: typography.fontSize.xs + 1,
-    fontWeight: '500',
   },
   headerTitleText: {
-    fontFamily: typography.fontFamilyBold,
-    fontSize: typography.fontSize.base,
+    fontFamily: fonts.serif,
+    fontSize: 18,
     fontWeight: '700',
+    flex: 1,
+    textAlign: 'center',
   },
 
-  // SCROLL CONTAINER
+  // SCROLL CONTENT
   scrollArea: {
     flex: 1,
   },
   scrollContent: {
-    padding: layout.spacing.md,
-    paddingBottom: layout.spacing.xl * 2,
-    gap: layout.spacing.md,
+    paddingHorizontal: 20,
+    paddingTop: 10,
+    gap: 14,
   },
 
   // HERO CARD
   heroCard: {
-    borderRadius: layout.borderRadius.lg,
+    padding: 18,
+    borderRadius: radii.card,
     borderWidth: 1,
-    padding: layout.spacing.md + 4,
-    gap: layout.spacing.sm,
+    gap: 12,
     shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.08,
-    shadowRadius: 16,
+    shadowRadius: 12,
+    shadowOpacity: 0.1,
     elevation: 3,
   },
-  heroHeaderRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    flexWrap: 'wrap',
-    gap: layout.spacing.xs,
-  },
   heroTitleColumn: {
-    flex: 1,
-    minWidth: 160,
+    gap: 3,
   },
   heroBrandTitle: {
-    fontFamily: typography.fontFamilyBold,
-    fontSize: typography.fontSize.xl,
+    fontFamily: fonts.serif,
+    fontSize: 24,
     fontWeight: '700',
-    letterSpacing: -0.4,
+    letterSpacing: -0.3,
   },
   heroGenericSubtitle: {
-    fontFamily: typography.fontFamilyMedium,
-    fontSize: typography.fontSize.sm,
-    fontWeight: '500',
-    fontStyle: 'italic',
-    marginTop: 2,
+    fontFamily: fonts.sans,
+    fontSize: 15,
   },
   heroBadgesRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: layout.spacing.xs,
     flexWrap: 'wrap',
+    gap: 8,
   },
-  capsulePill: {
+  metaPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: layout.spacing.sm + 2,
-    paddingVertical: 4,
-    borderRadius: layout.borderRadius.pill,
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: radii.pill,
     borderWidth: 1,
   },
-  capsulePillText: {
-    fontFamily: typography.fontFamilyMedium,
-    fontSize: typography.fontSize.xs,
-    fontWeight: '500',
-  },
-  sourcePill: {
-    paddingHorizontal: layout.spacing.sm,
-    paddingVertical: 4,
-    borderRadius: layout.borderRadius.pill,
-    borderWidth: 1,
-  },
-  sourcePillText: {
-    fontFamily: typography.fontFamilySemibold,
-    fontSize: typography.fontSize.xs - 1,
+  metaPillText: {
+    fontFamily: fonts.sansSemi,
+    fontSize: 13,
     fontWeight: '600',
   },
   availabilityBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: layout.spacing.md,
-    paddingVertical: layout.spacing.sm,
-    borderRadius: layout.borderRadius.md,
+    gap: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: radii.chip,
     borderWidth: 1,
-    marginTop: 4,
+    marginTop: 2,
   },
   availabilityText: {
-    fontFamily: typography.fontFamilySemibold,
-    fontSize: typography.fontSize.sm,
-    fontWeight: '600',
+    fontFamily: fonts.sansBold,
+    fontSize: 14,
+    fontWeight: '700',
+    flexShrink: 1,
   },
   updateRow: {
     flexDirection: 'row',
@@ -699,102 +613,106 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   updateText: {
-    fontFamily: typography.fontFamilyRegular,
-    fontSize: typography.fontSize.xs,
-    fontWeight: '400',
-  },
-  policyNoticeBox: {
-    paddingTop: 4,
-  },
-  policyNoticeText: {
-    fontFamily: typography.fontFamilyRegular,
-    fontSize: typography.fontSize.xs,
-    fontWeight: '400',
-    lineHeight: 16,
-  },
-  sourceMetaBox: {
-    gap: 4,
-    marginTop: 2,
-    marginBottom: 4,
-  },
-  sourceMetaText: {
-    fontFamily: typography.fontFamilyRegular,
-    fontSize: typography.fontSize.xs,
-    fontWeight: '400',
+    fontFamily: fonts.sans,
+    fontSize: 13,
   },
 
-  // SECTION CARD
-  sectionCard: {
-    borderRadius: layout.borderRadius.lg,
+  // STORE CARD
+  storeCard: {
+    padding: 18,
+    borderRadius: radii.card,
     borderWidth: 1,
-    padding: layout.spacing.md + 2,
-    gap: layout.spacing.sm,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.06,
+    gap: 12,
+    shadowOffset: { width: 0, height: 6 },
     shadowRadius: 12,
-    elevation: 2,
+    shadowOpacity: 0.1,
+    elevation: 3,
   },
   sectionHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    marginBottom: 2,
+    gap: 8,
   },
   sectionTitle: {
-    fontFamily: typography.fontFamilyBold,
-    fontSize: typography.fontSize.base,
+    fontFamily: fonts.sansBold,
+    fontSize: 13,
     fontWeight: '700',
-    letterSpacing: -0.2,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   pharmacyName: {
-    fontFamily: typography.fontFamilySemibold,
-    fontSize: typography.fontSize.md,
-    fontWeight: '600',
+    fontFamily: fonts.serif,
+    fontSize: 19,
+    fontWeight: '700',
   },
   infoRow: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 6,
+    alignItems: 'center',
+    gap: 8,
   },
   infoText: {
-    fontFamily: typography.fontFamilyRegular,
-    fontSize: typography.fontSize.xs + 1,
-    fontWeight: '400',
-    lineHeight: 18,
+    fontFamily: fonts.sans,
+    fontSize: 14,
+    flex: 1,
+  },
+  sourceAttributionBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: radii.chip,
+    borderWidth: 1,
+  },
+  sourceAttributionText: {
+    fontFamily: fonts.sans,
+    fontSize: 12,
     flex: 1,
   },
   actionsRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: layout.spacing.sm,
-    marginTop: 6,
+    gap: 10,
+    marginTop: 4,
   },
-  actionButton: {
+  callButton: {
     flex: 1,
-    minHeight: layout.minTouchTarget,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    minHeight: 46,
+    borderRadius: radii.pill,
+    borderWidth: 1,
+    paddingHorizontal: 16,
+  },
+  callButtonText: {
+    fontFamily: fonts.sansSemi,
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  directionsButton: {
+    minHeight: 46,
+    paddingHorizontal: 18,
+    borderRadius: radii.pill,
+    borderWidth: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    borderRadius: layout.borderRadius.pill,
-    borderWidth: 1,
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 2,
   },
-  actionButtonText: {
-    fontFamily: typography.fontFamilySemibold,
-    fontSize: typography.fontSize.sm,
+  directionsButtonText: {
+    fontFamily: fonts.sansSemi,
+    fontSize: 14,
     fontWeight: '600',
   },
 
   // NOTICE CARD
   noticeCard: {
-    borderRadius: layout.borderRadius.md + 2,
+    padding: 16,
+    borderRadius: radii.card,
     borderWidth: 1,
-    padding: layout.spacing.md,
-    gap: 6,
+    gap: 8,
   },
   noticeHeaderRow: {
     flexDirection: 'row',
@@ -802,14 +720,13 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   noticeTitle: {
-    fontFamily: typography.fontFamilySemibold,
-    fontSize: typography.fontSize.sm,
-    fontWeight: '600',
+    fontFamily: fonts.sansBold,
+    fontSize: 13,
+    fontWeight: '700',
   },
   noticeBody: {
-    fontFamily: typography.fontFamilyRegular,
-    fontSize: typography.fontSize.xs,
-    fontWeight: '400',
-    lineHeight: 18,
+    fontFamily: fonts.sans,
+    fontSize: 13,
+    lineHeight: 18.5,
   },
 });
