@@ -605,15 +605,7 @@ export default function SearchScreen() {
           </View>
         )}
 
-        {/* 7) CLINICAL POLICY BOUNDARY NOTE */}
-        {hasQuery && !isLoading && groups.length > 0 && (
-          <View style={styles.disclaimerBox}>
-            <InfoIcon size={16} color={palette.ink2} />
-            <Text style={[styles.disclaimerText, { color: palette.ink2 }]}>
-              MedFind matches the exact description you pick. It gives no dosage advice and never swaps a medicine. Ask your pharmacist or clinician.
-            </Text>
-          </View>
-        )}
+
 
         {/* 8) PHARMACY RESULTS EXPANSION */}
         {hasQuery && !isLoading && activeRecord && (

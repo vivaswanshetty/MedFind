@@ -22,6 +22,7 @@ import {
   PhoneIcon,
   InfoIcon,
   ChevronRightIcon,
+  ShieldCheckIcon,
 } from '../../components/icons/AppIcons';
 
 export default function EmergencyScreen() {
@@ -280,7 +281,7 @@ export default function EmergencyScreen() {
           </Pressable>
         </View>
 
-        {/* CLINICAL POLICY BOUNDARY NOTE */}
+        {/* EMERGENCY PRIORITY ADVISORY */}
         <View
           style={[
             styles.boundaryBox,
@@ -290,13 +291,13 @@ export default function EmergencyScreen() {
             },
           ]}
         >
-          <InfoIcon size={18} color={palette.ink2} />
+          <ShieldCheckIcon size={18} color={palette.okInk} />
           <View style={styles.boundaryTextGroup}>
             <Text style={[styles.boundaryTitle, { color: palette.ink }]}>
-              What MedFind cannot do.
+              Emergency Protocol & Triage
             </Text>
             <Text style={[styles.boundaryBody, { color: palette.ink2 }]}>
-              It does not book ambulances, confirm hospital beds or give medical advice. Listings are directory information.
+              In severe or life-threatening crises, dial 112 or 108 immediately for priority ambulance dispatch.
             </Text>
           </View>
         </View>

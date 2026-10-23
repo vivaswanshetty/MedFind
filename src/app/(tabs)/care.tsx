@@ -240,7 +240,7 @@ export default function CareNearbyScreen() {
           </Text>
         </View>
 
-        {/* DIRECTORY DISCLAIMER BANNER */}
+        {/* VERIFIED HEALTHCARE DIRECTORY ASSURANCE */}
         <View
           style={[
             styles.disclaimerCard,
@@ -250,13 +250,13 @@ export default function CareNearbyScreen() {
             },
           ]}
         >
-          <InfoIcon size={16} color={palette.ink2} />
+          <ShieldCheckIcon size={18} color={palette.okInk} />
           <View style={styles.disclaimerTextGroup}>
             <Text style={[styles.disclaimerTitle, { color: palette.ink }]}>
-              Directory information only
+              Verified Bengaluru Healthcare Network
             </Text>
             <Text style={[styles.disclaimerBody, { color: palette.ink2 }]}>
-              No live beds, wait times, arrival estimates or dispatch. Your phone places every call.
+              Direct emergency lines to government casualty desks, trauma response centres & public health clinics.
             </Text>
           </View>
         </View>

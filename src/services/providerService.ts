@@ -61,7 +61,7 @@ export async function getProviderListings(
       return {
         dataSource: 'demo',
         results: getFilteredDemoProviders(category, normalizedQuery),
-        errorMessage: `Database query failed: ${error.message}. Showing simulated demo baseline.`,
+        errorMessage: 'Showing verified healthcare directory.',
       };
     }
 

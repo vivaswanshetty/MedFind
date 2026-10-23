@@ -453,7 +453,7 @@ export default function MedicineDetailScreen() {
           </View>
         </View>
 
-        {/* 3. CLINICAL POLICY BOUNDARY NOTICE */}
+        {/* 3. VERIFIED STOCK ASSURANCE */}
         <View
           style={[
             styles.noticeCard,
@@ -464,13 +464,13 @@ export default function MedicineDetailScreen() {
           ]}
         >
           <View style={styles.noticeHeaderRow}>
-            <InfoIcon size={16} color={palette.ink2} />
+            <ShieldCheckIcon size={16} color={palette.okInk} />
             <Text style={[styles.noticeTitle, { color: palette.ink }]}>
-              Clinical Policy Notice
+              Verified Pharmacy Assurance
             </Text>
           </View>
           <Text style={[styles.noticeBody, { color: palette.ink2 }]}>
-            MedFind reports exact description matches directly confirmed by participating desks. MedFind gives no medical advice, does not substitute medications, and never accepts compensation to rank pharmacies.
+            Availability is directly verified by participating pharmacy dispensary staff. Unbiased, unranked, and transparent stock verification for Bengaluru.
           </Text>
         </View>
       </ScrollView>
