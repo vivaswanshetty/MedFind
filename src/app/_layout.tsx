@@ -5,37 +5,30 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { useFonts } from 'expo-font';
 import { ThemeProvider, useTheme } from '../theme/ThemeContext';
 import { LocationProvider } from '../context/LocationContext';
-import { typography } from '../theme/tokens';
+import { fonts } from '../constants/theme';
 
 function RootNavigation() {
-  const { mode, theme } = useTheme();
+  const { scheme, palette } = useTheme();
 
   return (
     <>
-      <StatusBar style={mode === 'dark' ? 'light' : 'dark'} />
+      <StatusBar style={scheme === 'dark' ? 'light' : 'dark'} />
       <Stack
         screenOptions={{
-          headerStyle: {
-            backgroundColor: theme.surface,
-          },
-          headerTintColor: theme.textPrimary,
-          headerTitleStyle: {
-            fontFamily: typography.fontFamilyBold,
-            fontWeight: '700',
-          },
+          headerShown: false,
           contentStyle: {
-            backgroundColor: theme.canvas,
+            backgroundColor: palette.bg,
           },
         }}
       >
         <Stack.Screen
-          name="index"
+          name="(tabs)"
           options={{
             headerShown: false,
           }}
         />
         <Stack.Screen
-          name="care"
+          name="index"
           options={{
             headerShown: false,
           }}

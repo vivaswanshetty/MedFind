@@ -725,4 +725,146 @@ export function CrosshairTargetIcon({ size = 18, color = '#87A96B' }: IconProps)
   );
 }
 
+/**
+ * 32. Home Tab Icon
+ */
+export function HomeTabIcon({ size = 20, color = '#5A3E2B' }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M3 10.5L12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1v-9.5z"
+        stroke={color}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
+/**
+ * 33. Search Tab Icon
+ */
+export function SearchTabIcon({ size = 20, color = '#5A3E2B' }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Circle cx="11" cy="11" r="7" stroke={color} strokeWidth="2" />
+      <Path d="M21 21l-4.35-4.35" stroke={color} strokeWidth="2" strokeLinecap="round" />
+    </Svg>
+  );
+}
+
+/**
+ * 34. Hospital Tab Icon (Square with Cross)
+ */
+export function HospitalTabIcon({ size = 20, color = '#5A3E2B' }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Rect x="3" y="3" width="18" height="18" rx="4" stroke={color} strokeWidth="2" />
+      <Path d="M12 8v8M8 12h8" stroke={color} strokeWidth="2.2" strokeLinecap="round" />
+    </Svg>
+  );
+}
+
+/**
+ * 35. Siren Tab Icon (Emergency)
+ */
+export function SirenTabIcon({ size = 20, color = '#FFFFFF' }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M7 18h10M5 18a7 7 0 0 1 14 0M12 4v3M4 7l2 2M20 7l-2 2"
+        stroke={color}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Path d="M4 21h16" stroke={color} strokeWidth="2" strokeLinecap="round" />
+    </Svg>
+  );
+}
+
+/**
+ * 36. Plus Icon (Logo badge)
+ */
+export function PlusIcon({ size = 22, color = '#22331A' }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M12 5v14M5 12h14"
+        stroke={color}
+        strokeWidth="2.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
+/**
+ * 37. Chevron Right Icon
+ */
+export function ChevronRightIcon({ size = 20, color = '#735B4C' }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M9 18l6-6-6-6"
+        stroke={color}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
+/**
+ * 38. Minus Circle Icon (Low stock)
+ */
+export function MinusCircleIcon({ size = 16, color }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Circle cx="12" cy="12" r="9" stroke={color || '#D5851F'} strokeWidth="2" />
+      <Path d="M8 12h8" stroke={color || '#D5851F'} strokeWidth="2.4" strokeLinecap="round" />
+    </Svg>
+  );
+}
+
+/**
+ * 39. Triangle Alert Icon (Stale)
+ */
+export function TriangleAlertIcon({ size = 14, color }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"
+        stroke={color || '#2A1600'}
+        strokeWidth="2.2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Path d="M12 9v4M12 17h.01" stroke={color || '#2A1600'} strokeWidth="2.2" strokeLinecap="round" />
+    </Svg>
+  );
+}
+
+/**
+ * 40. Circle Help Icon (Unknown)
+ */
+export function CircleHelpIcon({ size = 14, color }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Circle cx="12" cy="12" r="9" stroke={color || '#665548'} strokeWidth="2" />
+      <Path
+        d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3M12 17h.01"
+        stroke={color || '#665548'}
+        strokeWidth="2.2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
+
 
