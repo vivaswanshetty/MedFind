@@ -23,6 +23,9 @@ import {
 } from '../services/providerService';
 import { ProviderListing, DataSourceType } from '../types/models';
 import { DEMO_DATA_DISCLAIMER } from '../data/demoData';
+import { useLocation } from '../context/LocationContext';
+import { sortListingsByDistance, formatDistance } from '../services/locationService';
+import { AreaPickerModal } from '../components/location/AreaPickerModal';
 import {
   MoonIcon,
   SunIcon,
@@ -45,6 +48,13 @@ export default function CareDirectoryScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { mode, theme, toggleTheme } = useTheme();
+  const {
+    userLocation,
+    areaName,
+    locationSource,
+    showAreaPickerModal,
+    setShowAreaPickerModal,
+  } = useLocation();
 
   const [selectedCategory, setSelectedCategory] = useState<CategoryFilter>('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -125,6 +135,11 @@ export default function CareDirectoryScreen() {
       ]
     );
   };
+
+  // Order listings by distance when user coordinates are present (Haversine calculation)
+  const displayedListings: ProviderListing[] = userLocation
+    ? sortListingsByDistance(listings, userLocation)
+    : listings;
 
   return (
     <View style={[styles.screenRoot, { backgroundColor: theme.canvas }]}>
@@ -251,6 +266,64 @@ export default function CareDirectoryScreen() {
 
         {/* 5. SEARCH FIELD & CATEGORY FILTERS */}
         <View style={styles.searchSection}>
+          {/* Interactive Location Selector Pill (Inspired by Slikk header bar at 01:22) */}
+          <TouchableOpacity
+            onPress={() => setShowAreaPickerModal(true)}
+            activeOpacity={0.82}
+            style={[
+              styles.locationChipContainer,
+              {
+                backgroundColor: theme.glass.backgroundSubtle,
+                borderColor: theme.glass.border,
+                shadowColor: theme.glass.shadowColor,
+              },
+            ]}
+            accessible={true}
+            accessibilityRole="button"
+            accessibilityLabel={`Current area: ${areaName}. Tap to change neighborhood or use device GPS.`}
+          >
+            <View style={styles.locationChipLeft}>
+              <View
+                style={[
+                  styles.locationPinBox,
+                  {
+                    backgroundColor:
+                      mode === 'light' ? 'rgba(135, 169, 107, 0.16)' : 'rgba(0, 229, 255, 0.14)',
+                    borderColor:
+                      mode === 'light' ? 'rgba(135, 169, 107, 0.3)' : 'rgba(0, 229, 255, 0.25)',
+                  },
+                ]}
+              >
+                <MapPinIcon size={14} color={mode === 'light' ? '#87A96B' : '#00E5FF'} />
+              </View>
+              <View style={styles.locationChipTextGroup}>
+                <Text style={[styles.locationChipLabel, { color: theme.textMuted }]}>
+                  {locationSource === 'gps'
+                    ? 'CURRENT GPS LOCATION'
+                    : locationSource === 'manual_area'
+                    ? 'EXPLORING AREA'
+                    : 'DISCOVERY AREA'}
+                </Text>
+                <Text style={[styles.locationChipName, { color: theme.textPrimary }]} numberOfLines={1}>
+                  {areaName}
+                </Text>
+              </View>
+            </View>
+            <View
+              style={[
+                styles.locationChangePill,
+                {
+                  backgroundColor: theme.glass.backgroundPill,
+                  borderColor: theme.glass.border,
+                },
+              ]}
+            >
+              <Text style={[styles.locationChangeText, { color: theme.primaryAccentText }]}>
+                Change
+              </Text>
+            </View>
+          </TouchableOpacity>
+
           <Text style={[styles.sectionTitle, { color: theme.textPrimary }]}>
             Search Provider Directory
           </Text>
@@ -421,7 +494,7 @@ export default function CareDirectoryScreen() {
         <View style={styles.resultsSection}>
           <View style={styles.resultsHeaderRow}>
             <Text style={[styles.resultsCount, { color: theme.textSecondary }]}>
-              {isLoading ? 'Loading directory...' : `Showing ${listings.length} listing(s)`}
+              {isLoading ? 'Loading directory...' : `Showing ${displayedListings.length} listing(s)`}
             </Text>
             <Text style={[styles.resultsBoundaryTag, { color: theme.textMuted }]}>
               Directory Reference Only
@@ -437,7 +510,7 @@ export default function CareDirectoryScreen() {
             </View>
           )}
 
-          {!isLoading && listings.length === 0 && (
+          {!isLoading && displayedListings.length === 0 && (
             <View
               style={[
                 styles.emptyStateCard,
@@ -465,7 +538,7 @@ export default function CareDirectoryScreen() {
           )}
 
           {!isLoading &&
-            listings.map((item) => {
+            displayedListings.map((item) => {
               const isDemo = item.is_demo || dataSource === 'demo';
 
               const typeLabel =
@@ -491,7 +564,7 @@ export default function CareDirectoryScreen() {
                   accessibilityRole="summary"
                   accessibilityLabel={`${item.name}, ${typeLabel}. Address: ${item.address}. Source: ${item.source}`}
                 >
-                  {/* Header: Category Badge & Source Type */}
+                  {/* Header: Category Badge, Distance & Source Type */}
                   <View style={styles.cardHeaderRow}>
                     <View
                       style={[
@@ -513,6 +586,29 @@ export default function CareDirectoryScreen() {
                         {typeLabel}
                       </Text>
                     </View>
+
+                    {/* Distance Badge (Calculated from user location & listing coordinates) */}
+                    {item.distanceKm !== undefined && (
+                      <View
+                        style={[
+                          styles.distanceBadge,
+                          {
+                            backgroundColor: theme.glass.backgroundPill,
+                            borderColor: theme.glass.border,
+                          },
+                        ]}
+                      >
+                        <MapPinIcon size={11} color={mode === 'light' ? theme.primaryAccent : '#00E5FF'} />
+                        <Text
+                          style={[
+                            styles.distanceBadgeText,
+                            { color: mode === 'light' ? theme.primaryAccent : '#00E5FF' },
+                          ]}
+                        >
+                          {formatDistance(item.distanceKm)}
+                        </Text>
+                      </View>
+                    )}
 
                     <View
                       style={[
@@ -634,6 +730,12 @@ export default function CareDirectoryScreen() {
             })}
         </View>
       </ScrollView>
+
+      {/* Area Picker Modal */}
+      <AreaPickerModal
+        visible={showAreaPickerModal}
+        onClose={() => setShowAreaPickerModal(false)}
+      />
     </View>
   );
 }
@@ -1126,6 +1228,76 @@ const styles = StyleSheet.create({
   callButtonText: {
     fontFamily: typography.fontFamilySemibold,
     fontSize: typography.fontSize.sm,
+    fontWeight: '600',
+  },
+
+  // 10. LOCATION CHIP & DISTANCE BADGE STYLES (SLIKK-INSPIRED)
+  locationChipContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: layout.spacing.sm + 4,
+    paddingVertical: layout.spacing.xs + 2,
+    borderRadius: layout.borderRadius.lg,
+    borderWidth: 1,
+    marginBottom: layout.spacing.sm + 4,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  locationChipLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    flex: 1,
+  },
+  locationPinBox: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  locationChipTextGroup: {
+    flex: 1,
+  },
+  locationChipLabel: {
+    fontFamily: typography.fontFamilySemibold,
+    fontSize: 9,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+  },
+  locationChipName: {
+    fontFamily: typography.fontFamilySemibold,
+    fontSize: typography.fontSize.sm,
+    fontWeight: '600',
+  },
+  locationChangePill: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: layout.borderRadius.pill,
+    borderWidth: 1,
+  },
+  locationChangeText: {
+    fontFamily: typography.fontFamilySemibold,
+    fontSize: typography.fontSize.xs,
+    fontWeight: '600',
+  },
+  distanceBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: layout.borderRadius.pill,
+    borderWidth: 1,
+  },
+  distanceBadgeText: {
+    fontFamily: typography.fontFamilySemibold,
+    fontSize: typography.fontSize.xs - 1,
     fontWeight: '600',
   },
 });

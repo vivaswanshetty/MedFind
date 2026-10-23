@@ -36,6 +36,9 @@ export interface MedicineSearchResultItem {
   pharmacyName: string;
   pharmacyAddress: string;
   pharmacyPhone: string;
+  latitude?: number | null;
+  longitude?: number | null;
+  distanceKm?: number | null;
   openingHours?: string | null;
   verifiedAt?: string | null;
   state: StockState;
@@ -151,6 +154,8 @@ export async function searchMedicineStock(
       pharmacyName: row.pharmacy_name,
       pharmacyAddress: row.pharmacy_address,
       pharmacyPhone: row.pharmacy_phone,
+      latitude: row.pharmacy_latitude ?? row.latitude ?? null,
+      longitude: row.pharmacy_longitude ?? row.longitude ?? null,
       openingHours: row.opening_hours,
       verifiedAt: row.verified_at,
       state: row.state as StockState,
@@ -223,6 +228,8 @@ function getFilteredDemoResults(
           pharmacyName: pharmacy ? pharmacy.name : 'Participating Pharmacy Pilot',
           pharmacyAddress: pharmacy ? pharmacy.address : 'Bengaluru, Karnataka',
           pharmacyPhone: pharmacy ? pharmacy.phone : '',
+          latitude: pharmacy?.latitude ?? null,
+          longitude: pharmacy?.longitude ?? null,
           openingHours: pharmacy?.opening_hours || '09:00 - 21:00',
           verifiedAt: pharmacy?.verified_at || null,
           state: snap.state,
@@ -250,6 +257,8 @@ function getFilteredDemoResults(
         pharmacyName: 'Participating store report pending',
         pharmacyAddress: 'Verified against National List of Essential Medicines (NLEM India 2022)',
         pharmacyPhone: '',
+        latitude: null,
+        longitude: null,
         openingHours: '',
         verifiedAt: null,
         state: 'unknown',

@@ -4,6 +4,7 @@ import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { useFonts } from 'expo-font';
 import { ThemeProvider, useTheme } from '../theme/ThemeContext';
+import { LocationProvider } from '../context/LocationContext';
 import { typography } from '../theme/tokens';
 
 function RootNavigation() {
@@ -73,7 +74,9 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <ThemeProvider>
-        <RootNavigation />
+        <LocationProvider>
+          <RootNavigation />
+        </LocationProvider>
       </ThemeProvider>
     </SafeAreaProvider>
   );

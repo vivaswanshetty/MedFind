@@ -523,6 +523,8 @@ export function CheckCircleIcon({ size = 18, color }: IconProps) {
   );
 }
 
+export const CheckmarkIcon = CheckCircleIcon;
+
 /**
  * 24. Staff Badge / ID Card Icon - Pharmacy Staff Portal
  */
@@ -634,4 +636,93 @@ export function SettingsIcon({ size = 20, color }: IconProps) {
     </Svg>
   );
 }
+
+/**
+ * 29. Radar Pulse Graphic - Multi-layer location discovery hero graphic for onboarding
+ */
+export function RadarPulseGraphic({ size = 120 }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 120 120" fill="none">
+      <Defs>
+        <LinearGradient id="radarOuter" x1="0" y1="0" x2="120" y2="120" gradientUnits="userSpaceOnUse">
+          <Stop offset="0%" stopColor="#87A96B" stopOpacity="0.2" />
+          <Stop offset="100%" stopColor="#00E5FF" stopOpacity="0.05" />
+        </LinearGradient>
+        <LinearGradient id="radarMid" x1="20" y1="20" x2="100" y2="100" gradientUnits="userSpaceOnUse">
+          <Stop offset="0%" stopColor="#87A96B" stopOpacity="0.35" />
+          <Stop offset="100%" stopColor="#00E5FF" stopOpacity="0.15" />
+        </LinearGradient>
+        <LinearGradient id="radarCore" x1="36" y1="36" x2="84" y2="84" gradientUnits="userSpaceOnUse">
+          <Stop offset="0%" stopColor="#87A96B" />
+          <Stop offset="100%" stopColor="#2B4A1D" />
+        </LinearGradient>
+        <LinearGradient id="pinAccent" x1="0" y1="0" x2="24" y2="24" gradientUnits="userSpaceOnUse">
+          <Stop offset="0%" stopColor="#00E5FF" />
+          <Stop offset="100%" stopColor="#0284C7" />
+        </LinearGradient>
+      </Defs>
+
+      {/* Outermost pulse wave ring */}
+      <Circle cx="60" cy="60" r="54" fill="url(#radarOuter)" stroke="#87A96B" strokeWidth="1" strokeDasharray="4 4" strokeOpacity="0.4" />
+
+      {/* Middle pulse wave ring */}
+      <Circle cx="60" cy="60" r="40" fill="url(#radarMid)" stroke="#87A96B" strokeWidth="1.5" strokeOpacity="0.6" />
+
+      {/* Inner glowing radar center */}
+      <Circle cx="60" cy="60" r="26" fill="url(#radarCore)" />
+
+      {/* Center White Map Pin */}
+      <Path
+        d="M60 46c-5.52 0-10 4.48-10 10 0 7.5 10 18 10 18s10-10.5 10-18c0-5.52-4.48-10-10-10zm0 13.5c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4z"
+        fill="#FFFFFF"
+      />
+      {/* Small Medical Plus in the pin center */}
+      <Rect x="58.7" y="53.5" width="2.6" height="5" rx="1.3" fill="#87A96B" />
+      <Rect x="57.5" y="54.7" width="5" height="2.6" rx="1.3" fill="#87A96B" />
+
+      {/* Satellite dots showing nearby discoveries */}
+      <Circle cx="32" cy="40" r="4" fill="url(#pinAccent)" />
+      <Circle cx="88" cy="46" r="3.5" fill="#F59E0B" />
+      <Circle cx="76" cy="88" r="4" fill="url(#pinAccent)" />
+    </Svg>
+  );
+}
+
+/**
+ * 30. Checkmark Circle Graphic - Success badge for onboarding completion
+ */
+export function CheckmarkCircleGraphic({ size = 88 }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 88 88" fill="none">
+      <Defs>
+        <LinearGradient id="checkCircleGrad" x1="0" y1="0" x2="88" y2="88" gradientUnits="userSpaceOnUse">
+          <Stop offset="0%" stopColor="#10B981" />
+          <Stop offset="100%" stopColor="#059669" />
+        </LinearGradient>
+      </Defs>
+      <Circle cx="44" cy="44" r="42" fill="url(#checkCircleGrad)" />
+      <Path
+        d="M28 44l10 10 22-22"
+        stroke="#FFFFFF"
+        strokeWidth="6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
+/**
+ * 31. Crosshair / Target GPS Icon
+ */
+export function CrosshairTargetIcon({ size = 18, color = '#87A96B' }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Circle cx="12" cy="12" r="7" stroke={color} strokeWidth="2" />
+      <Circle cx="12" cy="12" r="2.5" fill={color} />
+      <Path d="M12 2v3M12 19v3M2 12h3M19 12h3" stroke={color} strokeWidth="2" strokeLinecap="round" />
+    </Svg>
+  );
+}
+
 

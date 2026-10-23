@@ -24,6 +24,10 @@ import {
 } from '../services/medicineSearch';
 import { storageService } from '../services/storageService';
 import { DEMO_DATA_DISCLAIMER } from '../data/demoData';
+import { useLocation } from '../context/LocationContext';
+import { sortListingsByDistance, formatDistance } from '../services/locationService';
+import { OnboardingFlow } from '../components/onboarding/OnboardingFlow';
+import { AreaPickerModal } from '../components/location/AreaPickerModal';
 import {
   InfoIcon,
   MoonIcon,
@@ -52,6 +56,16 @@ export default function HomeScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { mode, theme, toggleTheme } = useTheme();
+  const {
+    userLocation,
+    areaName,
+    locationSource,
+    showOnboardingModal,
+    setShowOnboardingModal,
+    showAreaPickerModal,
+    setShowAreaPickerModal,
+    replayOnboarding,
+  } = useLocation();
 
   // Search & filter state
   const [searchQuery, setSearchQuery] = useState('');
@@ -141,9 +155,14 @@ export default function HomeScreen() {
   const isDemoMode = dataSource === 'demo';
 
   // Filter by favorites if toggle is active
-  const displayedResults = showFavoritesOnly
+  const filteredResults = showFavoritesOnly
     ? searchResults.filter((item) => favoriteIds.includes(item.id))
     : searchResults;
+
+  // Order by distance when user coordinates are present (Haversine calculation)
+  const displayedResults: MedicineSearchResultItem[] = userLocation
+    ? sortListingsByDistance(filteredResults, userLocation)
+    : filteredResults;
 
   return (
     <View style={[styles.screenRoot, { backgroundColor: theme.canvas }]}>
@@ -225,6 +244,64 @@ export default function HomeScreen() {
       >
         {/* 2. MEDICINE SEARCH (MAIN FOCUS - MOVED TO TOP) */}
         <View style={styles.searchSection}>
+          {/* Interactive Location Selector Pill (Inspired by Slikk header bar at 01:22) */}
+          <TouchableOpacity
+            onPress={() => setShowAreaPickerModal(true)}
+            activeOpacity={0.82}
+            style={[
+              styles.locationChipContainer,
+              {
+                backgroundColor: theme.glass.backgroundSubtle,
+                borderColor: theme.glass.border,
+                shadowColor: theme.glass.shadowColor,
+              },
+            ]}
+            accessible={true}
+            accessibilityRole="button"
+            accessibilityLabel={`Current area: ${areaName}. Tap to change neighborhood or use device GPS.`}
+          >
+            <View style={styles.locationChipLeft}>
+              <View
+                style={[
+                  styles.locationPinBox,
+                  {
+                    backgroundColor:
+                      mode === 'light' ? 'rgba(135, 169, 107, 0.16)' : 'rgba(0, 229, 255, 0.14)',
+                    borderColor:
+                      mode === 'light' ? 'rgba(135, 169, 107, 0.3)' : 'rgba(0, 229, 255, 0.25)',
+                  },
+                ]}
+              >
+                <MapPinIcon size={14} color={mode === 'light' ? '#87A96B' : '#00E5FF'} />
+              </View>
+              <View style={styles.locationChipTextGroup}>
+                <Text style={[styles.locationChipLabel, { color: theme.textMuted }]}>
+                  {locationSource === 'gps'
+                    ? 'CURRENT GPS LOCATION'
+                    : locationSource === 'manual_area'
+                    ? 'EXPLORING AREA'
+                    : 'DISCOVERY AREA'}
+                </Text>
+                <Text style={[styles.locationChipName, { color: theme.textPrimary }]} numberOfLines={1}>
+                  {areaName}
+                </Text>
+              </View>
+            </View>
+            <View
+              style={[
+                styles.locationChangePill,
+                {
+                  backgroundColor: theme.glass.backgroundPill,
+                  borderColor: theme.glass.border,
+                },
+              ]}
+            >
+              <Text style={[styles.locationChangeText, { color: theme.primaryAccentText }]}>
+                Change
+              </Text>
+            </View>
+          </TouchableOpacity>
+
           <Text style={[styles.searchSectionTitle, { color: theme.textPrimary }]}>
             Find a medicine
           </Text>
@@ -619,7 +696,7 @@ export default function HomeScreen() {
                     )}
                   </View>
 
-                  {/* Availability & Update Time (Quick-Scan) */}
+                  {/* Availability, Distance & Update Time (Quick-Scan) */}
                   <View style={styles.cardMetaRow}>
                     <View
                       style={[
@@ -639,6 +716,29 @@ export default function HomeScreen() {
                         {availabilityLabel}
                       </Text>
                     </View>
+
+                    {/* Distance Badge (Calculated from user location & listing coordinates) */}
+                    {item.distanceKm !== undefined && (
+                      <View
+                        style={[
+                          styles.distanceBadge,
+                          {
+                            backgroundColor: theme.glass.backgroundPill,
+                            borderColor: theme.glass.border,
+                          },
+                        ]}
+                      >
+                        <MapPinIcon size={11} color={mode === 'light' ? theme.primaryAccent : '#00E5FF'} />
+                        <Text
+                          style={[
+                            styles.distanceBadgeText,
+                            { color: mode === 'light' ? theme.primaryAccent : '#00E5FF' },
+                          ]}
+                        >
+                          {formatDistance(item.distanceKm)}
+                        </Text>
+                      </View>
+                    )}
 
                     <View style={styles.updateTimeWrapper}>
                       <ClockIcon size={13} color={theme.textMuted} />
@@ -939,7 +1039,73 @@ export default function HomeScreen() {
               <ArrowRightIcon size={13} color={theme.textMuted} />
             </TouchableOpacity>
 
-            {/* Option 3: Info & Safety Boundaries */}
+            {/* Option 3: Change Location / Area */}
+            <TouchableOpacity
+              onPress={() => {
+                setShowSettingsMenu(false);
+                setShowAreaPickerModal(true);
+              }}
+              style={[styles.settingsItemRow, { borderBottomColor: theme.glass.borderSubtle }]}
+              accessible={true}
+              accessibilityRole="button"
+              accessibilityLabel={`Change discovery area. Current: ${areaName}`}
+            >
+              <View
+                style={[
+                  styles.settingsItemIconBox,
+                  {
+                    backgroundColor: theme.glass.backgroundPill,
+                    borderColor: theme.glass.border,
+                  },
+                ]}
+              >
+                <MapPinIcon size={18} color={mode === 'light' ? theme.primaryAccent : '#00E5FF'} />
+              </View>
+              <View style={styles.settingsItemTextColumn}>
+                <Text style={[styles.settingsItemTitle, { color: theme.textPrimary }]}>
+                  Location & Area
+                </Text>
+                <Text style={[styles.settingsItemSubtitle, { color: theme.textSecondary }]} numberOfLines={1}>
+                  {areaName}
+                </Text>
+              </View>
+              <ArrowRightIcon size={13} color={theme.textMuted} />
+            </TouchableOpacity>
+
+            {/* Option 4: Replay Onboarding Tour */}
+            <TouchableOpacity
+              onPress={() => {
+                setShowSettingsMenu(false);
+                replayOnboarding();
+              }}
+              style={[styles.settingsItemRow, { borderBottomColor: theme.glass.borderSubtle }]}
+              accessible={true}
+              accessibilityRole="button"
+              accessibilityLabel="Replay onboarding guide and location setup"
+            >
+              <View
+                style={[
+                  styles.settingsItemIconBox,
+                  {
+                    backgroundColor: theme.glass.backgroundPill,
+                    borderColor: theme.glass.border,
+                  },
+                ]}
+              >
+                <AcademicCapIcon size={18} color={mode === 'light' ? theme.primaryAccent : '#00E5FF'} />
+              </View>
+              <View style={styles.settingsItemTextColumn}>
+                <Text style={[styles.settingsItemTitle, { color: theme.textPrimary }]}>
+                  Replay Welcome Tour
+                </Text>
+                <Text style={[styles.settingsItemSubtitle, { color: theme.textSecondary }]}>
+                  Paced introduction & location setup
+                </Text>
+              </View>
+              <ArrowRightIcon size={13} color={theme.textMuted} />
+            </TouchableOpacity>
+
+            {/* Option 5: Info & Safety Boundaries */}
             <TouchableOpacity
               onPress={() => {
                 setShowSettingsMenu(false);
@@ -974,6 +1140,22 @@ export default function HomeScreen() {
           </View>
         </TouchableOpacity>
       </Modal>
+
+      {/* 8. ONBOARDING FLOW MODAL */}
+      <Modal
+        visible={showOnboardingModal}
+        animationType="slide"
+        presentationStyle="fullScreen"
+        onRequestClose={() => setShowOnboardingModal(false)}
+      >
+        <OnboardingFlow onDismiss={() => setShowOnboardingModal(false)} />
+      </Modal>
+
+      {/* 9. AREA PICKER MODAL */}
+      <AreaPickerModal
+        visible={showAreaPickerModal}
+        onClose={() => setShowAreaPickerModal(false)}
+      />
     </View>
   );
 }
@@ -1672,6 +1854,76 @@ const styles = StyleSheet.create({
   modalDismissBtnText: {
     fontFamily: typography.fontFamilySemibold,
     fontSize: typography.fontSize.sm,
+    fontWeight: '600',
+  },
+
+  // 10. LOCATION CHIP & DISTANCE BADGE STYLES (SLIKK-INSPIRED)
+  locationChipContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: layout.spacing.sm + 4,
+    paddingVertical: layout.spacing.xs + 2,
+    borderRadius: layout.borderRadius.lg,
+    borderWidth: 1,
+    marginBottom: layout.spacing.sm + 4,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  locationChipLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    flex: 1,
+  },
+  locationPinBox: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  locationChipTextGroup: {
+    flex: 1,
+  },
+  locationChipLabel: {
+    fontFamily: typography.fontFamilySemibold,
+    fontSize: 9,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+  },
+  locationChipName: {
+    fontFamily: typography.fontFamilySemibold,
+    fontSize: typography.fontSize.sm,
+    fontWeight: '600',
+  },
+  locationChangePill: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: layout.borderRadius.pill,
+    borderWidth: 1,
+  },
+  locationChangeText: {
+    fontFamily: typography.fontFamilySemibold,
+    fontSize: typography.fontSize.xs,
+    fontWeight: '600',
+  },
+  distanceBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: layout.borderRadius.pill,
+    borderWidth: 1,
+  },
+  distanceBadgeText: {
+    fontFamily: typography.fontFamilySemibold,
+    fontSize: typography.fontSize.xs - 1,
     fontWeight: '600',
   },
 });

@@ -67,6 +67,7 @@ export interface ProviderListing {
   verified_date?: string;
   reviewed_at: string;
   is_demo?: boolean;
+  distanceKm?: number;
 }
 
 export interface UserProfile {

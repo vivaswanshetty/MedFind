@@ -27,7 +27,13 @@
     },
     "plugins": [
       "expo-router",
-      "expo-font"
+      "expo-font",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "MedFind uses your foreground location to calculate distances to participating pharmacies and healthcare providers near you."
+        }
+      ]
     ]
   }
 }

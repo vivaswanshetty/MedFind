@@ -32,3 +32,7 @@ ios/
 
 # Supabase local temp
 supabase/.temp/
+
+# Large media files
+*.mp4
+
