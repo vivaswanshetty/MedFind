@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -9,12 +9,14 @@ import {
   Alert,
   Platform,
   StatusBar,
+  Animated,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useTheme } from '../../theme/ThemeContext';
 import { fonts, radii, MIN_TARGET } from '../../constants/theme';
 import { AtmosphereBackground } from '../../components/AtmosphereBackground';
+import { AnimatedScreenTransition } from '../../components/AnimatedScreenTransition';
 import {
   BackArrowIcon,
   PhoneIcon,
@@ -29,6 +31,29 @@ export default function EmergencyScreen() {
 
   const statusBarHeight = Platform.OS === 'android' ? (StatusBar.currentHeight ?? 24) : 0;
   const paddingTop = Math.max(insets.top, statusBarHeight) + 8;
+
+  // Pulsating emergency glow ring animation
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+  const pulseOpacity = useRef(new Animated.Value(0.6)).current;
+
+  useEffect(() => {
+    const loop = Animated.loop(
+      Animated.parallel([
+        Animated.timing(pulseAnim, {
+          toValue: 1.08,
+          duration: 1200,
+          useNativeDriver: true,
+        }),
+        Animated.timing(pulseOpacity, {
+          toValue: 0,
+          duration: 1200,
+          useNativeDriver: true,
+        }),
+      ])
+    );
+    loop.start();
+    return () => loop.stop();
+  }, []);
 
   const handleDial = async (number: string, title: string) => {
     const cleanNumber = number.replace(/[^\d+]/g, '');
@@ -49,7 +74,8 @@ export default function EmergencyScreen() {
     <View style={[styles.rootContainer, { backgroundColor: palette.bg }]}>
       <AtmosphereBackground />
 
-      <ScrollView
+      <AnimatedScreenTransition style={{ flex: 1 }}>
+        <ScrollView
         style={styles.scrollArea}
         contentContainerStyle={[
           styles.scrollContent,
@@ -92,32 +118,44 @@ export default function EmergencyScreen() {
           </Text>
         </View>
 
-        {/* PRIMARY 112 HERO BUTTON */}
-        <Pressable
-          onPress={() => handleDial('112', 'National Emergency Response 112')}
-          accessible={true}
-          accessibilityRole="button"
-          accessibilityLabel="Call emergency service, Dial 112"
-          style={({ pressed }) => [
-            styles.heroEmergencyButton,
-            {
-              backgroundColor: palette.red,
-              opacity: pressed ? 0.9 : 1.0,
-            },
-          ]}
-        >
-          <View style={styles.heroEmergencyIconBox}>
-            <PhoneIcon size={24} color="#FFFFFF" />
-          </View>
-          <View style={styles.heroEmergencyTextGroup}>
-            <Text style={styles.heroEmergencyTitle}>
-              Call emergency service
-            </Text>
-            <Text style={styles.heroEmergencySubtitle}>
-              Dial 112
-            </Text>
-          </View>
-        </Pressable>
+        {/* PRIMARY 112 HERO BUTTON WITH PULSING EMERGENCY RING */}
+        <View style={styles.heroEmergencyWrapper}>
+          <Animated.View
+            style={[
+              styles.emergencyPulseRing,
+              {
+                borderColor: palette.red,
+                transform: [{ scale: pulseAnim }],
+                opacity: pulseOpacity,
+              },
+            ]}
+          />
+          <Pressable
+            onPress={() => handleDial('112', 'National Emergency Response 112')}
+            accessible={true}
+            accessibilityRole="button"
+            accessibilityLabel="Call emergency service, Dial 112"
+            style={({ pressed }) => [
+              styles.heroEmergencyButton,
+              {
+                backgroundColor: palette.red,
+                opacity: pressed ? 0.9 : 1.0,
+              },
+            ]}
+          >
+            <View style={styles.heroEmergencyIconBox}>
+              <PhoneIcon size={24} color="#FFFFFF" />
+            </View>
+            <View style={styles.heroEmergencyTextGroup}>
+              <Text style={styles.heroEmergencyTitle}>
+                Call emergency service
+              </Text>
+              <Text style={styles.heroEmergencySubtitle}>
+                Dial 112
+              </Text>
+            </View>
+          </Pressable>
+        </View>
 
         <Text style={[styles.heroEmergencyCaption, { color: palette.ink2 }]}>
           Tapping opens your dialer with 112 ready. MedFind does not dispatch help or estimate arrival.
@@ -263,6 +301,7 @@ export default function EmergencyScreen() {
           </View>
         </View>
       </ScrollView>
+      </AnimatedScreenTransition>
     </View>
   );
 }
@@ -320,6 +359,19 @@ const styles = StyleSheet.create({
   },
 
   // PRIMARY 112 HERO BUTTON
+  heroEmergencyWrapper: {
+    position: 'relative',
+    borderRadius: radii.cardLg,
+  },
+  emergencyPulseRing: {
+    position: 'absolute',
+    top: -4,
+    left: -4,
+    right: -4,
+    bottom: -4,
+    borderRadius: radii.cardLg + 4,
+    borderWidth: 2.5,
+  },
   heroEmergencyButton: {
     flexDirection: 'row',
     alignItems: 'center',

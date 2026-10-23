@@ -1,5 +1,12 @@
-import React from 'react';
-import { View, Text, Pressable, StyleSheet } from 'react-native';
+import React, { useRef, useEffect, useState } from 'react';
+import {
+  View,
+  Text,
+  Pressable,
+  StyleSheet,
+  Animated,
+  LayoutRectangle,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../theme/ThemeContext';
 import { fonts, radii, MIN_TARGET } from '../constants/theme';
@@ -9,7 +16,6 @@ import {
   HospitalTabIcon,
   SirenTabIcon,
 } from './icons/AppIcons';
-
 import { router } from 'expo-router';
 
 export interface AppTabBarProps {
@@ -28,35 +34,147 @@ export interface AppTabBarProps {
   navigateToTab?: (routeKey: string) => void;
 }
 
-export function AppTabBar({ state, descriptors, navigation, emitter, navigateToTab }: AppTabBarProps) {
+export function AppTabBar({
+  state,
+  descriptors,
+  navigation,
+  emitter,
+  navigateToTab,
+}: AppTabBarProps) {
   const insets = useSafeAreaInsets();
-  const { palette } = useTheme();
+  const { scheme, palette } = useTheme();
 
-  const paddingBottom = Math.max(insets.bottom, 18);
+  // Tab layout measurements for dynamic island morphing slider
+  const [tabLayouts, setTabLayouts] = useState<{ [key: number]: LayoutRectangle }>({});
+
+  // Dynamic Island sliding indicator animations
+  const indicatorAnimX = useRef(new Animated.Value(0)).current;
+  const indicatorAnimW = useRef(new Animated.Value(0)).current;
+  const islandScaleAnim = useRef(new Animated.Value(1)).current;
+  const emergencyPulseAnim = useRef(new Animated.Value(1)).current;
+
+  // Emergency siren pulse animation
+  useEffect(() => {
+    const pulse = Animated.loop(
+      Animated.sequence([
+        Animated.timing(emergencyPulseAnim, {
+          toValue: 1.15,
+          duration: 900,
+          useNativeDriver: true,
+        }),
+        Animated.timing(emergencyPulseAnim, {
+          toValue: 1.0,
+          duration: 900,
+          useNativeDriver: true,
+        }),
+      ])
+    );
+    pulse.start();
+
+    return () => pulse.stop();
+  }, []);
+
+  // Update sliding island indicator whenever active index or tab layout changes
+  useEffect(() => {
+    const activeLayout = tabLayouts[state.index];
+    if (!activeLayout) return;
+
+    Animated.parallel([
+      Animated.spring(indicatorAnimX, {
+        toValue: activeLayout.x,
+        friction: 7.5,
+        tension: 70,
+        useNativeDriver: false,
+      }),
+      Animated.spring(indicatorAnimW, {
+        toValue: activeLayout.width,
+        friction: 7.5,
+        tension: 70,
+        useNativeDriver: false,
+      }),
+      Animated.sequence([
+        Animated.timing(islandScaleAnim, {
+          toValue: 0.96,
+          duration: 90,
+          useNativeDriver: true,
+        }),
+        Animated.spring(islandScaleAnim, {
+          toValue: 1.0,
+          friction: 6,
+          tension: 80,
+          useNativeDriver: true,
+        }),
+      ]),
+    ]).start();
+  }, [state.index, tabLayouts]);
+
+  const handleTabLayout = (index: number, layout: LayoutRectangle) => {
+    setTabLayouts((prev) => ({
+      ...prev,
+      [index]: layout,
+    }));
+  };
+
+  const isEmergencyActive = state.routes[state.index]?.name === 'emergency';
+  const bottomPosition = Math.max(insets.bottom, 12) + 6;
 
   return (
-    <View
+    <Animated.View
       style={[
-        styles.barContainer,
+        styles.islandContainer,
         {
-          paddingBottom,
-          backgroundColor: palette.navBg,
-          borderTopColor: palette.line,
+          bottom: bottomPosition,
+          backgroundColor:
+            scheme === 'dark'
+              ? 'rgba(18, 18, 24, 0.92)'
+              : 'rgba(255, 252, 245, 0.94)',
+          borderColor:
+            scheme === 'dark'
+              ? 'rgba(255, 255, 255, 0.12)'
+              : 'rgba(90, 62, 43, 0.12)',
+          shadowColor: palette.shadow,
+          transform: [{ scale: islandScaleAnim }],
         },
       ]}
       accessibilityRole="tablist"
     >
+      {/* Sliding Morphing Island Background Indicator */}
+      {tabLayouts[state.index] && (
+        <Animated.View
+          style={[
+            styles.islandIndicatorPill,
+            {
+              left: indicatorAnimX,
+              width: indicatorAnimW,
+              backgroundColor: isEmergencyActive
+                ? palette.red
+                : scheme === 'dark'
+                ? 'rgba(0, 229, 255, 0.15)'
+                : 'rgba(135, 169, 107, 0.22)',
+              borderColor: isEmergencyActive
+                ? 'rgba(255, 255, 255, 0.35)'
+                : scheme === 'dark'
+                ? 'rgba(0, 229, 255, 0.35)'
+                : 'rgba(135, 169, 107, 0.35)',
+            },
+          ]}
+        />
+      )}
+
+      {/* Tabs Row */}
       {state.routes.map((route, index) => {
         const isFocused = state.index === index;
-        const { options } = descriptors[route.key] || { options: {} };
+        const isEmergencyTab = route.name === 'emergency';
 
         const onPress = () => {
           const emitFn = navigation?.emit || emitter?.emit;
-          const event = emitFn ? emitFn({
-            type: 'tabPress',
-            target: route.key,
-            canPreventDefault: true,
-          }) : null;
+          const event = emitFn
+            ? emitFn({
+                type: 'tabPress',
+                target: route.key,
+                canPreventDefault: true,
+              })
+            : null;
 
           if (!isFocused && (!event || !event.defaultPrevented)) {
             if (navigateToTab) {
@@ -77,70 +195,47 @@ export function AppTabBar({ state, descriptors, navigation, emitter, navigateToT
           });
         };
 
-        // Determine Tab Type
-        const isEmergencyTab = route.name === 'emergency';
-
-        if (isEmergencyTab) {
-          const emergencyButton = (
-            <Pressable
-              onPress={onPress}
-              onLongPress={onLongPress}
-              accessible={true}
-              accessibilityRole="tab"
-              accessibilityState={{ selected: isFocused }}
-              accessibilityLabel="Emergency help, Call 112"
-              style={({ pressed }) => [
-                styles.emergencyTabInner,
-                {
-                  backgroundColor: palette.red,
-                  opacity: pressed ? 0.85 : 1.0,
-                },
-              ]}
-            >
-              <SirenTabIcon size={20} color="#FFFFFF" />
-              <Text
-                style={[styles.emergencyLabel, { color: '#FFFFFF' }]}
-                numberOfLines={1}
-              >
-                Emergency help
-              </Text>
-            </Pressable>
-          );
-
-          if (isFocused) {
-            return (
-              <View
-                key={route.key}
-                style={[
-                  styles.emergencyActiveRing,
-                  {
-                    borderColor: palette.red,
-                    backgroundColor: palette.surface,
-                  },
-                ]}
-              >
-                {emergencyButton}
-              </View>
-            );
-          }
-
-          return (
-            <View key={route.key} style={styles.emergencyWrapper}>
-              {emergencyButton}
-            </View>
-          );
-        }
-
-        // Standard 3 tabs: Home, Search, Care nearby
+        // Tab Content Configuration
         let label = 'Home';
-        let icon = <HomeTabIcon size={20} color={isFocused ? palette.navOnInk : palette.ink2} />;
+        let icon = (
+          <HomeTabIcon
+            size={19}
+            color={isFocused ? palette.navOnInk : palette.ink2}
+          />
+        );
 
         if (route.name === 'search') {
           label = 'Search';
-          icon = <SearchTabIcon size={20} color={isFocused ? palette.navOnInk : palette.ink2} />;
+          icon = (
+            <SearchTabIcon
+              size={19}
+              color={isFocused ? palette.navOnInk : palette.ink2}
+            />
+          );
         } else if (route.name === 'care') {
           label = 'Care';
-          icon = <HospitalTabIcon size={20} color={isFocused ? palette.navOnInk : palette.ink2} />;
+          icon = (
+            <HospitalTabIcon
+              size={19}
+              color={isFocused ? palette.navOnInk : palette.ink2}
+            />
+          );
+        } else if (isEmergencyTab) {
+          label = 'Emergency';
+          icon = (
+            <Animated.View
+              style={
+                isFocused
+                  ? { transform: [{ scale: emergencyPulseAnim }] }
+                  : undefined
+              }
+            >
+              <SirenTabIcon
+                size={19}
+                color={isFocused ? '#FFFFFF' : palette.red}
+              />
+            </Animated.View>
+          );
         }
 
         return (
@@ -148,24 +243,48 @@ export function AppTabBar({ state, descriptors, navigation, emitter, navigateToT
             key={route.key}
             onPress={onPress}
             onLongPress={onLongPress}
+            onLayout={(e) => handleTabLayout(index, e.nativeEvent.layout)}
             accessible={true}
             accessibilityRole="tab"
             accessibilityState={{ selected: isFocused }}
             accessibilityLabel={`${label} tab`}
             style={({ pressed }) => [
-              styles.normalTab,
+              styles.tabItem,
               {
-                backgroundColor: isFocused ? palette.navOn : 'transparent',
-                opacity: pressed ? 0.85 : 1.0,
+                opacity: pressed ? 0.8 : 1.0,
               },
             ]}
           >
-            {icon}
+            {/* Tab Icon */}
+            <View style={styles.iconWrapper}>
+              {icon}
+              {/* Dynamic Island Glowing Dot when Active */}
+              {isFocused && !isEmergencyTab && (
+                <View
+                  style={[
+                    styles.activeIslandDot,
+                    {
+                      backgroundColor:
+                        scheme === 'dark' ? '#00E5FF' : palette.okInk,
+                    },
+                  ]}
+                />
+              )}
+            </View>
+
+            {/* Tab Label */}
             <Text
               style={[
-                styles.normalLabel,
+                styles.tabLabel,
                 {
-                  color: isFocused ? palette.navOnInk : palette.ink2,
+                  color: isEmergencyTab
+                    ? isFocused
+                      ? '#FFFFFF'
+                      : palette.red
+                    : isFocused
+                    ? palette.navOnInk
+                    : palette.ink2,
+                  fontFamily: isFocused ? fonts.sansBold : fonts.sansMedium,
                 },
               ]}
               numberOfLines={1}
@@ -175,66 +294,59 @@ export function AppTabBar({ state, descriptors, navigation, emitter, navigateToT
           </Pressable>
         );
       })}
-    </View>
+    </Animated.View>
   );
 }
 
 const styles = StyleSheet.create({
-  barContainer: {
+  islandContainer: {
     position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
+    left: 14,
+    right: 14,
+    height: 64,
+    borderRadius: radii.pill,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    paddingTop: 10,
-    paddingHorizontal: 14,
-    borderTopWidth: 1,
-    zIndex: 100,
+    paddingHorizontal: 8,
+    borderWidth: 1.2,
+    zIndex: 999,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.28,
+    shadowRadius: 20,
+    elevation: 16,
   },
-  normalTab: {
+  islandIndicatorPill: {
+    position: 'absolute',
+    top: 6,
+    bottom: 6,
+    borderRadius: radii.pill,
+    borderWidth: 1,
+    zIndex: 1,
+  },
+  tabItem: {
     flex: 1,
-    minHeight: 52,
+    height: 52,
     minWidth: MIN_TARGET,
-    borderRadius: radii.tab,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 4,
-    paddingHorizontal: 4,
-  },
-  normalLabel: {
-    fontFamily: fonts.sansBold,
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  emergencyWrapper: {
-    width: 102,
-    minHeight: 52,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  emergencyActiveRing: {
-    width: 106,
-    minHeight: 56,
-    borderRadius: 18,
-    borderWidth: 2,
-    padding: 2,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  emergencyTabInner: {
-    width: '100%',
-    minHeight: 50,
-    borderRadius: radii.tab,
     alignItems: 'center',
     justifyContent: 'center',
     gap: 3,
-    paddingHorizontal: 2,
+    zIndex: 2,
   },
-  emergencyLabel: {
-    fontFamily: fonts.sansXBold,
+  iconWrapper: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: 24,
+    position: 'relative',
+  },
+  activeIslandDot: {
+    position: 'absolute',
+    bottom: -5,
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+  },
+  tabLabel: {
     fontSize: 11,
-    fontWeight: '800',
+    letterSpacing: -0.1,
   },
 });

@@ -15,6 +15,7 @@ import { useRouter } from 'expo-router';
 import { useTheme } from '../../theme/ThemeContext';
 import { fonts, radii, MIN_TARGET } from '../../constants/theme';
 import { AtmosphereBackground } from '../../components/AtmosphereBackground';
+import { AnimatedScreenTransition } from '../../components/AnimatedScreenTransition';
 import { StatusChip } from '../../components/StatusChip';
 import { useLocation } from '../../context/LocationContext';
 import { OnboardingFlow } from '../../components/onboarding/OnboardingFlow';
@@ -88,7 +89,8 @@ export default function HomeScreen() {
     <View style={[styles.rootContainer, { backgroundColor: palette.bg }]}>
       <AtmosphereBackground />
 
-      <ScrollView
+      <AnimatedScreenTransition style={{ flex: 1 }}>
+        <ScrollView
         style={styles.scrollArea}
         contentContainerStyle={[
           styles.scrollContent,
@@ -188,7 +190,7 @@ export default function HomeScreen() {
                 </Text>
               </View>
               <Text style={[styles.headlineLine2Rest, { color: palette.ink }]}>
-                {' '}you travel.
+                {' '}you visit.
               </Text>
             </View>
           </View>
@@ -538,6 +540,7 @@ export default function HomeScreen() {
           </Text>
         </Pressable>
       </ScrollView>
+      </AnimatedScreenTransition>
 
       {/* Onboarding Flow Modal */}
       <Modal

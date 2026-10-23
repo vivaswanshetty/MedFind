@@ -17,6 +17,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTheme } from '../../theme/ThemeContext';
 import { fonts, radii, MIN_TARGET } from '../../constants/theme';
 import { AtmosphereBackground } from '../../components/AtmosphereBackground';
+import { AnimatedScreenTransition } from '../../components/AnimatedScreenTransition';
 import { StatusChip } from '../../components/StatusChip';
 import { useLocation } from '../../context/LocationContext';
 import {
@@ -261,7 +262,8 @@ export default function SearchScreen() {
     <View style={[styles.rootContainer, { backgroundColor: palette.bg }]}>
       <AtmosphereBackground />
 
-      <ScrollView
+      <AnimatedScreenTransition style={{ flex: 1 }}>
+        <ScrollView
         style={styles.scrollArea}
         contentContainerStyle={[
           styles.scrollContent,
@@ -772,6 +774,7 @@ export default function SearchScreen() {
           </View>
         )}
       </ScrollView>
+      </AnimatedScreenTransition>
     </View>
   );
 }
