@@ -585,7 +585,7 @@ export default function HomeScreen() {
               <View style={styles.settingsModalTitleRow}>
                 <SettingsIcon size={20} color={palette.ink} />
                 <Text style={[styles.settingsModalTitle, { color: palette.ink }]}>
-                  Settings & Options
+                  Settings
                 </Text>
               </View>
               <Pressable

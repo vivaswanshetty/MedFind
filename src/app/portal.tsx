@@ -14,6 +14,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../theme/ThemeContext';
 import { fonts, radii, MIN_TARGET } from '../constants/theme';
 import { AtmosphereBackground } from '../components/AtmosphereBackground';
+import { AnimatedScreenTransition } from '../components/AnimatedScreenTransition';
 import { Pharmacy, StockState } from '../types/models';
 import {
   pharmacyPortalService,
@@ -154,11 +155,12 @@ export default function PharmacyPortalScreen() {
         </View>
       </View>
 
-      <ScrollView
-        style={styles.scrollArea}
-        contentContainerStyle={[styles.scrollContent, { paddingBottom: 120 }]}
-        showsVerticalScrollIndicator={false}
-      >
+      <AnimatedScreenTransition style={{ flex: 1 }}>
+        <ScrollView
+          style={styles.scrollArea}
+          contentContainerStyle={[styles.scrollContent, { paddingBottom: 120 }]}
+          showsVerticalScrollIndicator={false}
+        >
         {/* SUCCESS CONFIRMATION TOAST */}
         {successToast && (
           <View
@@ -403,6 +405,7 @@ export default function PharmacyPortalScreen() {
           ))}
         </View>
       </ScrollView>
+      </AnimatedScreenTransition>
     </View>
   );
 }

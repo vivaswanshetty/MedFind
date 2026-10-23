@@ -16,6 +16,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../theme/ThemeContext';
 import { fonts, radii, MIN_TARGET } from '../../constants/theme';
 import { AtmosphereBackground } from '../../components/AtmosphereBackground';
+import { AnimatedScreenTransition } from '../../components/AnimatedScreenTransition';
 import {
   getMedicineResultById,
   MedicineSearchResultItem,
@@ -248,11 +249,12 @@ export default function MedicineDetailScreen() {
         </Pressable>
       </View>
 
-      <ScrollView
-        style={styles.scrollArea}
-        contentContainerStyle={[styles.scrollContent, { paddingBottom: 120 }]}
-        showsVerticalScrollIndicator={false}
-      >
+      <AnimatedScreenTransition style={{ flex: 1 }}>
+        <ScrollView
+          style={styles.scrollArea}
+          contentContainerStyle={[styles.scrollContent, { paddingBottom: 120 }]}
+          showsVerticalScrollIndicator={false}
+        >
         {/* 1. HERO MEDICINE CARD */}
         <View
           style={[
@@ -472,6 +474,7 @@ export default function MedicineDetailScreen() {
           </Text>
         </View>
       </ScrollView>
+      </AnimatedScreenTransition>
     </View>
   );
 }
