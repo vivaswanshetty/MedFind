@@ -187,9 +187,9 @@ export async function requestDeviceLocation(): Promise<LocationRequestResult> {
       };
     }
 
-    // Get current position with balanced accuracy to preserve battery
+    // Get current position with High accuracy for street-level GPS precision
     const position = await Location.getCurrentPositionAsync({
-      accuracy: Location.Accuracy.Balanced,
+      accuracy: Location.Accuracy.High,
     });
 
     const coords: Coordinates = {
@@ -203,19 +203,36 @@ export async function requestDeviceLocation(): Promise<LocationRequestResult> {
       const places = await Location.reverseGeocodeAsync(coords);
       if (places && places.length > 0) {
         const p = places[0];
+        const name = cleanLocalityName(p.name);
+        const street = cleanLocalityName(p.street);
         const sub = cleanLocalityName(p.subregion);
         const dist = cleanLocalityName(p.district);
         const city = cleanLocalityName(p.city);
-        const name = cleanLocalityName(p.name);
 
-        const locality = sub || dist || city || name;
-        const region = city || cleanLocalityName(p.region);
+        // Filter out generic city names from the neighborhood slot
+        const candidates = [name, street, sub, dist].filter(
+          (c) => c && !/^(Bangalore|Bengaluru|Current Location)$/i.test(c)
+        );
+        let locality = candidates[0] || dist || sub || city || 'Bengaluru';
 
-        if (locality && region && locality !== region) {
-          areaName = `${locality}, ${region}`;
-        } else if (locality) {
-          areaName = locality;
+        // If locality still resolves to generic "Bengaluru", match closest known neighborhood
+        if (/^(Bengaluru|Bangalore|Current Location)$/i.test(locality)) {
+          let nearestArea = PREDEFINED_AREAS[0];
+          let minDistance = Infinity;
+          for (const area of PREDEFINED_AREAS) {
+            const d = calculateDistanceKm(coords.latitude, coords.longitude, area.latitude, area.longitude);
+            if (d !== null && d < minDistance) {
+              minDistance = d;
+              nearestArea = area;
+            }
+          }
+          if (minDistance < 6) {
+            locality = nearestArea.locality;
+          }
         }
+
+        const region = city || cleanLocalityName(p.region) || 'Bengaluru';
+        areaName = locality && region && locality !== region ? `${locality}, ${region}` : locality;
       }
     } catch {
       // Reverse geocode is best-effort; keep "Current Location" fallback

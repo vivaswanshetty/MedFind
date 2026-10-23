@@ -14,6 +14,7 @@ import {
   DirectionsIcon,
   ExpandIcon,
   CompressIcon,
+  FitBoundsIcon,
 } from '../icons/AppIcons';
 import { Coordinates } from '../../services/locationService';
 
@@ -34,6 +35,7 @@ interface InteractiveCareMapProps {
   selectedPin: string | null;
   onSelectPin: (id: string) => void;
   onOpenExternalMap: () => void;
+  onInteractionChange?: (isInteracting: boolean) => void;
 }
 
 export function InteractiveCareMap({
@@ -43,12 +45,14 @@ export function InteractiveCareMap({
   selectedPin,
   onSelectPin,
   onOpenExternalMap,
+  onInteractionChange,
 }: InteractiveCareMapProps) {
   const { scheme, palette } = useTheme();
   const webViewRef = useRef<WebView>(null);
   const [isExpanded, setIsExpanded] = useState(false);
+  const [showHint, setShowHint] = useState(true);
 
-  const defaultLat = userLocation?.latitude ?? 12.9416; // Basavanagudi
+  const defaultLat = userLocation?.latitude ?? 12.9416; // Basavanagudi centroid
   const defaultLng = userLocation?.longitude ?? 77.5738;
 
   // Sync selected pin from parent to WebView map
@@ -65,6 +69,18 @@ export function InteractiveCareMap({
       webViewRef.current.injectJavaScript(script);
     }
   }, [selectedPin, markers]);
+
+  // Dynamically update user location beacon & accuracy ring when GPS arrives
+  useEffect(() => {
+    if (!webViewRef.current || !userLocation) return;
+    const script = `
+      if (window.updateUserLocation) {
+        window.updateUserLocation(${userLocation.latitude}, ${userLocation.longitude});
+      }
+      true;
+    `;
+    webViewRef.current.injectJavaScript(script);
+  }, [userLocation]);
 
   // Dynamically update markers without re-rendering WebView
   useEffect(() => {
@@ -95,13 +111,20 @@ export function InteractiveCareMap({
 
   const handleRecenter = () => {
     if (!webViewRef.current) return;
+    const targetLat = userLocation?.latitude ?? defaultLat;
+    const targetLng = userLocation?.longitude ?? defaultLng;
     const script = `
       if (window.recenterMap) {
-        window.recenterMap(${defaultLat}, ${defaultLng});
+        window.recenterMap(${targetLat}, ${targetLng});
       }
       true;
     `;
     webViewRef.current.injectJavaScript(script);
+  };
+
+  const handleFitAll = () => {
+    if (!webViewRef.current) return;
+    webViewRef.current.injectJavaScript('if(window.fitAllMarkers){window.fitAllMarkers();}true;');
   };
 
   const handleZoomIn = () => {
@@ -125,7 +148,7 @@ export function InteractiveCareMap({
         <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
         <style>
           * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-          html, body, #map { width: 100%; height: 100%; background: ${scheme === 'light' ? '#F7F2E8' : '#0a0a0f'}; overflow: hidden; }
+          html, body, #map { width: 100%; height: 100%; background: ${scheme === 'light' ? '#F7F2E8' : '#0a0a0f'}; overflow: hidden; touch-action: pan-x pan-y pinch-zoom; }
           
           /* Dark mode CSS filter for OpenStreetMap tiles: turns high-detail street tiles into sleek night mode */
           ${scheme === 'dark' ? `
@@ -220,15 +243,35 @@ export function InteractiveCareMap({
         <script>
           const map = L.map('map', {
             center: [${defaultLat}, ${defaultLng}],
-            zoom: 14,
+            zoom: 15,
             zoomControl: false,
-            attributionControl: false
+            attributionControl: false,
+            dragging: true,
+            touchZoom: true,
+            doubleClickZoom: true,
+            scrollWheelZoom: true,
+            boxZoom: true,
+            tap: true,
+            tapTolerance: 20,
+            zoomSnap: 0.5,
+            zoomDelta: 0.5,
+            bounceAtZoomLimits: false,
           });
           window.map = map;
 
           L.tileLayer('${tileUrl}', {
             maxZoom: 19,
             attribution: '© OpenStreetMap contributors'
+          }).addTo(map);
+
+          // User Accuracy Ring (65m precision circle)
+          let userAccuracyCircle = L.circle([${defaultLat}, ${defaultLng}], {
+            radius: 65,
+            color: '${scheme === 'light' ? '#87A96B' : '#00E5FF'}',
+            fillColor: '${scheme === 'light' ? '#87A96B' : '#00E5FF'}',
+            fillOpacity: 0.14,
+            weight: 1.5,
+            dashArray: '3, 4'
           }).addTo(map);
 
           // User Location Marker
@@ -238,7 +281,7 @@ export function InteractiveCareMap({
             iconSize: [32, 32],
             iconAnchor: [16, 16]
           });
-          L.marker([${defaultLat}, ${defaultLng}], { icon: userIcon, zIndexOffset: 200 }).addTo(map);
+          let userMarker = L.marker([${defaultLat}, ${defaultLng}], { icon: userIcon, zIndexOffset: 250 }).addTo(map);
 
           // Marker Management
           let markerObjects = {};
@@ -287,6 +330,12 @@ export function InteractiveCareMap({
             renderMarkers(newList);
           };
 
+          window.updateUserLocation = function(lat, lng) {
+            if (userMarker) userMarker.setLatLng([lat, lng]);
+            if (userAccuracyCircle) userAccuracyCircle.setLatLng([lat, lng]);
+            map.flyTo([lat, lng], 15.5, { animate: true, duration: 0.8 });
+          };
+
           window.focusMarker = function(id, lat, lng) {
             document.querySelectorAll('.med-pin').forEach(el => el.classList.remove('active'));
             const el = document.getElementById('pin-' + id);
@@ -294,14 +343,35 @@ export function InteractiveCareMap({
             if (markerObjects[id]) {
               markerObjects[id].openPopup();
             }
-            map.flyTo([lat, lng], 15, { animate: true, duration: 0.7 });
+            map.flyTo([lat, lng], 16, { animate: true, duration: 0.7 });
           };
 
           window.recenterMap = function(lat, lng) {
             document.querySelectorAll('.med-pin').forEach(el => el.classList.remove('active'));
             map.closePopup();
-            map.flyTo([lat, lng], 14, { animate: true, duration: 0.7 });
+            map.flyTo([lat, lng], 15.5, { animate: true, duration: 0.7 });
           };
+
+          window.fitAllMarkers = function() {
+            const allLayers = Object.values(markerObjects);
+            if (userMarker) allLayers.push(userMarker);
+            if (allLayers.length > 0) {
+              const group = new L.featureGroup(allLayers);
+              map.fitBounds(group.getBounds().pad(0.18), { animate: true, duration: 0.8 });
+            }
+          };
+
+          // Inform React Native when map gesture starts or ends
+          map.on('movestart dragstart zoomstart', function() {
+            if (window.ReactNativeWebView) {
+              window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'touchStart' }));
+            }
+          });
+          map.on('moveend dragend zoomend', function() {
+            if (window.ReactNativeWebView) {
+              window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'touchEnd' }));
+            }
+          });
         </script>
       </body>
     </html>
@@ -318,6 +388,16 @@ export function InteractiveCareMap({
           shadowColor: palette.shadow,
         },
       ]}
+      onTouchStart={() => {
+        onInteractionChange?.(true);
+        if (showHint) setShowHint(false);
+      }}
+      onTouchEnd={() => {
+        onInteractionChange?.(false);
+      }}
+      onTouchCancel={() => {
+        onInteractionChange?.(false);
+      }}
     >
       <WebView
         ref={webViewRef as any}
@@ -325,6 +405,7 @@ export function InteractiveCareMap({
         source={{ html: htmlContent }}
         style={styles.webView}
         scrollEnabled={false}
+        nestedScrollEnabled={true}
         javaScriptEnabled={true}
         domStorageEnabled={true}
         onMessage={(event: any) => {
@@ -332,6 +413,10 @@ export function InteractiveCareMap({
             const data = JSON.parse(event.nativeEvent.data);
             if (data.type === 'selectPin') {
               onSelectPin(data.id);
+            } else if (data.type === 'touchStart') {
+              onInteractionChange?.(true);
+            } else if (data.type === 'touchEnd') {
+              onInteractionChange?.(false);
             }
           } catch {
             // Ignore parse errors
@@ -409,8 +494,45 @@ export function InteractiveCareMap({
         </View>
       </View>
 
-      {/* Floating Bottom Right Controls (Recenter, Zoom In, Zoom Out) */}
+      {/* Gesture Hint Overlay Badge (Auto-fades on interaction) */}
+      {showHint && (
+        <View
+          style={[
+            styles.gestureHintPill,
+            {
+              backgroundColor: palette.surface,
+              borderColor: palette.line,
+            },
+          ]}
+          pointerEvents="none"
+        >
+          <Text style={[styles.gestureHintText, { color: palette.ink2 }]}>
+            ✌️ Pinch to zoom • Drag to explore
+          </Text>
+        </View>
+      )}
+
+      {/* Floating Bottom Right Controls (Fit All, Recenter, Zoom In, Zoom Out) */}
       <View style={styles.floatingControlsGroup}>
+        {/* Fit All Markers in View */}
+        <Pressable
+          onPress={handleFitAll}
+          accessible={true}
+          accessibilityRole="button"
+          accessibilityLabel="Frame all nearby facilities on map"
+          style={({ pressed }) => [
+            styles.floatingControlBtn,
+            {
+              backgroundColor: palette.surface,
+              borderColor: palette.line,
+              opacity: pressed ? 0.85 : 1.0,
+            },
+          ]}
+        >
+          <FitBoundsIcon size={16} color={palette.ink} />
+        </Pressable>
+
+        {/* Recenter to User's GPS Pin */}
         <Pressable
           onPress={handleRecenter}
           accessible={true}
@@ -428,6 +550,7 @@ export function InteractiveCareMap({
           <CrosshairTargetIcon size={16} color={palette.ink} />
         </Pressable>
 
+        {/* Zoom In & Out Combined Dock */}
         <View
           style={[
             styles.zoomButtonGroup,
@@ -560,6 +683,26 @@ const styles = StyleSheet.create({
     fontFamily: fonts.sansBold,
     fontSize: 12,
     fontWeight: '700',
+  },
+  gestureHintPill: {
+    position: 'absolute',
+    bottom: 12,
+    left: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: radii.pill,
+    borderWidth: 1,
+    opacity: 0.9,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
+    zIndex: 9,
+  },
+  gestureHintText: {
+    fontFamily: fonts.sansMedium,
+    fontSize: 11,
   },
   floatingControlsGroup: {
     position: 'absolute',

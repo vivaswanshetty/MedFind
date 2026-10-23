@@ -926,5 +926,22 @@ export function CompressIcon({ size = 16, color }: IconProps) {
   );
 }
 
+/**
+ * 43. Fit Bounds / Frame All Facilities Icon
+ */
+export function FitBoundsIcon({ size = 16, color }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M3 7V3h4M17 3h4v4M21 17v4h-4M9 12a3 3 0 1 0 6 0 3 3 0 0 0-6 0zM7 21H3v-4"
+        stroke={color || 'currentColor'}
+        strokeWidth="2.2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
 
 

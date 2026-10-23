@@ -41,6 +41,7 @@ export default function CareNearbyScreen() {
   const [selectedPin, setSelectedPin] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [listings, setListings] = useState<ProviderListing[]>([]);
+  const [isMapInteracting, setIsMapInteracting] = useState(false);
 
   const categories = [
     { id: 'all', label: 'All' },
@@ -217,6 +218,7 @@ export default function CareNearbyScreen() {
 
       <ScrollView
         style={styles.scrollArea}
+        scrollEnabled={!isMapInteracting}
         contentContainerStyle={[
           styles.scrollContent,
           {
@@ -267,6 +269,7 @@ export default function CareNearbyScreen() {
             setSelectedPin(id);
           }}
           onOpenExternalMap={handleOpenMapApp}
+          onInteractionChange={setIsMapInteracting}
         />
 
         {/* INTERACTIVE PIN SELECTION CALLOUT */}
