@@ -19,7 +19,7 @@ export const palettes = {
     accent: '#87A96B',
     okTint: '#E0EAD1',
     okInk: '#2E4A1D',
-    amber: '#D5851F',
+    amber: '#E28C2B',
     amberOn: '#2A1600',
     amberTint: '#F8E4C0',
     amberInk: '#74420A',
@@ -85,15 +85,15 @@ export const atmosphere = {
   light: {
     base: '#F7F2E8',
     blobs: [
-      { cx: 1.05, cy: -0.04, rx: 0.95, ry: 0.42, rgb: '135,169,107', opacity: 0.34, stop: 0.70 },
-      { cx: -0.10, cy: 1.00, rx: 0.70, ry: 0.30, rgb: '213,133,31', opacity: 0.10, stop: 0.70 },
+      { cx: 1.02, cy: -0.02, rx: 1.05, ry: 0.52, rgb: '135,169,107', opacity: 0.42, stop: 0.78 },
+      { cx: -0.12, cy: 0.98, rx: 0.78, ry: 0.38, rgb: '213,133,31', opacity: 0.16, stop: 0.75 },
     ],
   },
   dark: {
     base: '#050505',
     blobs: [
-      { cx: 0.08, cy: -0.08, rx: 1.20, ry: 0.50, rgb: '59,10,107', opacity: 0.95, stop: 0.64 },
-      { cx: 1.08, cy: 0.04, rx: 0.60, ry: 0.26, rgb: '0,229,255', opacity: 0.14, stop: 0.70 },
+      { cx: 0.08, cy: -0.08, rx: 1.25, ry: 0.55, rgb: '59,10,107', opacity: 0.95, stop: 0.70 },
+      { cx: 1.05, cy: 0.04, rx: 0.68, ry: 0.32, rgb: '0,229,255', opacity: 0.22, stop: 0.75 },
     ],
   },
 };

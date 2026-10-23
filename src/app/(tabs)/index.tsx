@@ -26,6 +26,7 @@ import {
   SearchIcon,
   ClockIcon,
   HospitalIcon,
+  SquarePlusIcon,
   PhoneIcon,
   ChevronRightIcon,
   MoonIcon,
@@ -47,11 +48,11 @@ export default function HomeScreen() {
     setShowOnboardingModal,
     showAreaPickerModal,
     setShowAreaPickerModal,
-    replayOnboarding,
   } = useLocation();
 
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [showPolicyModal, setShowPolicyModal] = useState(false);
+  const [showLocationInfoModal, setShowLocationInfoModal] = useState(false);
 
   const [recentTerms, setRecentTerms] = useState<string[]>([
     'Metformin 500 mg',
@@ -110,12 +111,7 @@ export default function HomeScreen() {
                 resizeMode="cover"
               />
             </View>
-            <View style={styles.brandTitleColumn}>
-              <Text style={[styles.brandText, { color: palette.ink }]}>MedFind</Text>
-              <Text style={[styles.brandSubtext, { color: palette.ink2 }]}>
-                Prescription & Care Directory
-              </Text>
-            </View>
+            <Text style={[styles.brandText, { color: palette.ink }]}>MedFind</Text>
           </View>
 
           {/* Right: Location Pill & Settings Button */}
@@ -274,7 +270,7 @@ export default function HomeScreen() {
               { backgroundColor: palette.okTint },
             ]}
           >
-            <HospitalIcon size={24} color={palette.okInk} />
+            <SquarePlusIcon size={24} color={palette.okInk} />
           </View>
 
           <View style={styles.actionCardMiddle}>
@@ -461,21 +457,26 @@ export default function HomeScreen() {
               <View
                 style={[
                   styles.settingsIconBox,
-                  { backgroundColor: palette.surface2, borderColor: palette.line },
+                  {
+                    backgroundColor:
+                      scheme === 'light' ? '#FEF3C7' : 'rgba(168, 85, 247, 0.2)',
+                    borderColor:
+                      scheme === 'light' ? '#FDE68A' : 'rgba(168, 85, 247, 0.4)',
+                  },
                 ]}
               >
                 {scheme === 'light' ? (
-                  <MoonIcon size={18} color={palette.ink} />
+                  <MoonIcon size={18} color="#D97706" />
                 ) : (
-                  <SunIcon size={18} color={palette.accent} />
+                  <SunIcon size={18} color="#FCD34D" />
                 )}
               </View>
               <View style={styles.settingsItemInfo}>
                 <Text style={[styles.settingsItemTitle, { color: palette.ink }]}>
-                  Appearance: {scheme === 'light' ? 'Warm Editorial (Light)' : 'Cinematic (Dark)'}
+                  Appearance: {scheme === 'light' ? 'Light theme' : 'Dark theme'}
                 </Text>
                 <Text style={[styles.settingsItemSubtitle, { color: palette.ink2 }]}>
-                  Tap to switch color theme
+                  Tap to switch to {scheme === 'light' ? 'dark' : 'light'} theme
                 </Text>
               </View>
               <View
@@ -490,15 +491,15 @@ export default function HomeScreen() {
               </View>
             </Pressable>
 
-            {/* Item 2: Location & Area */}
+            {/* Item 2: How Location Works */}
             <Pressable
               onPress={() => {
                 setShowSettingsModal(false);
-                setShowAreaPickerModal(true);
+                setShowLocationInfoModal(true);
               }}
               accessible={true}
               accessibilityRole="button"
-              accessibilityLabel={`Change area. Current area is ${areaName}`}
+              accessibilityLabel="How Location Works"
               style={[
                 styles.settingsRowItem,
                 { borderBottomColor: palette.line },
@@ -507,56 +508,35 @@ export default function HomeScreen() {
               <View
                 style={[
                   styles.settingsIconBox,
-                  { backgroundColor: palette.surface2, borderColor: palette.line },
+                  {
+                    backgroundColor:
+                      scheme === 'light'
+                        ? 'rgba(14, 165, 233, 0.16)'
+                        : 'rgba(56, 189, 248, 0.2)',
+                    borderColor:
+                      scheme === 'light'
+                        ? 'rgba(14, 165, 233, 0.35)'
+                        : 'rgba(56, 189, 248, 0.4)',
+                  },
                 ]}
               >
-                <MapPinIcon size={18} color={palette.ink} />
+                <MapPinIcon
+                  size={18}
+                  color={scheme === 'light' ? '#0284C7' : '#38BDF8'}
+                />
               </View>
               <View style={styles.settingsItemInfo}>
                 <Text style={[styles.settingsItemTitle, { color: palette.ink }]}>
-                  Area: {areaName.split(',')[0]}
+                  How Location Works
                 </Text>
                 <Text style={[styles.settingsItemSubtitle, { color: palette.ink2 }]}>
-                  Choose neighborhood or GPS
+                  GPS usage, distance calculation & privacy
                 </Text>
               </View>
               <ChevronRightIcon size={18} color={palette.ink2} />
             </Pressable>
 
-            {/* Item 3: Replay Welcome Tour */}
-            <Pressable
-              onPress={() => {
-                setShowSettingsModal(false);
-                replayOnboarding();
-              }}
-              accessible={true}
-              accessibilityRole="button"
-              accessibilityLabel="Replay location tour"
-              style={[
-                styles.settingsRowItem,
-                { borderBottomColor: palette.line },
-              ]}
-            >
-              <View
-                style={[
-                  styles.settingsIconBox,
-                  { backgroundColor: palette.surface2, borderColor: palette.line },
-                ]}
-              >
-                <InfoIcon size={18} color={palette.ink} />
-              </View>
-              <View style={styles.settingsItemInfo}>
-                <Text style={[styles.settingsItemTitle, { color: palette.ink }]}>
-                  Location Tour
-                </Text>
-                <Text style={[styles.settingsItemSubtitle, { color: palette.ink2 }]}>
-                  Replay permissions introduction
-                </Text>
-              </View>
-              <ChevronRightIcon size={18} color={palette.ink2} />
-            </Pressable>
-
-            {/* Item 4: Pharmacy Staff Portal */}
+            {/* Item 3: Pharmacy Staff Portal */}
             <Pressable
               onPress={() => {
                 setShowSettingsModal(false);
@@ -573,10 +553,22 @@ export default function HomeScreen() {
               <View
                 style={[
                   styles.settingsIconBox,
-                  { backgroundColor: palette.surface2, borderColor: palette.line },
+                  {
+                    backgroundColor:
+                      scheme === 'light'
+                        ? 'rgba(168, 85, 247, 0.16)'
+                        : 'rgba(192, 132, 252, 0.2)',
+                    borderColor:
+                      scheme === 'light'
+                        ? 'rgba(168, 85, 247, 0.35)'
+                        : 'rgba(192, 132, 252, 0.4)',
+                  },
                 ]}
               >
-                <StaffBadgeIcon size={18} color={palette.ink} />
+                <StaffBadgeIcon
+                  size={18}
+                  color={scheme === 'light' ? '#9333EA' : '#C084FC'}
+                />
               </View>
               <View style={styles.settingsItemInfo}>
                 <Text style={[styles.settingsItemTitle, { color: palette.ink }]}>
@@ -589,7 +581,7 @@ export default function HomeScreen() {
               <ChevronRightIcon size={18} color={palette.ink2} />
             </Pressable>
 
-            {/* Item 5: Sourcing Policy */}
+            {/* Item 4: Sourcing Policy */}
             <Pressable
               onPress={() => {
                 setShowSettingsModal(false);
@@ -603,10 +595,22 @@ export default function HomeScreen() {
               <View
                 style={[
                   styles.settingsIconBox,
-                  { backgroundColor: palette.surface2, borderColor: palette.line },
+                  {
+                    backgroundColor:
+                      scheme === 'light'
+                        ? 'rgba(34, 197, 94, 0.16)'
+                        : 'rgba(74, 222, 128, 0.2)',
+                    borderColor:
+                      scheme === 'light'
+                        ? 'rgba(34, 197, 94, 0.35)'
+                        : 'rgba(74, 222, 128, 0.4)',
+                  },
                 ]}
               >
-                <ShieldCheckIcon size={18} color={palette.okInk} />
+                <ShieldCheckIcon
+                  size={18}
+                  color={scheme === 'light' ? '#16A34A' : '#4ADE80'}
+                />
               </View>
               <View style={styles.settingsItemInfo}>
                 <Text style={[styles.settingsItemTitle, { color: palette.ink }]}>
@@ -692,6 +696,89 @@ export default function HomeScreen() {
             >
               <Text style={[styles.policyDismissBtnText, { color: palette.btnInk }]}>
                 Understood
+              </Text>
+            </Pressable>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {/* Location & Privacy Info Modal */}
+      <Modal
+        visible={showLocationInfoModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowLocationInfoModal(false)}
+      >
+        <Pressable
+          style={styles.modalOverlay}
+          onPress={() => setShowLocationInfoModal(false)}
+        >
+          <Pressable
+            style={[
+              styles.policyCard,
+              {
+                backgroundColor: palette.surface,
+                borderColor: palette.line,
+                shadowColor: palette.shadow,
+              },
+            ]}
+            onPress={(e) => e.stopPropagation()}
+          >
+            <View style={styles.settingsModalHeader}>
+              <View style={styles.settingsModalTitleRow}>
+                <MapPinIcon size={20} color={scheme === 'light' ? '#0284C7' : '#38BDF8'} />
+                <Text style={[styles.settingsModalTitle, { color: palette.ink }]}>
+                  How Location Works
+                </Text>
+              </View>
+              <Pressable
+                onPress={() => setShowLocationInfoModal(false)}
+                hitSlop={8}
+                style={[styles.closeModalBtn, { borderColor: palette.line }]}
+              >
+                <CloseIcon size={16} color={palette.ink2} />
+              </Pressable>
+            </View>
+
+            <ScrollView style={styles.policyScrollArea} showsVerticalScrollIndicator={false}>
+              <Text style={[styles.policySectionHeading, { color: palette.ink }]}>
+                1. Foreground GPS Only
+              </Text>
+              <Text style={[styles.policyBodyText, { color: palette.ink2 }]}>
+                MedFind only requests foreground location while you actively use the app to discover nearby pharmacies and emergency facilities. We never track your background location or drain battery continuously.
+              </Text>
+
+              <Text style={[styles.policySectionHeading, { color: palette.ink }]}>
+                2. Device-Local Privacy
+              </Text>
+              <Text style={[styles.policyBodyText, { color: palette.ink2 }]}>
+                Your GPS coordinates stay on your phone. They are never sent to external servers, shared with third parties, or saved in any remote database.
+              </Text>
+
+              <Text style={[styles.policySectionHeading, { color: palette.ink }]}>
+                3. On-Device Distance Math
+              </Text>
+              <Text style={[styles.policyBodyText, { color: palette.ink2 }]}>
+                All distances to pharmacies, clinics, and hospitals are computed directly on this device using straight-line geodesic formulas to verified government and provider coordinates.
+              </Text>
+
+              <Text style={[styles.policySectionHeading, { color: palette.ink }]}>
+                4. Manual Neighborhood Fallback
+              </Text>
+              <Text style={[styles.policyBodyText, { color: palette.ink2 }]}>
+                If location permission is denied or turned off, you can tap the area pill in the top header to choose any neighborhood manually. Medicine search and emergency care are never blocked.
+              </Text>
+            </ScrollView>
+
+            <Pressable
+              onPress={() => setShowLocationInfoModal(false)}
+              style={[
+                styles.policyDismissBtn,
+                { backgroundColor: palette.btn, borderColor: palette.btnBorder },
+              ]}
+            >
+              <Text style={[styles.policyDismissBtnText, { color: palette.btnInk }]}>
+                Got it
               </Text>
             </Pressable>
           </Pressable>

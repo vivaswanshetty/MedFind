@@ -58,14 +58,22 @@ export default function SearchScreen() {
   const { userLocation } = useLocation();
 
   const [searchQuery, setSearchQuery] = useState(params.q || '');
-  const [selectedStrength, setSelectedStrength] = useState<string>('500 mg');
-  const [selectedDosageForm, setSelectedDosageForm] = useState<string>('Tablet');
+  const [selectedStrength, setSelectedStrength] = useState<string>('');
+  const [selectedDosageForm, setSelectedDosageForm] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
   const [searchResults, setSearchResults] = useState<MedicineSearchResultItem[]>([]);
   const [selectedRecordId, setSelectedRecordId] = useState<string | null>(null);
 
   const strengthOptions = ['250 mg', '500 mg', '850 mg', '1000 mg'];
   const dosageOptions = ['Tablet', 'Capsule', 'Syrup', 'Injection'];
+  const popularMedicines = [
+    'Metformin 500 mg',
+    'Paracetamol 500 mg',
+    'Salbutamol inhaler',
+    'Amoxicillin 500 mg',
+    'Cetirizine 10 mg',
+    'ORS sachet',
+  ];
 
   const statusBarHeight = Platform.OS === 'android' ? (StatusBar.currentHeight ?? 24) : 0;
   const paddingTop = Math.max(insets.top, statusBarHeight) + 8;
@@ -77,21 +85,35 @@ export default function SearchScreen() {
     }
   }, [params.q]);
 
-  // Load search results
+  // Load search results only when query exists
   useEffect(() => {
     let isCancelled = false;
+    const query = searchQuery.trim();
+
+    if (!query) {
+      setSearchResults([]);
+      setSelectedRecordId(null);
+      setIsLoading(false);
+      return;
+    }
+
     setIsLoading(true);
 
     const timer = setTimeout(async () => {
       try {
-        const response = await searchMedicineStock(searchQuery, 'All');
+        const response = await searchMedicineStock(query, selectedDosageForm || 'All');
         if (!isCancelled) {
           setSearchResults(response.results);
-          if (response.results.length > 0 && !selectedRecordId) {
-            setSelectedRecordId(response.results[0].medicineId);
+          if (response.results.length > 0) {
+            setSelectedRecordId((prev) => {
+              const stillExists = response.results.some((r) => r.medicineId === prev);
+              return stillExists ? prev : response.results[0].medicineId;
+            });
+          } else {
+            setSelectedRecordId(null);
           }
-          if (searchQuery.trim().length >= 2) {
-            await storageService.saveRecentSearch(searchQuery.trim());
+          if (query.length >= 2) {
+            await storageService.saveRecentSearch(query);
           }
         }
       } catch {
@@ -107,7 +129,7 @@ export default function SearchScreen() {
       isCancelled = true;
       clearTimeout(timer);
     };
-  }, [searchQuery]);
+  }, [searchQuery, selectedDosageForm]);
 
   // Dynamically group search results into matching records
   const dynamicGroups: MedicineRecordGroup[] = [];
@@ -128,13 +150,20 @@ export default function SearchScreen() {
     }
   });
 
+  const hasQuery = searchQuery.trim().length > 0;
+
   // Filter groups by strength if selected
-  const groups = selectedStrength
-    ? dynamicGroups.filter((g) => g.strength.toLowerCase().includes(selectedStrength.toLowerCase()))
-    : dynamicGroups;
+  let groups = dynamicGroups;
+  if (selectedStrength) {
+    groups = groups.filter((g) =>
+      g.strength.toLowerCase().includes(selectedStrength.toLowerCase())
+    );
+  }
 
   // Active selected record
-  const activeRecord = groups.find((g) => g.medicineId === selectedRecordId) || groups[0];
+  const activeRecord = hasQuery
+    ? groups.find((g) => g.medicineId === selectedRecordId) || groups[0] || null
+    : null;
 
   // Participating stores with verified coordinates around Basavanagudi
   const baseStores = [
@@ -306,174 +335,286 @@ export default function SearchScreen() {
           </Text>
         </View>
 
-        {/* STRENGTH FILTER CHIPS */}
-        <View style={styles.filterSection}>
-          <Text style={[styles.filterSectionTitle, { color: palette.ink2 }]}>
-            STRENGTH
-          </Text>
-          <View style={styles.chipsRow}>
-            {strengthOptions.map((st) => {
-              const isSelected = selectedStrength === st;
-              return (
+        {/* 1) POPULAR MEDICINES & SEARCH PROMPT (WHEN NO QUERY ENTERED) */}
+        {!hasQuery && (
+          <View style={styles.suggestionsContainer}>
+            <View style={styles.suggestionsHeaderRow}>
+              <ClockIcon size={15} color={palette.ink2} />
+              <Text style={[styles.suggestionsHeaderText, { color: palette.ink2 }]}>
+                Popular essential medicines
+              </Text>
+            </View>
+            <View style={styles.chipsRow}>
+              {popularMedicines.map((medName) => (
                 <Pressable
-                  key={st}
-                  onPress={() => setSelectedStrength(isSelected ? '' : st)}
+                  key={medName}
+                  onPress={() => {
+                    setSearchQuery(medName);
+                    setSelectedStrength('');
+                    setSelectedDosageForm('');
+                  }}
                   accessible={true}
                   accessibilityRole="button"
-                  accessibilityState={{ selected: isSelected }}
-                  accessibilityLabel={`Strength filter ${st}`}
-                  style={[
-                    styles.filterChip,
+                  accessibilityLabel={`Search for ${medName}`}
+                  style={({ pressed }) => [
+                    styles.suggestionChip,
                     {
-                      backgroundColor: isSelected ? palette.btn : palette.surface,
-                      borderColor: isSelected ? palette.selBorder : palette.line,
+                      backgroundColor: palette.surface,
+                      borderColor: palette.line,
+                      opacity: pressed ? 0.85 : 1.0,
                     },
                   ]}
                 >
-                  <Text
-                    style={[
-                      styles.filterChipText,
-                      { color: isSelected ? palette.btnInk : palette.ink },
-                    ]}
-                  >
-                    {isSelected ? `✓ ${st}` : st}
+                  <Text style={[styles.suggestionChipText, { color: palette.ink }]}>
+                    {medName}
                   </Text>
                 </Pressable>
-              );
-            })}
-          </View>
-        </View>
+              ))}
+            </View>
 
-        {/* DOSAGE FORM FILTER CHIPS */}
-        <View style={styles.filterSection}>
-          <Text style={[styles.filterSectionTitle, { color: palette.ink2 }]}>
-            DOSAGE FORM
-          </Text>
-          <View style={styles.chipsRow}>
-            {dosageOptions.map((df) => {
-              const isSelected = selectedDosageForm === df;
-              return (
-                <Pressable
-                  key={df}
-                  onPress={() => setSelectedDosageForm(isSelected ? '' : df)}
-                  accessible={true}
-                  accessibilityRole="button"
-                  accessibilityState={{ selected: isSelected }}
-                  accessibilityLabel={`Dosage form filter ${df}`}
-                  style={[
-                    styles.filterChip,
-                    {
-                      backgroundColor: isSelected ? palette.btn : palette.surface,
-                      borderColor: isSelected ? palette.selBorder : palette.line,
-                    },
-                  ]}
-                >
-                  <Text
+            {/* Explanatory Guide Card */}
+            <View
+              style={[
+                styles.guideCard,
+                {
+                  backgroundColor: palette.surface2,
+                  borderColor: palette.line,
+                },
+              ]}
+            >
+              <ShieldCheckIcon size={20} color={palette.okInk} />
+              <View style={styles.guideCardTextGroup}>
+                <Text style={[styles.guideCardTitle, { color: palette.ink }]}>
+                  Verified Pharmacy Inventory
+                </Text>
+                <Text style={[styles.guideCardBody, { color: palette.ink2 }]}>
+                  Type a medicine brand or generic name above to check confirmed stock updates and verified phone contacts across participating Bengaluru pharmacies.
+                </Text>
+              </View>
+            </View>
+          </View>
+        )}
+
+        {/* 2) STRENGTH FILTER CHIPS (WHEN QUERY ENTERED) */}
+        {hasQuery && (
+          <View style={styles.filterSection}>
+            <Text style={[styles.filterSectionTitle, { color: palette.ink2 }]}>
+              STRENGTH
+            </Text>
+            <View style={styles.chipsRow}>
+              {strengthOptions.map((st) => {
+                const isSelected = selectedStrength === st;
+                return (
+                  <Pressable
+                    key={st}
+                    onPress={() => setSelectedStrength(isSelected ? '' : st)}
+                    accessible={true}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: isSelected }}
+                    accessibilityLabel={`Strength filter ${st}`}
                     style={[
-                      styles.filterChipText,
-                      { color: isSelected ? palette.btnInk : palette.ink },
+                      styles.filterChip,
+                      {
+                        backgroundColor: isSelected ? palette.btn : palette.surface,
+                        borderColor: isSelected ? palette.selBorder : palette.line,
+                      },
                     ]}
                   >
-                    {isSelected ? `✓ ${df}` : df}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </View>
-        </View>
-
-        {/* MATCHING RECORDS (EXACT DESCRIPTION SELECTOR) */}
-        <View style={styles.recordsSection}>
-          <View style={styles.recordsHeaderRow}>
-            <Text style={[styles.recordsSectionTitle, { color: palette.ink }]}>
-              Matching records
-            </Text>
-            <Text style={[styles.recordsCountText, { color: palette.ink2 }]}>
-              {groups.length} exact descriptions
-            </Text>
-          </View>
-
-          {groups.map((record) => {
-            const isSelected = selectedRecordId === record.medicineId;
-
-            return (
-              <Pressable
-                key={record.medicineId}
-                onPress={() => setSelectedRecordId(record.medicineId)}
-                accessible={true}
-                accessibilityRole="radio"
-                accessibilityState={{ selected: isSelected }}
-                accessibilityLabel={`${record.brandName}, ${record.strength} ${record.dosageForm}`}
-                style={[
-                  styles.recordCard,
-                  {
-                    backgroundColor: palette.surface,
-                    borderColor: isSelected ? palette.selBorder : palette.line,
-                    borderWidth: isSelected ? 1.8 : 1,
-                  },
-                ]}
-              >
-                {/* Radio Indicator */}
-                <View
-                  style={[
-                    styles.radioCircle,
-                    {
-                      borderColor: isSelected ? palette.btn : palette.line,
-                      backgroundColor: isSelected ? palette.btn : 'transparent',
-                    },
-                  ]}
-                >
-                  {isSelected && (
-                    <Text style={[styles.radioCheckmark, { color: palette.btnInk }]}>
-                      ✓
-                    </Text>
-                  )}
-                </View>
-
-                {/* Record Details */}
-                <View style={styles.recordContent}>
-                  <Text style={[styles.recordName, { color: palette.ink }]}>
-                    {record.brandName}
-                  </Text>
-                  <Text style={[styles.recordMeta, { color: palette.ink2 }]}>
-                    {record.strength} • {record.dosageForm}
-                  </Text>
-
-                  {record.isExtendedRelease ? (
-                    <View
+                    <Text
                       style={[
-                        styles.diffFormBadge,
-                        {
-                          backgroundColor: palette.surface2,
-                          borderColor: palette.line,
-                        },
+                        styles.filterChipText,
+                        { color: isSelected ? palette.btnInk : palette.ink },
                       ]}
                     >
-                      <Text style={[styles.diffFormText, { color: palette.ink2 }]}>
-                        Different formulation, not treated as equivalent
-                      </Text>
-                    </View>
-                  ) : (
-                    <Text style={[styles.recordHoldText, { color: palette.ink2 }]}>
-                      {pharmacyItems.length} participating pharmacies hold a record
+                      {isSelected ? `✓ ${st}` : st}
                     </Text>
-                  )}
-                </View>
-              </Pressable>
-            );
-          })}
-        </View>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </View>
+        )}
 
-        {/* CLINICAL POLICY BOUNDARY NOTE */}
-        <View style={styles.disclaimerBox}>
-          <InfoIcon size={16} color={palette.ink2} />
-          <Text style={[styles.disclaimerText, { color: palette.ink2 }]}>
-            MedFind matches the exact description you pick. It gives no dosage advice and never swaps a medicine. Ask your pharmacist or clinician.
-          </Text>
-        </View>
+        {/* 3) DOSAGE FORM FILTER CHIPS (WHEN QUERY ENTERED) */}
+        {hasQuery && (
+          <View style={styles.filterSection}>
+            <Text style={[styles.filterSectionTitle, { color: palette.ink2 }]}>
+              DOSAGE FORM
+            </Text>
+            <View style={styles.chipsRow}>
+              {dosageOptions.map((df) => {
+                const isSelected = selectedDosageForm === df;
+                return (
+                  <Pressable
+                    key={df}
+                    onPress={() => setSelectedDosageForm(isSelected ? '' : df)}
+                    accessible={true}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: isSelected }}
+                    accessibilityLabel={`Dosage form filter ${df}`}
+                    style={[
+                      styles.filterChip,
+                      {
+                        backgroundColor: isSelected ? palette.btn : palette.surface,
+                        borderColor: isSelected ? palette.selBorder : palette.line,
+                      },
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.filterChipText,
+                        { color: isSelected ? palette.btnInk : palette.ink },
+                      ]}
+                    >
+                      {isSelected ? `✓ ${df}` : df}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </View>
+        )}
 
-        {/* ================= PHARMACY RESULTS EXPANSION (IMAGE 3) ================= */}
-        {activeRecord && (
+        {/* 4) LOADING INDICATOR */}
+        {hasQuery && isLoading && (
+          <ActivityIndicator
+            size="small"
+            color={palette.ink}
+            style={{ marginVertical: 24 }}
+          />
+        )}
+
+        {/* 5) EMPTY STATE (WHEN QUERY HAS NO MATCH) */}
+        {hasQuery && !isLoading && groups.length === 0 && (
+          <View
+            style={[
+              styles.emptyContainer,
+              {
+                backgroundColor: palette.surface,
+                borderColor: palette.line,
+              },
+            ]}
+          >
+            <SearchIcon size={28} color={palette.ink2} />
+            <Text style={[styles.emptyTitle, { color: palette.ink }]}>
+              No matching records
+            </Text>
+            <Text style={[styles.emptySubtitle, { color: palette.ink2 }]}>
+              We couldn't find a record matching "{searchQuery}". Try checking the spelling or searching by generic formula.
+            </Text>
+            <Pressable
+              onPress={() => setSearchQuery('')}
+              accessible={true}
+              accessibilityRole="button"
+              accessibilityLabel="Clear search input"
+              style={[
+                styles.emptyResetBtn,
+                { backgroundColor: palette.surface2, borderColor: palette.line },
+              ]}
+            >
+              <Text style={[styles.emptyResetText, { color: palette.ink }]}>
+                Clear search
+              </Text>
+            </Pressable>
+          </View>
+        )}
+
+        {/* 6) MATCHING RECORDS (EXACT DESCRIPTION SELECTOR) */}
+        {hasQuery && !isLoading && groups.length > 0 && (
+          <View style={styles.recordsSection}>
+            <View style={styles.recordsHeaderRow}>
+              <Text style={[styles.recordsSectionTitle, { color: palette.ink }]}>
+                Matching records
+              </Text>
+              <Text style={[styles.recordsCountText, { color: palette.ink2 }]}>
+                {groups.length} exact description{groups.length === 1 ? '' : 's'}
+              </Text>
+            </View>
+
+            {groups.map((record) => {
+              const isSelected = selectedRecordId === record.medicineId;
+
+              return (
+                <Pressable
+                  key={record.medicineId}
+                  onPress={() => setSelectedRecordId(record.medicineId)}
+                  accessible={true}
+                  accessibilityRole="radio"
+                  accessibilityState={{ selected: isSelected }}
+                  accessibilityLabel={`${record.brandName}, ${record.strength} ${record.dosageForm}`}
+                  style={[
+                    styles.recordCard,
+                    {
+                      backgroundColor: palette.surface,
+                      borderColor: isSelected ? palette.selBorder : palette.line,
+                      borderWidth: isSelected ? 1.8 : 1,
+                    },
+                  ]}
+                >
+                  {/* Radio Indicator */}
+                  <View
+                    style={[
+                      styles.radioCircle,
+                      {
+                        borderColor: isSelected ? palette.btn : palette.line,
+                        backgroundColor: isSelected ? palette.btn : 'transparent',
+                      },
+                    ]}
+                  >
+                    {isSelected && (
+                      <Text style={[styles.radioCheckmark, { color: palette.btnInk }]}>
+                        ✓
+                      </Text>
+                    )}
+                  </View>
+
+                  {/* Record Details */}
+                  <View style={styles.recordContent}>
+                    <Text style={[styles.recordName, { color: palette.ink }]}>
+                      {record.brandName}
+                    </Text>
+                    <Text style={[styles.recordMeta, { color: palette.ink2 }]}>
+                      {record.strength} • {record.dosageForm}
+                    </Text>
+
+                    {record.isExtendedRelease ? (
+                      <View
+                        style={[
+                          styles.diffFormBadge,
+                          {
+                            backgroundColor: palette.surface2,
+                            borderColor: palette.line,
+                          },
+                        ]}
+                      >
+                        <Text style={[styles.diffFormText, { color: palette.ink2 }]}>
+                          Different formulation, not treated as equivalent
+                        </Text>
+                      </View>
+                    ) : (
+                      <Text style={[styles.recordHoldText, { color: palette.ink2 }]}>
+                        {pharmacyItems.length} participating pharmacies hold a record
+                      </Text>
+                    )}
+                  </View>
+                </Pressable>
+              );
+            })}
+          </View>
+        )}
+
+        {/* 7) CLINICAL POLICY BOUNDARY NOTE */}
+        {hasQuery && !isLoading && groups.length > 0 && (
+          <View style={styles.disclaimerBox}>
+            <InfoIcon size={16} color={palette.ink2} />
+            <Text style={[styles.disclaimerText, { color: palette.ink2 }]}>
+              MedFind matches the exact description you pick. It gives no dosage advice and never swaps a medicine. Ask your pharmacist or clinician.
+            </Text>
+          </View>
+        )}
+
+        {/* 8) PHARMACY RESULTS EXPANSION */}
+        {hasQuery && !isLoading && activeRecord && (
           <View style={styles.resultsExpansionSection}>
             {/* Active Medicine Subhead */}
             <View style={styles.activeMedicineHeaderRow}>
@@ -947,5 +1088,93 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     paddingHorizontal: 16,
     marginTop: 4,
+  },
+
+  // EMPTY & SUGGESTIONS SECTIONS
+  suggestionsContainer: {
+    gap: 12,
+    marginTop: 4,
+  },
+  suggestionsHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  suggestionsHeaderText: {
+    fontFamily: fonts.sansBold,
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  suggestionChip: {
+    minHeight: MIN_TARGET,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: radii.chip,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  suggestionChipText: {
+    fontFamily: fonts.sansSemi,
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  guideCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderRadius: radii.card,
+    borderWidth: 1,
+    marginTop: 8,
+  },
+  guideCardTextGroup: {
+    flex: 1,
+    gap: 4,
+  },
+  guideCardTitle: {
+    fontFamily: fonts.sansBold,
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  guideCardBody: {
+    fontFamily: fonts.sans,
+    fontSize: 13,
+    lineHeight: 19,
+  },
+  emptyContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 36,
+    paddingHorizontal: 24,
+    borderRadius: radii.card,
+    borderWidth: 1,
+    gap: 10,
+    marginVertical: 12,
+  },
+  emptyTitle: {
+    fontFamily: fonts.sansBold,
+    fontSize: 17,
+    fontWeight: '700',
+    marginTop: 4,
+  },
+  emptySubtitle: {
+    fontFamily: fonts.sans,
+    fontSize: 14,
+    lineHeight: 21,
+    textAlign: 'center',
+  },
+  emptyResetBtn: {
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    borderRadius: radii.pill,
+    borderWidth: 1,
+    marginTop: 8,
+  },
+  emptyResetText: {
+    fontFamily: fonts.sansSemi,
+    fontSize: 14,
+    fontWeight: '600',
   },
 });

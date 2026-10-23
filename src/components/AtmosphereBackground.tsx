@@ -27,6 +27,7 @@ export function AtmosphereBackground() {
             const cy = blob.cy * height;
             const rx = blob.rx * width;
             const ry = blob.ry * height;
+            const r = Math.max(rx, ry);
 
             return (
               <RadialGradient
@@ -34,8 +35,9 @@ export function AtmosphereBackground() {
                 id={`blob-grad-${index}`}
                 cx={cx}
                 cy={cy}
-                rx={rx}
-                ry={ry}
+                r={r}
+                fx={cx}
+                fy={cy}
                 gradientUnits="userSpaceOnUse"
               >
                 <Stop
@@ -70,6 +72,11 @@ export function AtmosphereBackground() {
 
 const styles = StyleSheet.create({
   container: {
-    zIndex: -1,
+    // Keep behind scroll content without clipping behind window decor
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
   },
 });

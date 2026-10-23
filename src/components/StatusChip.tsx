@@ -70,7 +70,9 @@ export function StatusChip({ tone, label, hint, icon }: StatusChipProps) {
   return (
     <View style={[styles.chip, { backgroundColor: bg }]}>
       {renderedIcon}
-      <Text style={[styles.labelText, { color: text }]}>{label}</Text>
+      <Text style={[styles.labelText, { color: text }]} numberOfLines={1}>
+        {label}
+      </Text>
       {hint ? (
         <Text
           style={[
@@ -80,6 +82,7 @@ export function StatusChip({ tone, label, hint, icon }: StatusChipProps) {
               opacity: tone === 'stale' ? 1.0 : 0.85,
             },
           ]}
+          numberOfLines={1}
         >
           {hint}
         </Text>
@@ -90,21 +93,24 @@ export function StatusChip({ tone, label, hint, icon }: StatusChipProps) {
 
 const styles = StyleSheet.create({
   chip: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     borderRadius: radii.chip,
+    minHeight: 42,
     paddingVertical: 9,
     paddingHorizontal: 10,
     gap: 6,
   },
   labelText: {
     fontFamily: fonts.sansBold,
-    fontSize: 13,
+    fontSize: 12.5,
     fontWeight: '700',
   },
   hintText: {
     fontFamily: fonts.sansSemi,
-    fontSize: 13,
-    fontWeight: '600',
+    fontSize: 11.5,
+    fontWeight: '500',
+    flexShrink: 1,
   },
 });

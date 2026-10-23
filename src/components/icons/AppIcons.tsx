@@ -392,7 +392,33 @@ export function CloseIcon({ size = 16, color = '#6B7280' }: IconProps) {
 }
 
 /**
- * 18. Hospital Facility Icon
+ * 18. Square Plus / Medical Facility Icon (matching mockup Care Nearby tile)
+ */
+export function SquarePlusIcon({ size = 22, color }: IconProps) {
+  const iconColor = color || '#2E4A1D';
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Rect
+        x="3"
+        y="3"
+        width="18"
+        height="18"
+        rx="5"
+        stroke={iconColor}
+        strokeWidth={2}
+      />
+      <Path
+        d="M12 8v8M8 12h8"
+        stroke={iconColor}
+        strokeWidth={2.4}
+        strokeLinecap="round"
+      />
+    </Svg>
+  );
+}
+
+/**
+ * 18b. Hospital Facility Icon
  */
 export function HospitalIcon({ size = 18, color }: IconProps) {
   return (
