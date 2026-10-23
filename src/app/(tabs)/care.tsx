@@ -37,7 +37,7 @@ import { InteractiveCareMap, MapMarkerItem } from '../../components/map/Interact
 export default function CareNearbyScreen() {
   const insets = useSafeAreaInsets();
   const { scheme, palette } = useTheme();
-  const { userLocation, areaName } = useLocation();
+  const { userLocation, areaName, requestGpsLocation } = useLocation();
   const { t } = useLanguage();
 
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
@@ -274,6 +274,7 @@ export default function CareNearbyScreen() {
           }}
           onOpenExternalMap={handleOpenMapApp}
           onInteractionChange={setIsMapInteracting}
+          onRequestLocation={requestGpsLocation}
         />
 
         {/* INTERACTIVE PIN SELECTION CALLOUT */}

@@ -960,5 +960,23 @@ export function FitBoundsIcon({ size = 16, color }: IconProps) {
   );
 }
 
+/**
+ * 44. Zap / Quick-fill Lightning Icon
+ */
+export function ZapIcon({ size = 16, color }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M13 2L3 14H12L11 22L21 10H12L13 2Z"
+        fill={color || '#EAB308'}
+        stroke={color || '#CA8A04'}
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
 
 

@@ -22,6 +22,7 @@ import {
   BackArrowIcon,
   CloseIcon,
   ChevronRightIcon,
+  ZapIcon,
 } from '../icons/AppIcons';
 
 interface StoreOnboardingModalProps {
@@ -57,9 +58,9 @@ export function StoreOnboardingModal({
     }
   );
 
-  const [pharmacistName, setPharmacistName] = useState('Priya Sharma, R.Ph');
-  const [licenseNumber, setLicenseNumber] = useState('KA-BLR-2024-DR-0492');
-  const [counterId, setCounterId] = useState('Dispensary Counter 1');
+  const [pharmacistName, setPharmacistName] = useState('');
+  const [licenseNumber, setLicenseNumber] = useState('');
+  const [counterId, setCounterId] = useState('');
   const [hasAttested, setHasAttested] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -89,6 +90,10 @@ export function StoreOnboardingModal({
     }
     if (!licenseNumber.trim()) {
       setErrorMessage('Please enter the drug license / registration number.');
+      return;
+    }
+    if (!counterId.trim()) {
+      setErrorMessage('Please enter the counter or dispensing station.');
       return;
     }
     setErrorMessage(null);
@@ -389,8 +394,9 @@ export function StoreOnboardingModal({
                 },
               ]}
             >
+              <ZapIcon size={14} color={palette.accent} />
               <Text style={[styles.quickFillText, { color: palette.accent }]}>
-                ⚡ Autofill Demo Credentials
+                Autofill Demo Credentials
               </Text>
             </Pressable>
 
@@ -445,12 +451,15 @@ export function StoreOnboardingModal({
             {/* Input 3: Counter / Desk ID */}
             <View style={styles.fieldGroup}>
               <Text style={[styles.fieldLabel, { color: palette.ink }]}>
-                Counter / Dispensing Station
+                Counter / Dispensing Station *
               </Text>
               <TextInput
                 value={counterId}
-                onChangeText={setCounterId}
-                placeholder="e.g. Counter 1 - Front Rack"
+                onChangeText={(text) => {
+                  setCounterId(text);
+                  setErrorMessage(null);
+                }}
+                placeholder="e.g. Dispensary Counter 1"
                 placeholderTextColor={palette.ink2}
                 style={[
                   styles.textInput,
@@ -857,6 +866,9 @@ const styles = StyleSheet.create({
   },
 
   quickFillPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
     alignSelf: 'flex-start',
     paddingHorizontal: 12,
     paddingVertical: 8,

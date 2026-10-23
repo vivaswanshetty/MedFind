@@ -36,6 +36,7 @@ interface InteractiveCareMapProps {
   onSelectPin: (id: string) => void;
   onOpenExternalMap: () => void;
   onInteractionChange?: (isInteracting: boolean) => void;
+  onRequestLocation?: () => void;
 }
 
 export function InteractiveCareMap({
@@ -46,13 +47,14 @@ export function InteractiveCareMap({
   onSelectPin,
   onOpenExternalMap,
   onInteractionChange,
+  onRequestLocation,
 }: InteractiveCareMapProps) {
   const { scheme, palette } = useTheme();
   const webViewRef = useRef<WebView>(null);
   const [isExpanded, setIsExpanded] = useState(false);
   const [showHint, setShowHint] = useState(true);
 
-  const defaultLat = userLocation?.latitude ?? 12.9416; // Basavanagudi centroid
+  const defaultLat = userLocation?.latitude ?? 12.9416; // Basavanagudi centroid fallback
   const defaultLng = userLocation?.longitude ?? 77.5738;
 
   // Sync selected pin from parent to WebView map
@@ -110,6 +112,7 @@ export function InteractiveCareMap({
   }, [isExpanded]);
 
   const handleRecenter = () => {
+    onRequestLocation?.();
     if (!webViewRef.current) return;
     const targetLat = userLocation?.latitude ?? defaultLat;
     const targetLng = userLocation?.longitude ?? defaultLng;
@@ -264,24 +267,25 @@ export function InteractiveCareMap({
             attribution: '© OpenStreetMap contributors'
           }).addTo(map);
 
-          // User Accuracy Ring (65m precision circle)
-          let userAccuracyCircle = L.circle([${defaultLat}, ${defaultLng}], {
-            radius: 65,
-            color: '${scheme === 'light' ? '#87A96B' : '#00E5FF'}',
-            fillColor: '${scheme === 'light' ? '#87A96B' : '#00E5FF'}',
-            fillOpacity: 0.14,
-            weight: 1.5,
-            dashArray: '3, 4'
-          }).addTo(map);
-
-          // User Location Marker
+          // User Location Beacon Definition
           const userIcon = L.divIcon({
             className: '',
             html: '<div class="user-beacon"><div class="user-pulse"></div><div class="user-dot"></div></div>',
             iconSize: [32, 32],
             iconAnchor: [16, 16]
           });
-          let userMarker = L.marker([${defaultLat}, ${defaultLng}], { icon: userIcon, zIndexOffset: 250 }).addTo(map);
+
+          // User Accuracy Ring (65m precision circle) - only placed if coordinates exist
+          let userAccuracyCircle = ${userLocation ? `L.circle([${userLocation.latitude}, ${userLocation.longitude}], {
+            radius: 65,
+            color: '${scheme === 'light' ? '#87A96B' : '#00E5FF'}',
+            fillColor: '${scheme === 'light' ? '#87A96B' : '#00E5FF'}',
+            fillOpacity: 0.14,
+            weight: 1.5,
+            dashArray: '3, 4'
+          }).addTo(map)` : `null`};
+
+          let userMarker = ${userLocation ? `L.marker([${userLocation.latitude}, ${userLocation.longitude}], { icon: userIcon, zIndexOffset: 250 }).addTo(map)` : `null`};
 
           // Marker Management
           let markerObjects = {};
@@ -331,8 +335,23 @@ export function InteractiveCareMap({
           };
 
           window.updateUserLocation = function(lat, lng) {
-            if (userMarker) userMarker.setLatLng([lat, lng]);
-            if (userAccuracyCircle) userAccuracyCircle.setLatLng([lat, lng]);
+            if (!userMarker) {
+              userMarker = L.marker([lat, lng], { icon: userIcon, zIndexOffset: 250 }).addTo(map);
+            } else {
+              userMarker.setLatLng([lat, lng]);
+            }
+            if (!userAccuracyCircle) {
+              userAccuracyCircle = L.circle([lat, lng], {
+                radius: 65,
+                color: '${scheme === 'light' ? '#87A96B' : '#00E5FF'}',
+                fillColor: '${scheme === 'light' ? '#87A96B' : '#00E5FF'}',
+                fillOpacity: 0.14,
+                weight: 1.5,
+                dashArray: '3, 4'
+              }).addTo(map);
+            } else {
+              userAccuracyCircle.setLatLng([lat, lng]);
+            }
             map.flyTo([lat, lng], 15.5, { animate: true, duration: 0.8 });
           };
 
@@ -349,7 +368,26 @@ export function InteractiveCareMap({
           window.recenterMap = function(lat, lng) {
             document.querySelectorAll('.med-pin').forEach(el => el.classList.remove('active'));
             map.closePopup();
-            map.flyTo([lat, lng], 15.5, { animate: true, duration: 0.7 });
+            if (lat && lng) {
+              if (!userMarker) {
+                userMarker = L.marker([lat, lng], { icon: userIcon, zIndexOffset: 250 }).addTo(map);
+              } else {
+                userMarker.setLatLng([lat, lng]);
+              }
+              if (!userAccuracyCircle) {
+                userAccuracyCircle = L.circle([lat, lng], {
+                  radius: 65,
+                  color: '${scheme === 'light' ? '#87A96B' : '#00E5FF'}',
+                  fillColor: '${scheme === 'light' ? '#87A96B' : '#00E5FF'}',
+                  fillOpacity: 0.14,
+                  weight: 1.5,
+                  dashArray: '3, 4'
+                }).addTo(map);
+              } else {
+                userAccuracyCircle.setLatLng([lat, lng]);
+              }
+              map.flyTo([lat, lng], 15.5, { animate: true, duration: 0.7 });
+            }
           };
 
           window.fitAllMarkers = function() {
@@ -427,6 +465,17 @@ export function InteractiveCareMap({
             <ActivityIndicator size="small" color={palette.accent} />
           </View>
         )}
+        onLoadEnd={() => {
+          if (userLocation && webViewRef.current) {
+            const script = `
+              if (window.updateUserLocation) {
+                window.updateUserLocation(${userLocation.latitude}, ${userLocation.longitude});
+              }
+              true;
+            `;
+            webViewRef.current.injectJavaScript(script);
+          }
+        }}
       />
 
       {/* Overlaid Top Header Bar with responsive layout */}

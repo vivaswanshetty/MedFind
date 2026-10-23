@@ -269,7 +269,7 @@ export default function PharmacyPortalScreen() {
 
         <View style={styles.headerTitleGroup}>
           <Text style={[styles.headerTitleText, { color: palette.ink }]} numberOfLines={1}>
-            Pharmacy Staff Portal
+          Staff Portal
           </Text>
           <Text style={[styles.headerSubtitleText, { color: palette.ink2 }]} numberOfLines={1}>
             {selectedPharmacy?.name || 'Verified Dispensary'} • {partnerAuth.pharmacistName}

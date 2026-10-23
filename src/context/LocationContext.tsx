@@ -11,6 +11,7 @@ import {
 
 const ONBOARDING_COMPLETED_KEY = '@medfind_onboarding_completed_v1';
 const SELECTED_AREA_NAME_KEY = '@medfind_user_area_name_v1';
+const LOCATION_SOURCE_KEY = '@medfind_location_source_v1';
 
 export type LocationSource = 'gps' | 'manual_area' | 'none';
 
@@ -56,7 +57,8 @@ export function LocationProvider({ children }: { children: ReactNode }) {
         const onboardingVal = await AsyncStorage.getItem(ONBOARDING_COMPLETED_KEY);
         const isDone = onboardingVal === 'true';
 
-        // 2. Check if a general area name was previously saved
+        // 2. Check previous location source and saved area
+        const savedSource = (await AsyncStorage.getItem(LOCATION_SOURCE_KEY)) as LocationSource | null;
         const savedAreaName = await AsyncStorage.getItem(SELECTED_AREA_NAME_KEY);
 
         // 3. Check existing foreground permission status (non-prompting)
@@ -70,14 +72,33 @@ export function LocationProvider({ children }: { children: ReactNode }) {
             setShowOnboardingModal(true);
           }
 
-          if (savedAreaName) {
+          if (savedSource === 'manual_area' && savedAreaName) {
+            // User intentionally selected a manual area previously
             setAreaName(savedAreaName);
-            // If the saved area matches a known area, load its centroid for distance ordering
             const match = PREDEFINED_AREAS.find((a) => a.name.toLowerCase() === savedAreaName.toLowerCase());
             if (match) {
               setUserLocation({ latitude: match.latitude, longitude: match.longitude });
               setLocationSource('manual_area');
             } else {
+              setLocationSource('manual_area');
+            }
+          } else if (hasPermission) {
+            // Permission already granted: automatically retrieve actual accurate device GPS!
+            requestDeviceLocation().then((result) => {
+              if (!isCancelled && result.granted && result.coords) {
+                setUserLocation(result.coords);
+                setLocationSource('gps');
+                setHasLocationPermission(true);
+                if (result.areaName) {
+                  setAreaName(result.areaName);
+                }
+              }
+            });
+          } else if (savedAreaName) {
+            setAreaName(savedAreaName);
+            const match = PREDEFINED_AREAS.find((a) => a.name.toLowerCase() === savedAreaName.toLowerCase());
+            if (match) {
+              setUserLocation({ latitude: match.latitude, longitude: match.longitude });
               setLocationSource('manual_area');
             }
           }
@@ -110,6 +131,7 @@ export function LocationProvider({ children }: { children: ReactNode }) {
         setUserLocation(result.coords);
         setLocationSource('gps');
         setHasLocationPermission(true);
+        await AsyncStorage.setItem(LOCATION_SOURCE_KEY, 'gps');
         if (result.areaName) {
           setAreaName(result.areaName);
           // Save only the readable locality text, never the raw lat/long
@@ -135,6 +157,7 @@ export function LocationProvider({ children }: { children: ReactNode }) {
     } else {
       setUserLocation(null);
     }
+    await AsyncStorage.setItem(LOCATION_SOURCE_KEY, 'manual_area');
     // Save human-readable area name to storage (no precise coords saved)
     await AsyncStorage.setItem(SELECTED_AREA_NAME_KEY, area.name);
   };
@@ -146,6 +169,7 @@ export function LocationProvider({ children }: { children: ReactNode }) {
     setUserLocation(null);
     setAreaName('All Bengaluru');
     setLocationSource('none');
+    await AsyncStorage.removeItem(LOCATION_SOURCE_KEY);
     await AsyncStorage.removeItem(SELECTED_AREA_NAME_KEY);
   };
 
