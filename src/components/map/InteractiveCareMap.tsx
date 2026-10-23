@@ -8,10 +8,12 @@ import {
 } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { useTheme } from '../../theme/ThemeContext';
-import { fonts, radii, MIN_TARGET } from '../../constants/theme';
+import { fonts, radii } from '../../constants/theme';
 import {
   CrosshairTargetIcon,
   DirectionsIcon,
+  ExpandIcon,
+  CompressIcon,
 } from '../icons/AppIcons';
 import { Coordinates } from '../../services/locationService';
 
@@ -77,6 +79,20 @@ export function InteractiveCareMap({
     webViewRef.current.injectJavaScript(script);
   }, [markers]);
 
+  // Invalidate map size when expanded / collapsed
+  useEffect(() => {
+    if (!webViewRef.current) return;
+    const script = `
+      if (window.map) {
+        setTimeout(function() {
+          window.map.invalidateSize({ animate: true });
+        }, 150);
+      }
+      true;
+    `;
+    webViewRef.current.injectJavaScript(script);
+  }, [isExpanded]);
+
   const handleRecenter = () => {
     if (!webViewRef.current) return;
     const script = `
@@ -96,12 +112,8 @@ export function InteractiveCareMap({
     webViewRef.current?.injectJavaScript('if(window.map){window.map.zoomOut();}true;');
   };
 
-  // CartoDB tiles: Voyager for warm editorial light, Dark Matter for cinematic dark
-  const tileUrl =
-    scheme === 'light'
-      ? 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png'
-      : 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
-
+  // OpenStreetMap standard tile layer: 100% free, zero API key requirement, fully detailed with roads & places
+  const tileUrl = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
   const markerDataJson = JSON.stringify(markers);
 
   const htmlContent = `
@@ -113,8 +125,15 @@ export function InteractiveCareMap({
         <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
         <style>
           * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-          html, body, #map { width: 100%; height: 100%; background: ${scheme === 'light' ? '#F7F2E8' : '#050505'}; overflow: hidden; }
+          html, body, #map { width: 100%; height: 100%; background: ${scheme === 'light' ? '#F7F2E8' : '#0a0a0f'}; overflow: hidden; }
           
+          /* Dark mode CSS filter for OpenStreetMap tiles: turns high-detail street tiles into sleek night mode */
+          ${scheme === 'dark' ? `
+            .leaflet-tile-pane {
+              filter: brightness(0.7) invert(1) contrast(2.6) hue-rotate(200deg) saturate(0.35) brightness(0.8);
+            }
+          ` : ''}
+
           /* Custom Marker Pins */
           .med-pin {
             display: flex;
@@ -127,7 +146,7 @@ export function InteractiveCareMap({
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             font-weight: 800;
             font-size: 15px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.32);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.35);
             border: 2px solid #FFFFFF;
             transition: transform 0.22s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             cursor: pointer;
@@ -153,7 +172,7 @@ export function InteractiveCareMap({
             width: 100%;
             height: 100%;
             border-radius: 50%;
-            background: ${scheme === 'light' ? 'rgba(135,169,107,0.45)' : 'rgba(0,229,255,0.35)'};
+            background: ${scheme === 'light' ? 'rgba(135,169,107,0.55)' : 'rgba(0,229,255,0.45)'};
             animation: pulse 2s infinite ease-out;
           }
           .user-dot {
@@ -172,12 +191,12 @@ export function InteractiveCareMap({
             100% { transform: scale(1.9); opacity: 0; }
           }
           
-          /* Popup Callout Styling */
+          /* Leaflet Popup Tooltip */
           .leaflet-popup-content-wrapper {
             background: ${scheme === 'light' ? '#FFFCF5' : '#121216'};
             color: ${scheme === 'light' ? '#5A3E2B' : '#F4F2FA'};
             border-radius: 12px;
-            box-shadow: 0 6px 18px rgba(0,0,0,0.22);
+            box-shadow: 0 6px 18px rgba(0,0,0,0.25);
             border: 1px solid ${scheme === 'light' ? '#E1D6C1' : '#2B2A36'};
             padding: 2px;
           }
@@ -209,7 +228,7 @@ export function InteractiveCareMap({
 
           L.tileLayer('${tileUrl}', {
             maxZoom: 19,
-            subdomains: 'abcd'
+            attribution: '© OpenStreetMap contributors'
           }).addTo(map);
 
           // User Location Marker
@@ -293,7 +312,7 @@ export function InteractiveCareMap({
       style={[
         styles.mapCard,
         {
-          height: isExpanded ? 380 : 255,
+          height: isExpanded ? 390 : 255,
           backgroundColor: palette.surface,
           borderColor: palette.line,
           shadowColor: palette.shadow,
@@ -325,65 +344,72 @@ export function InteractiveCareMap({
         )}
       />
 
-      {/* Floating Top Left: User Location Pill */}
-      <View
-        style={[
-          styles.userLocationPill,
-          {
-            backgroundColor: palette.surface,
-            borderColor: palette.line,
-          },
-        ]}
-      >
-        <View style={[styles.locationDot, { backgroundColor: palette.accent }]} />
-        <Text style={[styles.userLocationText, { color: palette.ink }]} numberOfLines={1}>
-          You • {areaName.split(',')[0]}
-        </Text>
-      </View>
-
-      {/* Floating Top Right: Action Controls (Expand/Collapse & Open in External Maps) */}
-      <View style={styles.topRightControls}>
-        <Pressable
-          onPress={() => setIsExpanded(!isExpanded)}
-          accessible={true}
-          accessibilityRole="button"
-          accessibilityLabel={isExpanded ? 'Collapse map' : 'Expand map view'}
-          style={({ pressed }) => [
-            styles.iconBadgeBtn,
+      {/* Overlaid Top Header Bar with responsive layout */}
+      <View style={styles.topHeaderBar} pointerEvents="box-none">
+        {/* User Location Pill */}
+        <View
+          style={[
+            styles.userLocationPill,
             {
               backgroundColor: palette.surface,
               borderColor: palette.line,
-              opacity: pressed ? 0.85 : 1.0,
             },
           ]}
         >
-          <Text style={[styles.expandText, { color: palette.ink }]}>
-            {isExpanded ? '⤢' : '⤡'}
+          <View style={[styles.locationDot, { backgroundColor: palette.accent }]} />
+          <Text style={[styles.userLocationText, { color: palette.ink }]} numberOfLines={1}>
+            {areaName.split(',')[0]}
           </Text>
-        </Pressable>
+        </View>
 
-        <Pressable
-          onPress={onOpenExternalMap}
-          accessible={true}
-          accessibilityRole="button"
-          accessibilityLabel="Open in Google Maps application"
-          style={({ pressed }) => [
-            styles.openMapsBtn,
-            {
-              backgroundColor: palette.surface,
-              borderColor: palette.line,
-              opacity: pressed ? 0.85 : 1.0,
-            },
-          ]}
-        >
-          <DirectionsIcon size={13} color={palette.ink} />
-          <Text style={[styles.openMapsText, { color: palette.ink }]}>
-            Maps ↗
-          </Text>
-        </Pressable>
+        {/* 2 Top Right Action Buttons: Expand/Contract + Google Maps */}
+        <View style={styles.topRightControls}>
+          {/* Button 1: Expand/Collapse Viewport Button */}
+          <Pressable
+            onPress={() => setIsExpanded(!isExpanded)}
+            accessible={true}
+            accessibilityRole="button"
+            accessibilityLabel={isExpanded ? 'Collapse map view' : 'Expand map view'}
+            style={({ pressed }) => [
+              styles.mapActionIconBtn,
+              {
+                backgroundColor: palette.surface,
+                borderColor: palette.line,
+                opacity: pressed ? 0.8 : 1.0,
+              },
+            ]}
+          >
+            {isExpanded ? (
+              <CompressIcon size={16} color={palette.ink} />
+            ) : (
+              <ExpandIcon size={16} color={palette.ink} />
+            )}
+          </Pressable>
+
+          {/* Button 2: Google Maps Navigation Button */}
+          <Pressable
+            onPress={onOpenExternalMap}
+            accessible={true}
+            accessibilityRole="button"
+            accessibilityLabel="Open in Google Maps application"
+            style={({ pressed }) => [
+              styles.openMapsBtn,
+              {
+                backgroundColor: palette.surface,
+                borderColor: palette.line,
+                opacity: pressed ? 0.8 : 1.0,
+              },
+            ]}
+          >
+            <DirectionsIcon size={14} color={palette.ink} />
+            <Text style={[styles.openMapsText, { color: palette.ink }]}>
+              Google Maps
+            </Text>
+          </Pressable>
+        </View>
       </View>
 
-      {/* Floating Bottom Right: Inbuilt Map Controls (Recenter, Zoom In, Zoom Out) */}
+      {/* Floating Bottom Right Controls (Recenter, Zoom In, Zoom Out) */}
       <View style={styles.floatingControlsGroup}>
         <Pressable
           onPress={handleRecenter}
@@ -462,19 +488,30 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  userLocationPill: {
+  topHeaderBar: {
     position: 'absolute',
-    top: 12,
-    left: 12,
+    top: 10,
+    left: 10,
+    right: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    zIndex: 10,
+  },
+  userLocationPill: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    paddingHorizontal: 11,
-    paddingVertical: 7,
+    paddingHorizontal: 12,
+    height: 36,
     borderRadius: radii.pill,
     borderWidth: 1,
-    maxWidth: 170,
-    zIndex: 10,
+    maxWidth: 160,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 4,
+    elevation: 3,
   },
   locationDot: {
     width: 8,
@@ -488,35 +525,36 @@ const styles = StyleSheet.create({
     flexShrink: 1,
   },
   topRightControls: {
-    position: 'absolute',
-    top: 12,
-    right: 12,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    zIndex: 10,
   },
-  iconBadgeBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: radii.pill,
+  mapActionIconBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  expandText: {
-    fontSize: 16,
-    lineHeight: 16,
-    fontWeight: '700',
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 4,
+    elevation: 3,
   },
   openMapsBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 5,
-    paddingHorizontal: 11,
-    paddingVertical: 7,
+    gap: 6,
+    paddingHorizontal: 12,
+    height: 36,
     borderRadius: radii.pill,
     borderWidth: 1,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 4,
+    elevation: 3,
   },
   openMapsText: {
     fontFamily: fonts.sansBold,

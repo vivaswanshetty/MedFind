@@ -892,5 +892,39 @@ export function CircleHelpIcon({ size = 14, color }: IconProps) {
   );
 }
 
+/**
+ * 41. Expand / Fullscreen Map Icon
+ */
+export function ExpandIcon({ size = 16, color }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"
+        stroke={color || 'currentColor'}
+        strokeWidth="2.2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
+/**
+ * 42. Compress / Minimize Map Icon
+ */
+export function CompressIcon({ size = 16, color }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M4 14h6v6M20 10h-6V4M14 10l7-7M10 14l-7 7"
+        stroke={color || 'currentColor'}
+        strokeWidth="2.2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
 
 
