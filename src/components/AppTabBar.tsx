@@ -34,6 +34,137 @@ export interface AppTabBarProps {
   navigateToTab?: (routeKey: string) => void;
 }
 
+interface TabButtonProps {
+  routeKey: string;
+  index?: number;
+  isFocused: boolean;
+  label: string;
+  icon: React.ReactNode;
+  isEmergencyTab: boolean;
+  onPress: () => void;
+  onLongPress: () => void;
+  onLayout: (e: any) => void;
+  scheme: 'light' | 'dark';
+  palette: any;
+}
+
+/**
+ * DynamicIslandTabButton provides the bounce/spring animation for individual inner buttons
+ * without moving or shaking the overall navigation bar.
+ */
+function DynamicIslandTabButton({
+  routeKey,
+  isFocused,
+  label,
+  icon,
+  isEmergencyTab,
+  onPress,
+  onLongPress,
+  onLayout,
+  scheme,
+  palette,
+}: TabButtonProps) {
+  const scaleAnim = useRef(new Animated.Value(1)).current;
+
+  // Spring bounce effect for inner button when this tab becomes selected
+  useEffect(() => {
+    if (isFocused) {
+      Animated.sequence([
+        Animated.timing(scaleAnim, {
+          toValue: 0.88,
+          duration: 90,
+          useNativeDriver: true,
+        }),
+        Animated.spring(scaleAnim, {
+          toValue: 1.0,
+          friction: 4.5,
+          tension: 110,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    }
+  }, [isFocused]);
+
+  const handlePressIn = () => {
+    Animated.timing(scaleAnim, {
+      toValue: 0.86,
+      duration: 70,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  const handlePressOut = () => {
+    Animated.spring(scaleAnim, {
+      toValue: 1.0,
+      friction: 4.5,
+      tension: 110,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  return (
+    <Pressable
+      key={routeKey}
+      onPress={onPress}
+      onPressIn={handlePressIn}
+      onPressOut={handlePressOut}
+      onLongPress={onLongPress}
+      onLayout={onLayout}
+      accessible={true}
+      accessibilityRole="tab"
+      accessibilityState={{ selected: isFocused }}
+      accessibilityLabel={`${label} tab`}
+      style={styles.tabItem}
+    >
+      <Animated.View
+        style={[
+          styles.innerButtonContent,
+          {
+            transform: [{ scale: scaleAnim }],
+          },
+        ]}
+      >
+        {/* Tab Icon */}
+        <View style={styles.iconWrapper}>
+          {icon}
+          {/* Dynamic Island Glowing Dot when Active */}
+          {isFocused && !isEmergencyTab && (
+            <View
+              style={[
+                styles.activeIslandDot,
+                {
+                  backgroundColor:
+                    scheme === 'dark' ? '#00E5FF' : palette.okInk,
+                },
+              ]}
+            />
+          )}
+        </View>
+
+        {/* Tab Label */}
+        <Text
+          style={[
+            styles.tabLabel,
+            {
+              color: isEmergencyTab
+                ? isFocused
+                  ? '#FFFFFF'
+                  : palette.red
+                : isFocused
+                ? palette.navOnInk
+                : palette.ink2,
+              fontFamily: isFocused ? fonts.sansBold : fonts.sansMedium,
+            },
+          ]}
+          numberOfLines={1}
+        >
+          {label}
+        </Text>
+      </Animated.View>
+    </Pressable>
+  );
+}
+
 export function AppTabBar({
   state,
   descriptors,
@@ -47,10 +178,9 @@ export function AppTabBar({
   // Tab layout measurements for dynamic island morphing slider
   const [tabLayouts, setTabLayouts] = useState<{ [key: number]: LayoutRectangle }>({});
 
-  // Dynamic Island sliding indicator animations
+  // Dynamic Island sliding indicator animations (strictly for the inner indicator pill)
   const indicatorAnimX = useRef(new Animated.Value(0)).current;
   const indicatorAnimW = useRef(new Animated.Value(0)).current;
-  const islandScaleAnim = useRef(new Animated.Value(1)).current;
   const emergencyPulseAnim = useRef(new Animated.Value(1)).current;
 
   // Emergency siren pulse animation
@@ -92,19 +222,6 @@ export function AppTabBar({
         tension: 70,
         useNativeDriver: false,
       }),
-      Animated.sequence([
-        Animated.timing(islandScaleAnim, {
-          toValue: 0.96,
-          duration: 90,
-          useNativeDriver: true,
-        }),
-        Animated.spring(islandScaleAnim, {
-          toValue: 1.0,
-          friction: 6,
-          tension: 80,
-          useNativeDriver: true,
-        }),
-      ]),
     ]).start();
   }, [state.index, tabLayouts]);
 
@@ -119,7 +236,8 @@ export function AppTabBar({
   const bottomPosition = Math.max(insets.bottom, 12) + 6;
 
   return (
-    <Animated.View
+    // Steady outer Dynamic Island bar: no bounce effect on the whole bar
+    <View
       style={[
         styles.islandContainer,
         {
@@ -133,7 +251,6 @@ export function AppTabBar({
               ? 'rgba(255, 255, 255, 0.12)'
               : 'rgba(90, 62, 43, 0.12)',
           shadowColor: palette.shadow,
-          transform: [{ scale: islandScaleAnim }],
         },
       ]}
       accessibilityRole="tablist"
@@ -161,7 +278,7 @@ export function AppTabBar({
         />
       )}
 
-      {/* Tabs Row */}
+      {/* Tabs Row with Inner Button Bounce Effect */}
       {state.routes.map((route, index) => {
         const isFocused = state.index === index;
         const isEmergencyTab = route.name === 'emergency';
@@ -239,62 +356,23 @@ export function AppTabBar({
         }
 
         return (
-          <Pressable
+          <DynamicIslandTabButton
             key={route.key}
+            routeKey={route.key}
+            index={index}
+            isFocused={isFocused}
+            label={label}
+            icon={icon}
+            isEmergencyTab={isEmergencyTab}
             onPress={onPress}
             onLongPress={onLongPress}
             onLayout={(e) => handleTabLayout(index, e.nativeEvent.layout)}
-            accessible={true}
-            accessibilityRole="tab"
-            accessibilityState={{ selected: isFocused }}
-            accessibilityLabel={`${label} tab`}
-            style={({ pressed }) => [
-              styles.tabItem,
-              {
-                opacity: pressed ? 0.8 : 1.0,
-              },
-            ]}
-          >
-            {/* Tab Icon */}
-            <View style={styles.iconWrapper}>
-              {icon}
-              {/* Dynamic Island Glowing Dot when Active */}
-              {isFocused && !isEmergencyTab && (
-                <View
-                  style={[
-                    styles.activeIslandDot,
-                    {
-                      backgroundColor:
-                        scheme === 'dark' ? '#00E5FF' : palette.okInk,
-                    },
-                  ]}
-                />
-              )}
-            </View>
-
-            {/* Tab Label */}
-            <Text
-              style={[
-                styles.tabLabel,
-                {
-                  color: isEmergencyTab
-                    ? isFocused
-                      ? '#FFFFFF'
-                      : palette.red
-                    : isFocused
-                    ? palette.navOnInk
-                    : palette.ink2,
-                  fontFamily: isFocused ? fonts.sansBold : fonts.sansMedium,
-                },
-              ]}
-              numberOfLines={1}
-            >
-              {label}
-            </Text>
-          </Pressable>
+            scheme={scheme}
+            palette={palette}
+          />
         );
       })}
-    </Animated.View>
+    </View>
   );
 }
 
@@ -329,8 +407,12 @@ const styles = StyleSheet.create({
     minWidth: MIN_TARGET,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 3,
     zIndex: 2,
+  },
+  innerButtonContent: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 3,
   },
   iconWrapper: {
     alignItems: 'center',
