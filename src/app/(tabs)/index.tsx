@@ -21,7 +21,7 @@ import { useLocation } from '../../context/LocationContext';
 import { OnboardingFlow } from '../../components/onboarding/OnboardingFlow';
 import { AreaPickerModal } from '../../components/location/AreaPickerModal';
 import { storageService } from '../../services/storageService';
-import { cleanLocalityName } from '../../services/locationService';
+import { cleanLocalityName, isInvalidLocality } from '../../services/locationService';
 import {
   PlusIcon,
   MapPinIcon,
@@ -45,8 +45,9 @@ import {
 
 function formatHeaderArea(raw: string): string {
   if (!raw) return 'Bengaluru';
-  const clean = cleanLocalityName(raw.split(',')[0]);
-  return clean || 'Bengaluru';
+  const parts = raw.split(',').map((p) => cleanLocalityName(p)).filter(Boolean);
+  const valid = parts.find((p) => !isInvalidLocality(p));
+  return valid || 'Bengaluru';
 }
 
 export default function HomeScreen() {
@@ -135,15 +136,32 @@ export default function HomeScreen() {
               accessible={true}
               accessibilityRole="button"
               accessibilityLabel={`Current location ${areaName}. Tap to change area.`}
-              style={[
+              style={({ pressed }) => [
                 styles.locationPill,
                 {
                   backgroundColor: palette.surface,
-                  borderColor: palette.line,
+                  borderColor:
+                    scheme === 'dark'
+                      ? 'rgba(255, 255, 255, 0.14)'
+                      : 'rgba(90, 62, 43, 0.14)',
+                  shadowColor: palette.shadow,
+                  opacity: pressed ? 0.85 : 1.0,
                 },
               ]}
             >
-              <MapPinIcon size={14} color={palette.ink} />
+              <View
+                style={[
+                  styles.locationPinBadge,
+                  {
+                    backgroundColor:
+                      scheme === 'dark'
+                        ? 'rgba(255, 71, 87, 0.2)'
+                        : 'rgba(255, 71, 87, 0.12)',
+                  },
+                ]}
+              >
+                <MapPinIcon size={14} color="#FF4757" />
+              </View>
               <Text
                 style={[styles.locationPillText, { color: palette.ink }]}
                 numberOfLines={1}
@@ -158,15 +176,20 @@ export default function HomeScreen() {
               accessible={true}
               accessibilityRole="button"
               accessibilityLabel="Open settings and options"
-              style={[
+              style={({ pressed }) => [
                 styles.settingsBtn,
                 {
                   backgroundColor: palette.surface,
-                  borderColor: palette.line,
+                  borderColor:
+                    scheme === 'dark'
+                      ? 'rgba(255, 255, 255, 0.14)'
+                      : 'rgba(90, 62, 43, 0.14)',
+                  shadowColor: palette.shadow,
+                  opacity: pressed ? 0.85 : 1.0,
                 },
               ]}
             >
-              <SettingsIcon size={20} color={palette.ink} />
+              <SettingsIcon size={19} color={palette.ink} />
             </Pressable>
           </View>
         </View>
@@ -1014,30 +1037,46 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   settingsBtn: {
-    width: 42,
-    height: 42,
-    borderRadius: 14,
-    borderWidth: 1,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    borderWidth: 1.2,
     alignItems: 'center',
     justifyContent: 'center',
     flexShrink: 0,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 2,
   },
   locationPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    minHeight: 38,
-    paddingLeft: 10,
-    paddingRight: 12,
+    gap: 7,
+    height: 40,
+    paddingLeft: 6,
+    paddingRight: 14,
     borderRadius: radii.pill,
-    borderWidth: 1,
-    maxWidth: 145,
+    borderWidth: 1.2,
+    maxWidth: 175,
     flexShrink: 1,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  locationPinBadge: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   locationPillText: {
     fontFamily: fonts.sansBold,
     fontSize: 13,
     fontWeight: '700',
+    letterSpacing: -0.2,
     flexShrink: 1,
   },
 

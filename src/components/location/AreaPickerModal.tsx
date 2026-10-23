@@ -202,9 +202,12 @@ export function AreaPickerModal({ visible, onClose }: AreaPickerModalProps) {
                   accessibilityState={{ selected: isSelected }}
                 >
                   <View style={styles.areaRowLeft}>
-                    <Text style={[styles.areaNameText, { color: palette.ink, fontFamily: isSelected ? fonts.sansBold : fonts.sansMedium }]}>
-                      {item.name}
-                    </Text>
+                    <View style={styles.areaTitleRow}>
+                      <MapPinIcon size={14} color="#FF4757" />
+                      <Text style={[styles.areaNameText, { color: palette.ink, fontFamily: isSelected ? fonts.sansBold : fonts.sansMedium }]}>
+                        {item.name}
+                      </Text>
+                    </View>
                     <Text style={[styles.areaPincodeText, { color: palette.ink2 }]}>
                       Pincode: {item.pincode}
                     </Text>
@@ -379,6 +382,11 @@ const styles = StyleSheet.create({
   },
   areaRowLeft: {
     gap: 3,
+  },
+  areaTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
   areaNameText: {
     fontSize: 14,

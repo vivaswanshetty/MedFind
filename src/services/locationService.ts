@@ -161,6 +161,25 @@ export interface LocationRequestResult {
 }
 
 /**
+ * Detects whether a reverse-geocoded candidate is a door number, house number,
+ * postal code, or generic noise that should NOT be displayed as a neighborhood.
+ */
+export function isInvalidLocality(str?: string | null): boolean {
+  if (!str) return true;
+  const s = str.trim();
+  if (s.length === 0) return true;
+  // Pure numbers (e.g. "520", "12")
+  if (/^\d+$/.test(s)) return true;
+  // Postal pincodes (e.g. "560004")
+  if (/^\d{5,6}$/.test(s)) return true;
+  // Door/flat/house/plot numbers (e.g. "No. 520", "#520", "Plot 12", "520/A", "520-B")
+  if (/^(no\.?|plot|flat|door|site|shop|#|building)?\s*\d+([a-z\/\-0-9]*)$/i.test(s)) return true;
+  // Generic city or region names
+  if (/^(Bangalore|Bengaluru|Current Location|Unnamed Road|Karnataka|India)$/i.test(s)) return true;
+  return false;
+}
+
+/**
  * Strips administrative noise (e.g. "Division", "District") from reverse geocoded names.
  */
 export function cleanLocalityName(raw?: string | null): string {
@@ -209,14 +228,15 @@ export async function requestDeviceLocation(): Promise<LocationRequestResult> {
         const dist = cleanLocalityName(p.district);
         const city = cleanLocalityName(p.city);
 
-        // Filter out generic city names from the neighborhood slot
-        const candidates = [name, street, sub, dist].filter(
-          (c) => c && !/^(Bangalore|Bengaluru|Current Location)$/i.test(c)
+        // Subregion (neighborhood) and district are much more reliable than street/door number.
+        // Filter out house numbers (like "520"), postal codes, and administrative noise.
+        const candidates = [sub, dist, street, name].filter(
+          (c) => c && !isInvalidLocality(c)
         );
-        let locality = candidates[0] || dist || sub || city || 'Bengaluru';
+        let locality = candidates[0] || '';
 
-        // If locality still resolves to generic "Bengaluru", match closest known neighborhood
-        if (/^(Bengaluru|Bangalore|Current Location)$/i.test(locality)) {
+        // If no valid neighborhood was found, or locality is generic, match closest known neighborhood
+        if (!locality || /^(Bengaluru|Bangalore|Current Location)$/i.test(locality)) {
           let nearestArea = PREDEFINED_AREAS[0];
           let minDistance = Infinity;
           for (const area of PREDEFINED_AREAS) {
@@ -226,8 +246,10 @@ export async function requestDeviceLocation(): Promise<LocationRequestResult> {
               nearestArea = area;
             }
           }
-          if (minDistance < 6) {
+          if (minDistance < 15) {
             locality = nearestArea.locality;
+          } else {
+            locality = 'Bengaluru';
           }
         }
 

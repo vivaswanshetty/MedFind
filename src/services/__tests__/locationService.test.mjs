@@ -11,6 +11,7 @@ import {
   sortListingsByDistance,
   PREDEFINED_AREAS,
   cleanLocalityName,
+  isInvalidLocality,
 } from '../locationService.ts';
 
 test('Location Service & Distance Calculation Tests', async (t) => {
@@ -22,6 +23,19 @@ test('Location Service & Distance Calculation Tests', async (t) => {
     assert.equal(cleanLocalityName('Bangalore'), 'Bengaluru');
     assert.equal(cleanLocalityName(''), '');
     assert.equal(cleanLocalityName(null), '');
+  });
+
+  await t.test('isInvalidLocality accurately identifies numbers, door codes and noise', () => {
+    assert.equal(isInvalidLocality('520'), true);
+    assert.equal(isInvalidLocality('12'), true);
+    assert.equal(isInvalidLocality('No. 520'), true);
+    assert.equal(isInvalidLocality('#520'), true);
+    assert.equal(isInvalidLocality('560004'), true);
+    assert.equal(isInvalidLocality('Current Location'), true);
+    assert.equal(isInvalidLocality('Bengaluru'), true);
+    assert.equal(isInvalidLocality('Basavanagudi'), false);
+    assert.equal(isInvalidLocality('Indiranagar'), false);
+    assert.equal(isInvalidLocality('Koramangala'), false);
   });
 
   await t.test('Calculates exact zero distance for identical coordinates', () => {
