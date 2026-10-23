@@ -15,6 +15,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTheme } from '../../theme/ThemeContext';
+import { useLanguage } from '../../context/LanguageContext';
 import { fonts, radii, MIN_TARGET } from '../../constants/theme';
 import { AtmosphereBackground } from '../../components/AtmosphereBackground';
 import { AnimatedScreenTransition } from '../../components/AnimatedScreenTransition';
@@ -57,6 +58,7 @@ export default function SearchScreen() {
   const params = useLocalSearchParams<{ q?: string }>();
   const { scheme, palette } = useTheme();
   const { userLocation } = useLocation();
+  const { t } = useLanguage();
 
   const [searchQuery, setSearchQuery] = useState(params.q || '');
   const [selectedStrength, setSelectedStrength] = useState<string>('');
@@ -65,8 +67,8 @@ export default function SearchScreen() {
   const [searchResults, setSearchResults] = useState<MedicineSearchResultItem[]>([]);
   const [selectedRecordId, setSelectedRecordId] = useState<string | null>(null);
 
-  const strengthOptions = ['250 mg', '500 mg', '850 mg', '1000 mg'];
-  const dosageOptions = ['Tablet', 'Capsule', 'Syrup', 'Injection'];
+  const strengthOptions = ['250 mg', '500 mg', '650 mg', '1000 mg'];
+  const dosageOptions = ['Tablet', 'Syrup', 'Inhaler', 'Cream', 'Drops'];
   const popularMedicines = [
     'Metformin 500 mg',
     'Paracetamol 500 mg',
@@ -312,7 +314,7 @@ export default function SearchScreen() {
             <SearchIcon size={20} color={palette.ink} />
             <TextInput
               style={[styles.textInput, { color: palette.ink }]}
-              placeholder="Search by brand or generic name..."
+              placeholder={t('search_placeholder', 'Search medicines (e.g. Dolo, Cough, Calpol)...')}
               placeholderTextColor={palette.ink2}
               value={searchQuery}
               onChangeText={setSearchQuery}
@@ -333,7 +335,7 @@ export default function SearchScreen() {
             )}
           </View>
           <Text style={[styles.inputSubtext, { color: palette.ink2 }]}>
-            Brand or generic name. Strength and form are optional.
+            {t('search_subtext', 'Find medicines by brand or formula name.')}
           </Text>
         </View>
 
@@ -343,7 +345,7 @@ export default function SearchScreen() {
             <View style={styles.suggestionsHeaderRow}>
               <ClockIcon size={15} color={palette.ink2} />
               <Text style={[styles.suggestionsHeaderText, { color: palette.ink2 }]}>
-                Popular essential medicines
+                {t('popular_medicines', 'Common medicines')}
               </Text>
             </View>
             <View style={styles.chipsRow}>
@@ -387,10 +389,10 @@ export default function SearchScreen() {
               <ShieldCheckIcon size={20} color={palette.okInk} />
               <View style={styles.guideCardTextGroup}>
                 <Text style={[styles.guideCardTitle, { color: palette.ink }]}>
-                  Verified Pharmacy Inventory
+                  {t('verified_network', 'Verified Bengaluru Network')}
                 </Text>
                 <Text style={[styles.guideCardBody, { color: palette.ink2 }]}>
-                  Type a medicine brand or generic name above to check confirmed stock updates and verified phone contacts across participating Bengaluru pharmacies.
+                  {t('verified_network_desc', 'Stock verified directly with participating pharmacies across Bengaluru.')}
                 </Text>
               </View>
             </View>
@@ -401,7 +403,7 @@ export default function SearchScreen() {
         {hasQuery && (
           <View style={styles.filterSection}>
             <Text style={[styles.filterSectionTitle, { color: palette.ink2 }]}>
-              STRENGTH
+              {t('filter_dose', 'DOSE / STRENGTH')}
             </Text>
             <View style={styles.chipsRow}>
               {strengthOptions.map((st) => {
@@ -441,7 +443,7 @@ export default function SearchScreen() {
         {hasQuery && (
           <View style={styles.filterSection}>
             <Text style={[styles.filterSectionTitle, { color: palette.ink2 }]}>
-              DOSAGE FORM
+              {t('filter_type', 'MEDICINE TYPE')}
             </Text>
             <View style={styles.chipsRow}>
               {dosageOptions.map((df) => {
@@ -635,10 +637,10 @@ export default function SearchScreen() {
               <ShieldCheckIcon size={16} color={palette.okInk} />
               <View style={styles.noticeBannerTextGroup}>
                 <Text style={[styles.noticeBannerTitle, { color: palette.ink }]}>
-                  Participating pharmacies only
+                  {t('verified_network', 'Verified Bengaluru Network')}
                 </Text>
                 <Text style={[styles.noticeBannerBody, { color: palette.ink2 }]}>
-                  Seeded pilot data, not live inventory. Results cover listed pharmacies, not every pharmacy nearby.
+                  {t('verified_network_desc', 'Stock verified directly with participating pharmacies across Bengaluru.')}
                 </Text>
               </View>
             </View>
@@ -646,10 +648,10 @@ export default function SearchScreen() {
             {/* Results Subhead */}
             <View style={styles.resultsMetaRow}>
               <Text style={[styles.resultsCountHeading, { color: palette.ink }]}>
-                {pharmacyItems.length} results • as of 10:54 AM
+                {pharmacyItems.length} {pharmacyItems.length === 1 ? 'store found' : 'stores found'}
               </Text>
               <Text style={[styles.resultsSortSubtext, { color: palette.ink2 }]}>
-                Ordered by distance, then freshness. No hidden score.
+                Sorted by nearest first
               </Text>
             </View>
 

@@ -13,6 +13,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useTheme } from '../../theme/ThemeContext';
+import { useLanguage, AppLanguage, SUPPORTED_LANGUAGES } from '../../context/LanguageContext';
 import { fonts, radii, MIN_TARGET } from '../../constants/theme';
 import { AtmosphereBackground } from '../../components/AtmosphereBackground';
 import { AnimatedScreenTransition } from '../../components/AnimatedScreenTransition';
@@ -65,6 +66,8 @@ export default function HomeScreen() {
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [showPolicyModal, setShowPolicyModal] = useState(false);
   const [showLocationInfoModal, setShowLocationInfoModal] = useState(false);
+  const [showLanguageModal, setShowLanguageModal] = useState(false);
+  const { language, setLanguage, t } = useLanguage();
 
   const [recentTerms, setRecentTerms] = useState<string[]>([
     'Metformin 500 mg',
@@ -384,16 +387,16 @@ export default function HomeScreen() {
               >
                 <ShieldCheckIcon size={13} color={palette.okInk} />
                 <Text style={[styles.verifiedBadgeText, { color: palette.okInk }]}>
-                  VERIFIED FRESHNESS SYSTEM
+                  STOCK STATUS GUIDE
                 </Text>
               </View>
             </View>
 
             <Text style={[styles.legendMainTitle, { color: palette.ink }]}>
-              How stock freshness is rated
+              How to check medicine availability
             </Text>
             <Text style={[styles.legendSubTitle, { color: palette.ink2 }]}>
-              Every pharmacy result carries a verification timestamp so you know whether to visit immediately or call ahead.
+              Check when the pharmacy last confirmed their stock so you can visit directly or call first.
             </Text>
           </View>
 
@@ -407,10 +410,10 @@ export default function HomeScreen() {
             </View>
             <View style={styles.spectrumLabelsRow}>
               <Text style={[styles.spectrumLabelStart, { color: palette.okInk }]}>
-                Highest certainty • Visit directly
+                Just updated • Ready to visit
               </Text>
               <Text style={[styles.spectrumLabelEnd, { color: palette.ink2 }]}>
-                Call first
+                Call store first
               </Text>
             </View>
           </View>
@@ -431,18 +434,18 @@ export default function HomeScreen() {
                 <View style={styles.tierBadgeGroup}>
                   <CheckCircleIcon size={16} color={palette.okInk} />
                   <Text style={[styles.tierTitle, { color: palette.okInk }]}>
-                    Recent & Confirmed
+                    Updated Just Now
                   </Text>
                 </View>
                 <View style={[styles.tierTimeChip, { backgroundColor: palette.surface }]}>
                   <ClockIcon size={12} color={palette.okInk} />
                   <Text style={[styles.tierTimeText, { color: palette.okInk }]}>
-                    Within 30 min
+                    Within 30 mins
                   </Text>
                 </View>
               </View>
               <Text style={[styles.tierGuidance, { color: palette.okInk }]}>
-                Directly confirmed by the pharmacy counter. Safe to travel immediately with highest confidence.
+                Directly confirmed by the pharmacy staff. You can visit the store with full confidence.
               </Text>
             </View>
 
@@ -460,7 +463,7 @@ export default function HomeScreen() {
                 <View style={styles.tierBadgeGroup}>
                   <ClockIcon size={16} color={palette.amberInk} />
                   <Text style={[styles.tierTitle, { color: palette.amberInk }]}>
-                    Aging
+                    Updated Earlier Today
                   </Text>
                 </View>
                 <View style={[styles.tierTimeChip, { backgroundColor: palette.surface }]}>
@@ -471,7 +474,7 @@ export default function HomeScreen() {
                 </View>
               </View>
               <Text style={[styles.tierGuidance, { color: palette.amberInk }]}>
-                Reported earlier today. Stock is likely available, though fast-moving items or limited batches may deplete.
+                Confirmed earlier today. Stock is likely available, but fast-moving items can run out.
               </Text>
             </View>
 
@@ -489,7 +492,7 @@ export default function HomeScreen() {
                 <View style={styles.tierBadgeGroup}>
                   <TriangleAlertIcon size={16} color={palette.staleInk} />
                   <Text style={[styles.tierTitle, { color: palette.staleInk }]}>
-                    Stale report
+                    Updated Earlier
                   </Text>
                 </View>
                 <View style={[styles.tierTimeChip, { backgroundColor: palette.surface }]}>
@@ -500,7 +503,7 @@ export default function HomeScreen() {
                 </View>
               </View>
               <Text style={[styles.tierGuidance, { color: palette.staleInk }]}>
-                Report is several hours old. Inventory may have changed; tap Call to confirm before traveling.
+                Update was a few hours ago. We recommend tapping Call to check before heading out.
               </Text>
             </View>
 
@@ -518,7 +521,7 @@ export default function HomeScreen() {
                 <View style={styles.tierBadgeGroup}>
                   <CircleHelpIcon size={16} color={palette.naInk} />
                   <Text style={[styles.tierTitle, { color: palette.ink }]}>
-                    Unknown / No Record
+                    Call Store Directly
                   </Text>
                 </View>
                 <View style={[styles.tierTimeChip, { backgroundColor: palette.surface }]}>
@@ -528,7 +531,7 @@ export default function HomeScreen() {
                 </View>
               </View>
               <Text style={[styles.tierGuidance, { color: palette.ink2 }]}>
-                Pharmacy is verified and open, but hasn't submitted a stock update today. Always call to confirm.
+                Pharmacy is open, but has not sent a stock update today. Tap Call to check with the pharmacist.
               </Text>
             </View>
           </View>
@@ -537,7 +540,7 @@ export default function HomeScreen() {
           <View style={styles.legendTrustFooter}>
             <StaffBadgeIcon size={16} color={palette.ink2} />
             <Text style={[styles.legendTrustText, { color: palette.ink2 }]}>
-              Direct pharmacy confirmations only. MedFind never estimates, guesses, or artificially refreshes inventory timestamps.
+              Genuine pharmacy updates only. MedFind never guesses or invents stock availability.
             </Text>
           </View>
         </View>
@@ -668,12 +671,59 @@ export default function HomeScreen() {
                 ]}
               >
                 <Text style={[styles.themeToggleBadgeText, { color: palette.ink }]}>
-                  Switch
+                  {t('switch_theme', 'Switch')}
                 </Text>
               </View>
             </Pressable>
 
-            {/* Item 2: How Location Works */}
+            {/* Item 2: App Language */}
+            <Pressable
+              onPress={() => {
+                setShowSettingsModal(false);
+                setShowLanguageModal(true);
+              }}
+              accessible={true}
+              accessibilityRole="button"
+              accessibilityLabel={`Select app language. Currently ${SUPPORTED_LANGUAGES.find((l) => l.code === language)?.nativeName}`}
+              style={[
+                styles.settingsRowItem,
+                { borderBottomColor: palette.line },
+              ]}
+            >
+              <View
+                style={[
+                  styles.settingsIconBox,
+                  {
+                    backgroundColor:
+                      scheme === 'light' ? 'rgba(59, 130, 246, 0.16)' : 'rgba(96, 165, 250, 0.2)',
+                    borderColor:
+                      scheme === 'light' ? 'rgba(59, 130, 246, 0.35)' : 'rgba(96, 165, 250, 0.4)',
+                  },
+                ]}
+              >
+                <Text style={{ fontSize: 16 }}>🌐</Text>
+              </View>
+              <View style={styles.settingsItemInfo}>
+                <Text style={[styles.settingsItemTitle, { color: palette.ink }]}>
+                  {t('language', 'App Language')}: {SUPPORTED_LANGUAGES.find((l) => l.code === language)?.nativeName}
+                </Text>
+                <Text style={[styles.settingsItemSubtitle, { color: palette.ink2 }]}>
+                  English • ಕನ್ನಡ • हिंदी
+                </Text>
+              </View>
+              <View
+                style={[
+                  styles.themeToggleBadge,
+                  { backgroundColor: palette.surface2, borderColor: palette.line },
+                ]}
+              >
+                <Text style={[styles.themeToggleBadgeText, { color: palette.ink }]}>
+                  {t('change_language', 'Change')}
+                </Text>
+              </View>
+            </Pressable>
+
+            {/* Item 3: How Location Works */}
             <Pressable
               onPress={() => {
                 setShowSettingsModal(false);
@@ -796,14 +846,98 @@ export default function HomeScreen() {
               </View>
               <View style={styles.settingsItemInfo}>
                 <Text style={[styles.settingsItemTitle, { color: palette.ink }]}>
-                  Verified Data Policy
+                  {t('quality_policy', 'Quality & Safety Policy')}
                 </Text>
                 <Text style={[styles.settingsItemSubtitle, { color: palette.ink2 }]}>
-                  Government records & NLEM catalog
+                  {t('quality_policy_subtitle', 'Official records & verified stores')}
                 </Text>
               </View>
               <ChevronRightIcon size={18} color={palette.ink2} />
             </Pressable>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {/* Language Selection Modal */}
+      <Modal
+        visible={showLanguageModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowLanguageModal(false)}
+      >
+        <Pressable
+          style={styles.modalOverlay}
+          onPress={() => setShowLanguageModal(false)}
+        >
+          <Pressable
+            style={[
+              styles.settingsCard,
+              {
+                backgroundColor: palette.surface,
+                borderColor: palette.line,
+                shadowColor: palette.shadow,
+              },
+            ]}
+            onPress={(e) => e.stopPropagation()}
+          >
+            <View style={styles.settingsModalHeader}>
+              <View style={styles.settingsModalTitleRow}>
+                <Text style={{ fontSize: 20 }}>🌐</Text>
+                <Text style={[styles.settingsModalTitle, { color: palette.ink }]}>
+                  {t('language', 'App Language')}
+                </Text>
+              </View>
+              <Pressable
+                onPress={() => setShowLanguageModal(false)}
+                hitSlop={8}
+                style={[styles.closeModalBtn, { borderColor: palette.line }]}
+              >
+                <CloseIcon size={16} color={palette.ink2} />
+              </Pressable>
+            </View>
+
+            {SUPPORTED_LANGUAGES.map((lang) => {
+              const isSelected = language === lang.code;
+              return (
+                <Pressable
+                  key={lang.code}
+                  onPress={async () => {
+                    await setLanguage(lang.code);
+                    setShowLanguageModal(false);
+                  }}
+                  accessible={true}
+                  accessibilityRole="radio"
+                  accessibilityState={{ selected: isSelected }}
+                  accessibilityLabel={`${lang.nativeName} (${lang.name})`}
+                  style={[
+                    styles.settingsRowItem,
+                    {
+                      borderBottomColor: palette.line,
+                      backgroundColor: isSelected ? palette.surface2 : 'transparent',
+                    },
+                  ]}
+                >
+                  <View style={styles.settingsItemInfo}>
+                    <Text
+                      style={[
+                        styles.settingsItemTitle,
+                        { color: palette.ink, fontWeight: isSelected ? '700' : '500' },
+                      ]}
+                    >
+                      {lang.nativeName}
+                    </Text>
+                    <Text style={[styles.settingsItemSubtitle, { color: palette.ink2 }]}>
+                      {lang.name}
+                    </Text>
+                  </View>
+                  {isSelected && (
+                    <Text style={{ color: palette.okInk, fontWeight: '700', fontSize: 18 }}>
+                      ✓
+                    </Text>
+                  )}
+                </Pressable>
+              );
+            })}
           </Pressable>
         </Pressable>
       </Modal>
@@ -862,10 +996,10 @@ export default function HomeScreen() {
               </Text>
 
               <Text style={[styles.policySectionHeading, { color: palette.ink }]}>
-                3. NLEM India Essential Medicines
+                3. Approved Essential Medicines
               </Text>
               <Text style={[styles.policyBodyText, { color: palette.ink2 }]}>
-                The medicine catalog is based on the National List of Essential Medicines (NLEM India 2022). MedFind provides contact reference only and gives no dosage advice or automatic drug substitution.
+                The medicine list follows the official essential medicines guide. MedFind helps you locate nearby stock and connect directly with licensed pharmacists.
               </Text>
             </ScrollView>
 
@@ -924,31 +1058,31 @@ export default function HomeScreen() {
 
             <ScrollView style={styles.policyScrollArea} showsVerticalScrollIndicator={false}>
               <Text style={[styles.policySectionHeading, { color: palette.ink }]}>
-                1. Foreground GPS Only
+                1. Used Only While in the App
               </Text>
               <Text style={[styles.policyBodyText, { color: palette.ink2 }]}>
-                MedFind only requests foreground location while you actively use the app to discover nearby pharmacies and emergency facilities. We never track your background location or drain battery continuously.
+                MedFind only checks your location while you actively use the app to find nearby pharmacies and emergency facilities. It never runs in the background.
               </Text>
 
               <Text style={[styles.policySectionHeading, { color: palette.ink }]}>
-                2. Device-Local Privacy
+                2. Stays on Your Phone
               </Text>
               <Text style={[styles.policyBodyText, { color: palette.ink2 }]}>
-                Your GPS coordinates stay on your phone. They are never sent to external servers, shared with third parties, or saved in any remote database.
+                Your GPS coordinates stay on your device. They are never sent to external servers or shared with anyone.
               </Text>
 
               <Text style={[styles.policySectionHeading, { color: palette.ink }]}>
-                3. On-Device Distance Math
+                3. Straight-line Distance
               </Text>
               <Text style={[styles.policyBodyText, { color: palette.ink2 }]}>
-                All distances to pharmacies, clinics, and hospitals are computed directly on this device using straight-line geodesic formulas to verified government and provider coordinates.
+                All distances to nearby stores and hospitals are calculated directly on your phone using straight-line distance to verified store locations.
               </Text>
 
               <Text style={[styles.policySectionHeading, { color: palette.ink }]}>
-                4. Manual Neighborhood Fallback
+                4. Select Area Manually
               </Text>
               <Text style={[styles.policyBodyText, { color: palette.ink2 }]}>
-                If location permission is denied or turned off, you can tap the area pill in the top header to choose any neighborhood manually. Medicine search and emergency care are never blocked.
+                If location is turned off, you can tap the area button in the top header to choose any neighborhood manually.
               </Text>
             </ScrollView>
 

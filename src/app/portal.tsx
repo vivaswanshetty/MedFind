@@ -745,11 +745,11 @@ export default function PharmacyPortalScreen() {
             })
           )}
 
-          {/* 3. VERIFIED AUDIT TRAIL WITH REMOVAL OPTIONS */}
+          {/* 3. RECENT UPDATES LOG WITH REMOVAL OPTIONS */}
           <View style={styles.sectionHeaderBetween}>
             <View style={styles.auditHeaderGroup}>
               <Text style={[styles.sectionHeading, { color: palette.ink2 }]}>
-                SESSION AUDIT TRAIL
+                RECENT UPDATES LOG
               </Text>
               <View style={[styles.countBadge, { backgroundColor: palette.surface2 }]}>
                 <Text style={[styles.countBadgeText, { color: palette.ink2 }]}>
@@ -763,7 +763,7 @@ export default function PharmacyPortalScreen() {
                 onPress={handleClearAuditTrail}
                 accessible={true}
                 accessibilityRole="button"
-                accessibilityLabel="Clear all audit log entries for this session"
+                accessibilityLabel="Clear recent update log"
                 style={({ pressed }) => [
                   styles.clearTrailButton,
                   {
@@ -774,7 +774,7 @@ export default function PharmacyPortalScreen() {
                 ]}
               >
                 <TrashIcon size={13} color={palette.badInk} />
-                <Text style={[styles.clearTrailText, { color: palette.badInk }]}>Clear All</Text>
+                <Text style={[styles.clearTrailText, { color: palette.badInk }]}>Clear Log</Text>
               </Pressable>
             )}
           </View>
@@ -793,10 +793,10 @@ export default function PharmacyPortalScreen() {
               <View style={styles.emptyAuditBox}>
                 <ShieldCheckIcon size={22} color={palette.ink2} />
                 <Text style={[styles.emptyAuditTitle, { color: palette.ink }]}>
-                  No session audit records
+                  No updates yet
                 </Text>
                 <Text style={[styles.emptyAuditDesc, { color: palette.ink2 }]}>
-                  Stock updates submitted above will automatically appear here with operator stamps.
+                  Stock changes made above will appear here.
                 </Text>
               </View>
             ) : (

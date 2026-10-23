@@ -14,6 +14,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useTheme } from '../../theme/ThemeContext';
+import { useLanguage } from '../../context/LanguageContext';
 import { fonts, radii, MIN_TARGET } from '../../constants/theme';
 import { AtmosphereBackground } from '../../components/AtmosphereBackground';
 import { AnimatedScreenTransition } from '../../components/AnimatedScreenTransition';
@@ -29,6 +30,7 @@ export default function EmergencyScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { scheme, palette } = useTheme();
+  const { t } = useLanguage();
 
   const statusBarHeight = Platform.OS === 'android' ? (StatusBar.currentHeight ?? 24) : 0;
   const paddingTop = Math.max(insets.top, statusBarHeight) + 8;
@@ -112,10 +114,10 @@ export default function EmergencyScreen() {
         {/* HERO TITLE */}
         <View style={styles.heroTitleGroup}>
           <Text style={[styles.heroHeadline, { color: palette.ink }]}>
-            If this is an emergency, call now.
+            {t('emergency_title', 'If this is an emergency, call now.')}
           </Text>
           <Text style={[styles.heroSubtitle, { color: palette.ink2 }]}>
-            One tap opens your phone's dialer. You place the call yourself.
+            {t('emergency_subtitle', "One tap opens your phone's dialer. You place the call yourself.")}
           </Text>
         </View>
 
@@ -149,10 +151,10 @@ export default function EmergencyScreen() {
             </View>
             <View style={styles.heroEmergencyTextGroup}>
               <Text style={styles.heroEmergencyTitle}>
-                Call emergency service
+                {t('call_112', 'Call emergency service')}
               </Text>
               <Text style={styles.heroEmergencySubtitle}>
-                Dial 112
+                {t('dial_112', 'Dial 112')}
               </Text>
             </View>
           </Pressable>
@@ -191,18 +193,18 @@ export default function EmergencyScreen() {
 
             <View style={styles.contactDetails}>
               <Text style={[styles.contactTitle, { color: palette.ink }]}>
-                Call hospital
+                Victoria Hospital Casualty (BMCRI)
               </Text>
               <Text style={[styles.contactMeta, { color: palette.ink2 }]}>
-                Lalbagh General Hospital • 1.2 km • reviewed 18 Oct
+                Fort, Bangalore Medical College • 24/7 Casualty
               </Text>
             </View>
 
             <Pressable
-              onPress={() => handleDial('080-26700000', 'Lalbagh General Hospital')}
+              onPress={() => handleDial('080-26701150', 'Victoria Hospital Casualty')}
               accessible={true}
               accessibilityRole="button"
-              accessibilityLabel="Call Lalbagh General Hospital"
+              accessibilityLabel="Call Victoria Hospital Casualty"
               style={[
                 styles.callIconButton,
                 {
@@ -237,10 +239,10 @@ export default function EmergencyScreen() {
 
             <View style={styles.contactDetails}>
               <Text style={[styles.contactTitle, { color: palette.ink }]}>
-                Call ambulance contact
+                Karnataka Ambulance (Arogya Kavacha)
               </Text>
               <Text style={[styles.contactMeta, { color: palette.ink2 }]}>
-                Ward 42 listing • reviewed 18 Oct
+                Dial 108 • 24/7 State Emergency Response
               </Text>
             </View>
 
@@ -294,10 +296,10 @@ export default function EmergencyScreen() {
           <ShieldCheckIcon size={18} color={palette.okInk} />
           <View style={styles.boundaryTextGroup}>
             <Text style={[styles.boundaryTitle, { color: palette.ink }]}>
-              Emergency Protocol & Triage
+              {t('quick_guide', 'Quick Emergency Help')}
             </Text>
             <Text style={[styles.boundaryBody, { color: palette.ink2 }]}>
-              In severe or life-threatening crises, dial 112 or 108 immediately for priority ambulance dispatch.
+              {t('quick_guide_desc', 'In severe or life-threatening situations, dial 112 or 108 immediately for priority help.')}
             </Text>
           </View>
         </View>

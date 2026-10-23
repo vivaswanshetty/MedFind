@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../theme/ThemeContext';
+import { useLanguage } from '../../context/LanguageContext';
 import { fonts, radii, MIN_TARGET } from '../../constants/theme';
 import { AtmosphereBackground } from '../../components/AtmosphereBackground';
 import { AnimatedScreenTransition } from '../../components/AnimatedScreenTransition';
@@ -37,6 +38,7 @@ export default function CareNearbyScreen() {
   const insets = useSafeAreaInsets();
   const { scheme, palette } = useTheme();
   const { userLocation, areaName } = useLocation();
+  const { t } = useLanguage();
 
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedPin, setSelectedPin] = useState<string | null>(null);
@@ -45,11 +47,11 @@ export default function CareNearbyScreen() {
   const [isMapInteracting, setIsMapInteracting] = useState(false);
 
   const categories = [
-    { id: 'all', label: 'All' },
-    { id: 'hospital', label: 'Hospital' },
-    { id: 'clinic', label: 'Clinic' },
-    { id: 'ambulance', label: 'Ambulance' },
-    { id: 'pharmacy', label: 'Pharmacy' },
+    { id: 'all', label: t('all', 'All') },
+    { id: 'hospital', label: t('hospitals', 'Hospitals') },
+    { id: 'clinic', label: t('clinics', 'Clinics') },
+    { id: 'ambulance', label: t('ambulances', 'Ambulance') },
+    { id: 'pharmacy', label: 'Pharmacies' },
   ];
 
   const statusBarHeight = Platform.OS === 'android' ? (StatusBar.currentHeight ?? 24) : 0;
@@ -233,10 +235,10 @@ export default function CareNearbyScreen() {
         {/* HEADER */}
         <View style={styles.headerSection}>
           <Text style={[styles.screenTitle, { color: palette.ink }]}>
-            Care nearby
+            {t('care_title', 'Care nearby')}
           </Text>
           <Text style={[styles.screenSubtitle, { color: palette.ink2 }]}>
-            Reviewed hospitals, clinics, ambulance contacts & pharmacies
+            {t('care_subtitle', 'Verified hospitals, clinics, ambulance contacts & pharmacies')}
           </Text>
         </View>
 
@@ -253,10 +255,10 @@ export default function CareNearbyScreen() {
           <ShieldCheckIcon size={18} color={palette.okInk} />
           <View style={styles.disclaimerTextGroup}>
             <Text style={[styles.disclaimerTitle, { color: palette.ink }]}>
-              Verified Bengaluru Healthcare Network
+              {t('verified_network', 'Verified Bengaluru Healthcare Network')}
             </Text>
             <Text style={[styles.disclaimerBody, { color: palette.ink2 }]}>
-              Direct emergency lines to government casualty desks, trauma response centres & public health clinics.
+              Direct phone numbers for hospitals, clinics, ambulance services & pharmacies.
             </Text>
           </View>
         </View>

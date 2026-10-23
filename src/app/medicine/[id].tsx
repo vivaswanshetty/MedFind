@@ -307,8 +307,8 @@ export default function MedicineDetailScreen() {
             >
               <Text style={[styles.metaPillText, { color: palette.ink2 }]}>
                 {item.sourceType === 'provider_confirmed'
-                  ? 'Provider Confirmed'
-                  : item.sourceName || 'NLEM India'}
+                  ? 'Confirmed by Store'
+                  : item.sourceName || 'Essential Medicine'}
               </Text>
             </View>
           </View>
@@ -466,11 +466,11 @@ export default function MedicineDetailScreen() {
           <View style={styles.noticeHeaderRow}>
             <ShieldCheckIcon size={16} color={palette.okInk} />
             <Text style={[styles.noticeTitle, { color: palette.ink }]}>
-              Verified Pharmacy Assurance
+              Verified Pharmacy Stock
             </Text>
           </View>
           <Text style={[styles.noticeBody, { color: palette.ink2 }]}>
-            Availability is directly verified by participating pharmacy dispensary staff. Unbiased, unranked, and transparent stock verification for Bengaluru.
+            Stock is confirmed directly by pharmacy staff. Real-time availability for Bengaluru.
           </Text>
         </View>
       </ScrollView>

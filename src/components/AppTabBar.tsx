@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../theme/ThemeContext';
+import { useLanguage } from '../context/LanguageContext';
 import { fonts, radii, MIN_TARGET } from '../constants/theme';
 import {
   HomeTabIcon,
@@ -162,6 +163,7 @@ export function AppTabBar({
 }: AppTabBarProps) {
   const insets = useSafeAreaInsets();
   const { scheme, palette } = useTheme();
+  const { t } = useLanguage();
 
   // Tab layout measurements for dynamic island morphing slider
   const [tabLayouts, setTabLayouts] = useState<{ [key: number]: LayoutRectangle }>({});
@@ -301,7 +303,7 @@ export function AppTabBar({
         };
 
         // Tab Content Configuration
-        let label = 'Home';
+        let label = t('tab_map', 'Map');
         let icon = (
           <HomeTabIcon
             size={22}
@@ -310,7 +312,7 @@ export function AppTabBar({
         );
 
         if (route.name === 'search') {
-          label = 'Search';
+          label = t('tab_search', 'Search');
           icon = (
             <SearchTabIcon
               size={22}
@@ -318,7 +320,7 @@ export function AppTabBar({
             />
           );
         } else if (route.name === 'care') {
-          label = 'Care';
+          label = t('tab_care', 'Care');
           icon = (
             <HospitalTabIcon
               size={22}
@@ -326,7 +328,7 @@ export function AppTabBar({
             />
           );
         } else if (isEmergencyTab) {
-          label = 'Emergency';
+          label = t('tab_emergency', 'Emergency');
           icon = (
             <Animated.View
               style={

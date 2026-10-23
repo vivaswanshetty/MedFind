@@ -5,6 +5,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { useFonts } from 'expo-font';
 import { ThemeProvider, useTheme } from '../theme/ThemeContext';
 import { LocationProvider } from '../context/LocationContext';
+import { LanguageProvider } from '../context/LanguageContext';
 import { fonts } from '../constants/theme';
 
 function RootNavigation() {
@@ -69,9 +70,11 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <ThemeProvider>
-        <LocationProvider>
-          <RootNavigation />
-        </LocationProvider>
+        <LanguageProvider>
+          <LocationProvider>
+            <RootNavigation />
+          </LocationProvider>
+        </LanguageProvider>
       </ThemeProvider>
     </SafeAreaProvider>
   );
