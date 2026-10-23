@@ -33,7 +33,8 @@
         {
           "locationWhenInUsePermission": "MedFind uses your foreground location to calculate distances to participating pharmacies and healthcare providers near you."
         }
-      ]
+      ],
+      "expo-audio"
     ]
   }
 }

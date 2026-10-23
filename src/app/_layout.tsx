@@ -1,15 +1,18 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useFonts } from 'expo-font';
 import { ThemeProvider, useTheme } from '../theme/ThemeContext';
 import { LocationProvider } from '../context/LocationContext';
 import { LanguageProvider } from '../context/LanguageContext';
+import { SplashIntro } from '../components/onboarding/SplashIntro';
 import { fonts } from '../constants/theme';
 
 function RootNavigation() {
   const { scheme, palette } = useTheme();
+  const [showSplash, setShowSplash] = useState(true);
 
   return (
     <>
@@ -49,6 +52,7 @@ function RootNavigation() {
           }}
         />
       </Stack>
+      {showSplash && <SplashIntro onDone={() => setShowSplash(false)} />}
     </>
   );
 }
@@ -68,14 +72,16 @@ export default function RootLayout() {
   }
 
   return (
-    <SafeAreaProvider>
-      <ThemeProvider>
-        <LanguageProvider>
-          <LocationProvider>
-            <RootNavigation />
-          </LocationProvider>
-        </LanguageProvider>
-      </ThemeProvider>
-    </SafeAreaProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <SafeAreaProvider>
+        <ThemeProvider>
+          <LanguageProvider>
+            <LocationProvider>
+              <RootNavigation />
+            </LocationProvider>
+          </LanguageProvider>
+        </ThemeProvider>
+      </SafeAreaProvider>
+    </GestureHandlerRootView>
   );
 }
