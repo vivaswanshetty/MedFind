@@ -127,18 +127,6 @@ function DynamicIslandTabButton({
         {/* Tab Icon */}
         <View style={styles.iconWrapper}>
           {icon}
-          {/* Dynamic Island Glowing Dot when Active */}
-          {isFocused && !isEmergencyTab && (
-            <View
-              style={[
-                styles.activeIslandDot,
-                {
-                  backgroundColor:
-                    scheme === 'dark' ? '#00E5FF' : palette.okInk,
-                },
-              ]}
-            />
-          )}
         </View>
 
         {/* Tab Label */}
@@ -316,7 +304,7 @@ export function AppTabBar({
         let label = 'Home';
         let icon = (
           <HomeTabIcon
-            size={19}
+            size={22}
             color={isFocused ? palette.navOnInk : palette.ink2}
           />
         );
@@ -325,7 +313,7 @@ export function AppTabBar({
           label = 'Search';
           icon = (
             <SearchTabIcon
-              size={19}
+              size={22}
               color={isFocused ? palette.navOnInk : palette.ink2}
             />
           );
@@ -333,7 +321,7 @@ export function AppTabBar({
           label = 'Care';
           icon = (
             <HospitalTabIcon
-              size={19}
+              size={22}
               color={isFocused ? palette.navOnInk : palette.ink2}
             />
           );
@@ -348,7 +336,7 @@ export function AppTabBar({
               }
             >
               <SirenTabIcon
-                size={19}
+                size={22}
                 color={isFocused ? '#FFFFFF' : palette.red}
               />
             </Animated.View>
@@ -381,7 +369,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 14,
     right: 14,
-    height: 64,
+    height: 66,
     borderRadius: radii.pill,
     flexDirection: 'row',
     alignItems: 'center',
@@ -395,15 +383,15 @@ const styles = StyleSheet.create({
   },
   islandIndicatorPill: {
     position: 'absolute',
-    top: 6,
-    bottom: 6,
+    top: 5,
+    bottom: 5,
     borderRadius: radii.pill,
     borderWidth: 1,
     zIndex: 1,
   },
   tabItem: {
     flex: 1,
-    height: 52,
+    height: 56,
     minWidth: MIN_TARGET,
     alignItems: 'center',
     justifyContent: 'center',
@@ -412,20 +400,12 @@ const styles = StyleSheet.create({
   innerButtonContent: {
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 3,
+    gap: 2,
   },
   iconWrapper: {
     alignItems: 'center',
     justifyContent: 'center',
-    height: 24,
-    position: 'relative',
-  },
-  activeIslandDot: {
-    position: 'absolute',
-    bottom: -5,
-    width: 4,
-    height: 4,
-    borderRadius: 2,
+    height: 26,
   },
   tabLabel: {
     fontSize: 11,
