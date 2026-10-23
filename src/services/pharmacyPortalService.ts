@@ -39,59 +39,7 @@ export interface StorePartnerAuth {
 const STORE_AUTH_STORAGE_KEY = '@medfind_store_partner_auth_v1';
 let memoryPartnerAuth: StorePartnerAuth | null = null;
 
-// Initial verified baseline snapshots for participating demo pharmacies
-const initialBaselineSnapshots: StockSnapshot[] = [
-  {
-    id: 'snap-init-001',
-    medicine_id: 'med-nlem-001', // Paracetamol (Calpol)
-    pharmacy_id: 'pharm-blr-001',
-    state: 'available',
-    updated_at: new Date(Date.now() - 14 * 60 * 1000).toISOString(),
-    updated_by: 'Priya Sharma, R.Ph',
-    note: 'Verified physical shelf inventory',
-    is_demo: true,
-  },
-  {
-    id: 'snap-init-002',
-    medicine_id: 'med-nlem-002', // Amoxicillin (Mox)
-    pharmacy_id: 'pharm-blr-001',
-    state: 'available',
-    updated_at: new Date(Date.now() - 38 * 60 * 1000).toISOString(),
-    updated_by: 'Priya Sharma, R.Ph',
-    note: 'Batch inventory verified',
-    is_demo: true,
-  },
-  {
-    id: 'snap-init-003',
-    medicine_id: 'med-nlem-003', // Cetirizine (Cetzine)
-    pharmacy_id: 'pharm-blr-001',
-    state: 'low_stock',
-    updated_at: new Date(Date.now() - 75 * 60 * 1000).toISOString(),
-    updated_by: 'Priya Sharma, R.Ph',
-    note: '4 strips remaining on front rack',
-    is_demo: true,
-  },
-  {
-    id: 'snap-init-004',
-    medicine_id: 'med-nlem-004', // Salbutamol (Asthalin)
-    pharmacy_id: 'pharm-blr-001',
-    state: 'available',
-    updated_at: new Date(Date.now() - 110 * 60 * 1000).toISOString(),
-    updated_by: 'Priya Sharma, R.Ph',
-    note: 'Restocked from distributor',
-    is_demo: true,
-  },
-  {
-    id: 'snap-init-005',
-    medicine_id: 'med-nlem-005', // ORS (Electral)
-    pharmacy_id: 'pharm-blr-001',
-    state: 'available',
-    updated_at: new Date(Date.now() - 180 * 60 * 1000).toISOString(),
-    updated_by: 'Priya Sharma, R.Ph',
-    note: 'Sachets box verified',
-    is_demo: true,
-  },
-];
+
 
 // Initial baseline audit log records
 const initialBaselineAuditLog: AuditRecordRow[] = [
@@ -277,7 +225,7 @@ export const pharmacyPortalService = {
       updated_at: nowIso,
       updated_by: staffName,
       note: `1-tap update by ${staffName}`,
-      is_demo: true,
+      is_demo: false,
     };
 
     if (existingIndex >= 0) {
