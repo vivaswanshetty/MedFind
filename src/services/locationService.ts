@@ -161,6 +161,17 @@ export interface LocationRequestResult {
 }
 
 /**
+ * Strips administrative noise (e.g. "Division", "District") from reverse geocoded names.
+ */
+export function cleanLocalityName(raw?: string | null): string {
+  if (!raw) return '';
+  let clean = raw.trim();
+  clean = clean.replace(/\s*(Division|District|Sub-District)\b/gi, '').trim();
+  if (/^Bangalore$/i.test(clean)) return 'Bengaluru';
+  return clean;
+}
+
+/**
  * Requests foreground location permission from the device.
  * Never requests background location.
  */
@@ -192,8 +203,14 @@ export async function requestDeviceLocation(): Promise<LocationRequestResult> {
       const places = await Location.reverseGeocodeAsync(coords);
       if (places && places.length > 0) {
         const p = places[0];
-        const locality = p.subregion || p.district || p.city || p.name;
-        const region = p.city || p.region;
+        const sub = cleanLocalityName(p.subregion);
+        const dist = cleanLocalityName(p.district);
+        const city = cleanLocalityName(p.city);
+        const name = cleanLocalityName(p.name);
+
+        const locality = sub || dist || city || name;
+        const region = city || cleanLocalityName(p.region);
+
         if (locality && region && locality !== region) {
           areaName = `${locality}, ${region}`;
         } else if (locality) {

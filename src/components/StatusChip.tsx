@@ -70,7 +70,11 @@ export function StatusChip({ tone, label, hint, icon }: StatusChipProps) {
   return (
     <View style={[styles.chip, { backgroundColor: bg }]}>
       {renderedIcon}
-      <Text style={[styles.labelText, { color: text }]} numberOfLines={1}>
+      <Text
+        style={[styles.labelText, { color: text }]}
+        numberOfLines={1}
+        ellipsizeMode="tail"
+      >
         {label}
       </Text>
       {hint ? (
@@ -83,6 +87,7 @@ export function StatusChip({ tone, label, hint, icon }: StatusChipProps) {
             },
           ]}
           numberOfLines={1}
+          ellipsizeMode="tail"
         >
           {hint}
         </Text>
@@ -106,6 +111,7 @@ const styles = StyleSheet.create({
     fontFamily: fonts.sansBold,
     fontSize: 12.5,
     fontWeight: '700',
+    flexShrink: 1,
   },
   hintText: {
     fontFamily: fonts.sansSemi,

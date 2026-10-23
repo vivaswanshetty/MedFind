@@ -20,6 +20,7 @@ import { useLocation } from '../../context/LocationContext';
 import { OnboardingFlow } from '../../components/onboarding/OnboardingFlow';
 import { AreaPickerModal } from '../../components/location/AreaPickerModal';
 import { storageService } from '../../services/storageService';
+import { cleanLocalityName } from '../../services/locationService';
 import {
   PlusIcon,
   MapPinIcon,
@@ -36,7 +37,16 @@ import {
   CloseIcon,
   ShieldCheckIcon,
   InfoIcon,
+  CheckCircleIcon,
+  TriangleAlertIcon,
+  CircleHelpIcon,
 } from '../../components/icons/AppIcons';
+
+function formatHeaderArea(raw: string): string {
+  if (!raw) return 'Bengaluru';
+  const clean = cleanLocalityName(raw.split(',')[0]);
+  return clean || 'Bengaluru';
+}
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -111,7 +121,9 @@ export default function HomeScreen() {
                 resizeMode="cover"
               />
             </View>
-            <Text style={[styles.brandText, { color: palette.ink }]}>MedFind</Text>
+            <Text style={[styles.brandText, { color: palette.ink }]} numberOfLines={1}>
+              MedFind
+            </Text>
           </View>
 
           {/* Right: Location Pill & Settings Button */}
@@ -129,12 +141,13 @@ export default function HomeScreen() {
                 },
               ]}
             >
-              <MapPinIcon size={15} color={palette.ink} />
+              <MapPinIcon size={14} color={palette.ink} />
               <Text
                 style={[styles.locationPillText, { color: palette.ink }]}
                 numberOfLines={1}
+                ellipsizeMode="tail"
               >
-                {areaName.split(',')[0]}
+                {formatHeaderArea(areaName)}
               </Text>
             </Pressable>
 
@@ -321,44 +334,187 @@ export default function HomeScreen() {
           <ChevronRightIcon size={20} color={palette.ink2} />
         </Pressable>
 
-        {/* G) FRESHNESS LEGEND CARD */}
+        {/* G) VERIFIED FRESHNESS SYSTEM (SERIOUS MAKEOVER) */}
         <View
           style={[
-            styles.legendCard,
+            styles.freshnessLegendContainer,
             {
-              backgroundColor: palette.surface2,
+              backgroundColor: palette.surface,
               borderColor: palette.line,
+              shadowColor: palette.shadow,
             },
           ]}
         >
-          <Text style={[styles.legendTitle, { color: palette.ink }]}>
-            Every result shows when it was last confirmed
-          </Text>
-
-          {/* 2x2 Grid of Status Chips */}
-          <View style={styles.legendGrid}>
-            <View style={styles.legendGridRow}>
-              <View style={styles.legendGridCell}>
-                <StatusChip tone="ok" label="Recent" hint="30 min or less" />
-              </View>
-              <View style={styles.legendGridCell}>
-                <StatusChip tone="warn" label="Aging" hint="up to 2 h" />
+          {/* Header with verified badge and titles */}
+          <View style={styles.legendHeader}>
+            <View style={styles.legendBadgeRow}>
+              <View
+                style={[
+                  styles.verifiedBadge,
+                  {
+                    backgroundColor: palette.okTint,
+                    borderColor: palette.okLine,
+                  },
+                ]}
+              >
+                <ShieldCheckIcon size={13} color={palette.okInk} />
+                <Text style={[styles.verifiedBadgeText, { color: palette.okInk }]}>
+                  VERIFIED FRESHNESS SYSTEM
+                </Text>
               </View>
             </View>
 
-            <View style={styles.legendGridRow}>
-              <View style={styles.legendGridCell}>
-                <StatusChip tone="stale" label="Stale" hint="over 2 h" />
-              </View>
-              <View style={styles.legendGridCell}>
-                <StatusChip tone="na" label="Unknown" hint="no data" />
-              </View>
+            <Text style={[styles.legendMainTitle, { color: palette.ink }]}>
+              How stock freshness is rated
+            </Text>
+            <Text style={[styles.legendSubTitle, { color: palette.ink2 }]}>
+              Every pharmacy result carries a verification timestamp so you know whether to visit immediately or call ahead.
+            </Text>
+          </View>
+
+          {/* Visual Certainty Progress Spectrum */}
+          <View style={styles.spectrumContainer}>
+            <View style={styles.spectrumTrack}>
+              <View style={[styles.spectrumSegment, { backgroundColor: palette.accent, flex: 1.2 }]} />
+              <View style={[styles.spectrumSegment, { backgroundColor: palette.amber, flex: 1.0 }]} />
+              <View style={[styles.spectrumSegment, { backgroundColor: palette.stale, flex: 0.9 }]} />
+              <View style={[styles.spectrumSegment, { backgroundColor: palette.naInk, flex: 0.8 }]} />
+            </View>
+            <View style={styles.spectrumLabelsRow}>
+              <Text style={[styles.spectrumLabelStart, { color: palette.okInk }]}>
+                Highest certainty • Visit directly
+              </Text>
+              <Text style={[styles.spectrumLabelEnd, { color: palette.ink2 }]}>
+                Call first
+              </Text>
             </View>
           </View>
 
-          <Text style={[styles.legendFooterText, { color: palette.ink2 }]}>
-            Seeded pilot data. Not live inventory.
-          </Text>
+          {/* 4 Rich Tier Cards */}
+          <View style={styles.tiersList}>
+            {/* Tier 1: Recent */}
+            <View
+              style={[
+                styles.tierCard,
+                {
+                  backgroundColor: palette.okTint,
+                  borderColor: palette.okLine,
+                },
+              ]}
+            >
+              <View style={styles.tierTopRow}>
+                <View style={styles.tierBadgeGroup}>
+                  <CheckCircleIcon size={16} color={palette.okInk} />
+                  <Text style={[styles.tierTitle, { color: palette.okInk }]}>
+                    Recent & Confirmed
+                  </Text>
+                </View>
+                <View style={[styles.tierTimeChip, { backgroundColor: palette.surface }]}>
+                  <ClockIcon size={12} color={palette.okInk} />
+                  <Text style={[styles.tierTimeText, { color: palette.okInk }]}>
+                    Within 30 min
+                  </Text>
+                </View>
+              </View>
+              <Text style={[styles.tierGuidance, { color: palette.okInk }]}>
+                Directly confirmed by the pharmacy counter. Safe to travel immediately with highest confidence.
+              </Text>
+            </View>
+
+            {/* Tier 2: Aging */}
+            <View
+              style={[
+                styles.tierCard,
+                {
+                  backgroundColor: palette.amberTint,
+                  borderColor: palette.amberLine,
+                },
+              ]}
+            >
+              <View style={styles.tierTopRow}>
+                <View style={styles.tierBadgeGroup}>
+                  <ClockIcon size={16} color={palette.amberInk} />
+                  <Text style={[styles.tierTitle, { color: palette.amberInk }]}>
+                    Aging
+                  </Text>
+                </View>
+                <View style={[styles.tierTimeChip, { backgroundColor: palette.surface }]}>
+                  <ClockIcon size={12} color={palette.amberInk} />
+                  <Text style={[styles.tierTimeText, { color: palette.amberInk }]}>
+                    30 min – 2 hours
+                  </Text>
+                </View>
+              </View>
+              <Text style={[styles.tierGuidance, { color: palette.amberInk }]}>
+                Reported earlier today. Stock is likely available, though fast-moving items or limited batches may deplete.
+              </Text>
+            </View>
+
+            {/* Tier 3: Stale */}
+            <View
+              style={[
+                styles.tierCard,
+                {
+                  backgroundColor: palette.staleTint,
+                  borderColor: palette.staleLine,
+                },
+              ]}
+            >
+              <View style={styles.tierTopRow}>
+                <View style={styles.tierBadgeGroup}>
+                  <TriangleAlertIcon size={16} color={palette.staleInk} />
+                  <Text style={[styles.tierTitle, { color: palette.staleInk }]}>
+                    Stale report
+                  </Text>
+                </View>
+                <View style={[styles.tierTimeChip, { backgroundColor: palette.surface }]}>
+                  <ClockIcon size={12} color={palette.staleInk} />
+                  <Text style={[styles.tierTimeText, { color: palette.staleInk }]}>
+                    Over 2 hours ago
+                  </Text>
+                </View>
+              </View>
+              <Text style={[styles.tierGuidance, { color: palette.staleInk }]}>
+                Report is several hours old. Inventory may have changed; tap Call to confirm before traveling.
+              </Text>
+            </View>
+
+            {/* Tier 4: Unknown */}
+            <View
+              style={[
+                styles.tierCard,
+                {
+                  backgroundColor: palette.surface2,
+                  borderColor: palette.line,
+                },
+              ]}
+            >
+              <View style={styles.tierTopRow}>
+                <View style={styles.tierBadgeGroup}>
+                  <CircleHelpIcon size={16} color={palette.naInk} />
+                  <Text style={[styles.tierTitle, { color: palette.ink }]}>
+                    Unknown / No Record
+                  </Text>
+                </View>
+                <View style={[styles.tierTimeChip, { backgroundColor: palette.surface }]}>
+                  <Text style={[styles.tierTimeText, { color: palette.ink2 }]}>
+                    No report today
+                  </Text>
+                </View>
+              </View>
+              <Text style={[styles.tierGuidance, { color: palette.ink2 }]}>
+                Pharmacy is verified and open, but hasn't submitted a stock update today. Always call to confirm.
+              </Text>
+            </View>
+          </View>
+
+          {/* Trust Footnote */}
+          <View style={styles.legendTrustFooter}>
+            <StaffBadgeIcon size={16} color={palette.ink2} />
+            <Text style={[styles.legendTrustText, { color: palette.ink2 }]}>
+              Direct pharmacy confirmations only. MedFind never estimates, guesses, or artificially refreshes inventory timestamps.
+            </Text>
+          </View>
         </View>
 
         {/* PHARMACY STAFF PORTAL QUICK LINK */}
@@ -806,12 +962,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     minHeight: MIN_TARGET,
+    gap: 8,
   },
   brandGroup: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    flex: 1,
+    flexShrink: 0,
   },
   logoWrapper: {
     width: 40,
@@ -850,6 +1007,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+    flexShrink: 1,
+    justifyContent: 'flex-end',
   },
   settingsBtn: {
     width: 42,
@@ -858,22 +1017,25 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
+    flexShrink: 0,
   },
   locationPill: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    minHeight: MIN_TARGET,
-    paddingLeft: 12,
-    paddingRight: 14,
+    minHeight: 38,
+    paddingLeft: 10,
+    paddingRight: 12,
     borderRadius: radii.pill,
     borderWidth: 1,
+    maxWidth: 145,
+    flexShrink: 1,
   },
   locationPillText: {
     fontFamily: fonts.sansBold,
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '700',
-    maxWidth: 130,
+    flexShrink: 1,
   },
 
   // B) HERO
@@ -1037,33 +1199,139 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
 
-  // G) FRESHNESS LEGEND
-  legendCard: {
-    paddingVertical: 14,
+  // G) FRESHNESS LEGEND (EXECUTIVE MAKEOVER)
+  freshnessLegendContainer: {
+    paddingVertical: 18,
     paddingHorizontal: 16,
     borderRadius: radii.card,
     borderWidth: 1,
-    gap: 10,
+    gap: 16,
+    shadowOffset: { width: 0, height: 6 },
+    shadowRadius: 12,
+    shadowOpacity: 0.08,
+    elevation: 2,
   },
-  legendTitle: {
+  legendHeader: {
+    gap: 6,
+  },
+  legendBadgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  verifiedBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+    borderRadius: radii.pill,
+    borderWidth: 1,
+  },
+  verifiedBadgeText: {
+    fontFamily: fonts.sansXBold,
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+  legendMainTitle: {
+    fontFamily: fonts.serif,
+    fontSize: 20,
+    lineHeight: 25,
+    fontWeight: '700',
+    letterSpacing: -0.2,
+  },
+  legendSubTitle: {
+    fontFamily: fonts.sans,
+    fontSize: 13.5,
+    lineHeight: 19,
+    fontWeight: '400',
+  },
+  spectrumContainer: {
+    gap: 6,
+    paddingVertical: 2,
+  },
+  spectrumTrack: {
+    flexDirection: 'row',
+    height: 6,
+    borderRadius: 3,
+    overflow: 'hidden',
+    gap: 2,
+  },
+  spectrumSegment: {
+    height: '100%',
+    borderRadius: 2,
+  },
+  spectrumLabelsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  spectrumLabelStart: {
     fontFamily: fonts.sansBold,
-    fontSize: 14,
+    fontSize: 11.5,
     fontWeight: '700',
   },
-  legendGrid: {
-    gap: 8,
+  spectrumLabelEnd: {
+    fontFamily: fonts.sansMedium,
+    fontSize: 11.5,
+    fontWeight: '500',
   },
-  legendGridRow: {
+  tiersList: {
+    gap: 10,
+  },
+  tierCard: {
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    borderRadius: 16,
+    borderWidth: 1,
+    gap: 6,
+  },
+  tierTopRow: {
     flexDirection: 'row',
-    gap: 8,
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
-  legendGridCell: {
-    flex: 1,
+  tierBadgeGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
-  legendFooterText: {
+  tierTitle: {
+    fontFamily: fonts.sansBold,
+    fontSize: 14.5,
+    fontWeight: '700',
+  },
+  tierTimeChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: radii.pill,
+  },
+  tierTimeText: {
+    fontFamily: fonts.sansBold,
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  tierGuidance: {
     fontFamily: fonts.sans,
-    fontSize: 13,
-    fontWeight: '400',
+    fontSize: 12.5,
+    lineHeight: 17.5,
+  },
+  legendTrustFooter: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    paddingTop: 4,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: 'rgba(0,0,0,0.06)',
+  },
+  legendTrustText: {
+    fontFamily: fonts.sans,
+    fontSize: 12,
+    lineHeight: 17,
+    flex: 1,
   },
 
   staffPortalLink: {

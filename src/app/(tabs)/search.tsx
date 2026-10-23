@@ -181,7 +181,7 @@ export default function SearchScreen() {
       freshnessLabel: 'Recent',
       statusLabel: 'Available',
       verifyTimeText: 'Verified by pharmacy 12 min ago • 10:42 AM',
-      callButtonLabel: 'Contact pharmacy',
+      callButtonLabel: 'Call pharmacy',
     },
     {
       id: `${activeRecord?.medicineId || 'med'}-pharm-003`,
@@ -197,7 +197,7 @@ export default function SearchScreen() {
       freshnessLabel: 'Aging',
       statusLabel: 'Low stock',
       verifyTimeText: 'Verified by pharmacy 1 h 14 min ago • 9:40 AM',
-      callButtonLabel: 'Contact pharmacy',
+      callButtonLabel: 'Call pharmacy',
     },
     {
       id: `${activeRecord?.medicineId || 'med'}-pharm-004`,
@@ -211,9 +211,9 @@ export default function SearchScreen() {
       toneStatus: 'stale' as const,
       freshnessTone: 'stale' as const,
       freshnessLabel: 'Stale',
-      statusLabel: 'Available when last recorded',
+      statusLabel: 'Available',
       verifyTimeText: 'Update is 3 h old, call first • 7:54 AM',
-      callButtonLabel: 'Call first',
+      callButtonLabel: 'Call pharmacy',
     },
     {
       id: `${activeRecord?.medicineId || 'med'}-pharm-005`,
@@ -229,7 +229,7 @@ export default function SearchScreen() {
       freshnessLabel: 'No current record',
       statusLabel: 'Unknown',
       verifyTimeText: 'No valid stock update on file. Confirm with the pharmacy.',
-      callButtonLabel: 'Call to confirm',
+      callButtonLabel: 'Call pharmacy',
     },
   ];
 
@@ -725,7 +725,11 @@ export default function SearchScreen() {
                       ]}
                     >
                       <PhoneIcon size={16} color={palette.btnInk} />
-                      <Text style={[styles.callPharmacyBtnText, { color: palette.btnInk }]}>
+                      <Text
+                        style={[styles.callPharmacyBtnText, { color: palette.btnInk }]}
+                        numberOfLines={1}
+                        ellipsizeMode="tail"
+                      >
                         {callButtonLabel}
                       </Text>
                     </Pressable>
@@ -748,7 +752,10 @@ export default function SearchScreen() {
                         },
                       ]}
                     >
-                      <Text style={[styles.detailsBtnText, { color: palette.ink }]}>
+                      <Text
+                        style={[styles.detailsBtnText, { color: palette.ink }]}
+                        numberOfLines={1}
+                      >
                         Details
                       </Text>
                       <ChevronRightIcon size={14} color={palette.ink} />

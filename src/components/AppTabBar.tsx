@@ -139,7 +139,7 @@ export function AppTabBar({ state, descriptors, navigation, emitter, navigateToT
           label = 'Search';
           icon = <SearchTabIcon size={20} color={isFocused ? palette.navOnInk : palette.ink2} />;
         } else if (route.name === 'care') {
-          label = 'Care nearby';
+          label = 'Care';
           icon = <HospitalTabIcon size={20} color={isFocused ? palette.navOnInk : palette.ink2} />;
         }
 
@@ -209,32 +209,32 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   emergencyWrapper: {
-    width: 108,
+    width: 102,
     minHeight: 52,
     justifyContent: 'center',
     alignItems: 'center',
   },
   emergencyActiveRing: {
-    width: 114,
-    minHeight: 58,
-    borderRadius: 19,
+    width: 106,
+    minHeight: 56,
+    borderRadius: 18,
     borderWidth: 2,
-    padding: 3,
+    padding: 2,
     justifyContent: 'center',
     alignItems: 'center',
   },
   emergencyTabInner: {
     width: '100%',
-    minHeight: 52,
+    minHeight: 50,
     borderRadius: radii.tab,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 4,
-    paddingHorizontal: 4,
+    gap: 3,
+    paddingHorizontal: 2,
   },
   emergencyLabel: {
     fontFamily: fonts.sansXBold,
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '800',
   },
 });

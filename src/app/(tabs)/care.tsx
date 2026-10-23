@@ -478,7 +478,7 @@ export default function CareNearbyScreen() {
                 ? 'Call hospital'
                 : isClinic
                 ? 'Call clinic'
-                : 'Call ambulance contact';
+                : 'Call ambulance';
 
               const distanceText = isAmbulance
                 ? 'Area'
@@ -570,7 +570,11 @@ export default function CareNearbyScreen() {
                       ]}
                     >
                       <PhoneIcon size={16} color={palette.btnInk} />
-                      <Text style={[styles.callButtonText, { color: palette.btnInk }]}>
+                      <Text
+                        style={[styles.callButtonText, { color: palette.btnInk }]}
+                        numberOfLines={1}
+                        ellipsizeMode="tail"
+                      >
                         {callLabel}
                       </Text>
                     </Pressable>
@@ -590,7 +594,10 @@ export default function CareNearbyScreen() {
                       ]}
                     >
                       <DirectionsIcon size={16} color={palette.ink} />
-                      <Text style={[styles.directionsBtnText, { color: palette.ink }]}>
+                      <Text
+                        style={[styles.directionsBtnText, { color: palette.ink }]}
+                        numberOfLines={1}
+                      >
                         Directions
                       </Text>
                     </Pressable>
@@ -872,8 +879,9 @@ const styles = StyleSheet.create({
   },
   callButtonText: {
     fontFamily: fonts.sansSemi,
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '600',
+    flexShrink: 1,
   },
   directionsBtn: {
     minHeight: 48,

@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, StyleSheet, useWindowDimensions } from 'react-native';
-import Svg, { Defs, RadialGradient, Stop, Rect } from 'react-native-svg';
+import Svg, { Defs, RadialGradient, LinearGradient, Stop, Rect } from 'react-native-svg';
 import { useTheme } from '../theme/ThemeContext';
 import { atmosphere } from '../constants/theme';
 
@@ -22,6 +22,25 @@ export function AtmosphereBackground() {
     >
       <Svg width={width} height={height} style={StyleSheet.absoluteFill}>
         <Defs>
+          {/* Top ambient linear wash: rich sage green in light theme, subtle royal violet in dark */}
+          <LinearGradient id="ambient-top-wash" x1="0" y1="0" x2="0" y2="1">
+            <Stop
+              offset="0%"
+              stopColor={scheme === 'light' ? 'rgb(125,170,95)' : 'rgb(59,10,107)'}
+              stopOpacity={scheme === 'light' ? 0.35 : 0.45}
+            />
+            <Stop
+              offset="45%"
+              stopColor={scheme === 'light' ? 'rgb(140,185,110)' : 'rgb(35,8,65)'}
+              stopOpacity={scheme === 'light' ? 0.16 : 0.18}
+            />
+            <Stop
+              offset="100%"
+              stopColor={scheme === 'light' ? 'rgb(140,185,110)' : 'rgb(0,0,0)'}
+              stopOpacity={0}
+            />
+          </LinearGradient>
+
           {blobs.map((blob, index) => {
             const cx = blob.cx * width;
             const cy = blob.cy * height;
@@ -55,6 +74,16 @@ export function AtmosphereBackground() {
           })}
         </Defs>
 
+        {/* Ambient Top Wash */}
+        <Rect
+          x="0"
+          y="0"
+          width={width}
+          height={height * 0.55}
+          fill="url(#ambient-top-wash)"
+        />
+
+        {/* Radial Atmosphere Blobs */}
         {blobs.map((_, index) => (
           <Rect
             key={`rect-${index}`}

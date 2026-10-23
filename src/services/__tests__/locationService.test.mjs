@@ -10,9 +10,20 @@ import {
   formatDistance,
   sortListingsByDistance,
   PREDEFINED_AREAS,
+  cleanLocalityName,
 } from '../locationService.ts';
 
 test('Location Service & Distance Calculation Tests', async (t) => {
+  await t.test('cleanLocalityName strips administrative noise and maps Bangalore to Bengaluru', () => {
+    assert.equal(cleanLocalityName('Bangalore Division'), 'Bengaluru');
+    assert.equal(cleanLocalityName('Bengaluru District'), 'Bengaluru');
+    assert.equal(cleanLocalityName('Bangalore Urban District'), 'Bangalore Urban');
+    assert.equal(cleanLocalityName('Basavanagudi Division'), 'Basavanagudi');
+    assert.equal(cleanLocalityName('Bangalore'), 'Bengaluru');
+    assert.equal(cleanLocalityName(''), '');
+    assert.equal(cleanLocalityName(null), '');
+  });
+
   await t.test('Calculates exact zero distance for identical coordinates', () => {
     const d = calculateDistanceKm(12.9416, 77.5738, 12.9416, 77.5738);
     assert.equal(d, 0);
