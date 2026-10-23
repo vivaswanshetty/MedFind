@@ -28,6 +28,7 @@ import {
   PhoneIcon,
   ShieldCheckIcon,
   MapPinIcon,
+  DirectionsIcon,
 } from '../../components/icons/AppIcons';
 
 export default function CareNearbyScreen() {
@@ -36,6 +37,7 @@ export default function CareNearbyScreen() {
   const { userLocation, areaName } = useLocation();
 
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [selectedPin, setSelectedPin] = useState<'hospital' | 'clinic' | 'ambulance' | 'user' | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [listings, setListings] = useState<ProviderListing[]>([]);
 
@@ -98,6 +100,50 @@ export default function CareNearbyScreen() {
       }
     } catch {
       Alert.alert('Error', 'Unable to open phone dialer.');
+    }
+  };
+
+  const handleOpenMapApp = async () => {
+    const lat = userLocation?.latitude ?? 12.9416;
+    const lng = userLocation?.longitude ?? 77.5738;
+    const label = encodeURIComponent(`Hospitals and Clinics near ${areaName.split(',')[0]}`);
+    const url = Platform.select({
+      ios: `maps:0,0?q=${label}&ll=${lat},${lng}`,
+      android: `geo:${lat},${lng}?q=hospitals+clinics`,
+      default: `https://www.google.com/maps/search/hospitals+clinics/@${lat},${lng},14z`,
+    });
+    try {
+      const canOpen = await Linking.canOpenURL(url);
+      if (canOpen) {
+        await Linking.openURL(url);
+      } else {
+        await Linking.openURL(`https://www.google.com/maps/search/hospitals+clinics/@${lat},${lng},14z`);
+      }
+    } catch {
+      Alert.alert('Maps Unavailable', 'Unable to launch map application.');
+    }
+  };
+
+  const handleDirections = async (item: ProviderListing) => {
+    const query = encodeURIComponent(`${item.name}, ${item.address}`);
+    const url = Platform.select({
+      ios: item.latitude && item.longitude
+        ? `maps:0,0?daddr=${item.latitude},${item.longitude}`
+        : `maps:0,0?daddr=${query}`,
+      android: item.latitude && item.longitude
+        ? `google.navigation:q=${item.latitude},${item.longitude}`
+        : `geo:0,0?q=${query}`,
+      default: `https://www.google.com/maps/dir/?api=1&destination=${query}`,
+    });
+    try {
+      const canOpen = await Linking.canOpenURL(url);
+      if (canOpen) {
+        await Linking.openURL(url);
+      } else {
+        await Linking.openURL(`https://www.google.com/maps/dir/?api=1&destination=${query}`);
+      }
+    } catch {
+      Alert.alert('Directions Unavailable', 'Unable to open directions in map app.');
     }
   };
 
@@ -247,6 +293,58 @@ export default function CareNearbyScreen() {
             />
           </Svg>
 
+          {/* Floating Action: Open in Native Maps */}
+          <Pressable
+            onPress={handleOpenMapApp}
+            accessible={true}
+            accessibilityRole="button"
+            accessibilityLabel="Open live interactive Google Maps"
+            style={[
+              styles.openMapFloatingBtn,
+              {
+                backgroundColor: palette.surface,
+                borderColor: palette.line,
+              },
+            ]}
+          >
+            <DirectionsIcon size={14} color={palette.ink} />
+            <Text style={[styles.openMapFloatingText, { color: palette.ink }]}>
+              Open in Maps ↗
+            </Text>
+          </Pressable>
+
+          {/* Interactive Touch Zones for Map Pins */}
+          <Pressable
+            onPress={() => {
+              setSelectedPin('hospital');
+              setSelectedCategory('hospital');
+            }}
+            accessible={true}
+            accessibilityRole="button"
+            accessibilityLabel="Hospital Pin: Victoria Hospital"
+            style={[styles.pinTouchZone, { left: '26%', top: '22%' }]}
+          />
+          <Pressable
+            onPress={() => {
+              setSelectedPin('clinic');
+              setSelectedCategory('clinic');
+            }}
+            accessible={true}
+            accessibilityRole="button"
+            accessibilityLabel="Clinic Pin: Basavanagudi Urban PHC"
+            style={[styles.pinTouchZone, { left: '71%', top: '24%' }]}
+          />
+          <Pressable
+            onPress={() => {
+              setSelectedPin('ambulance');
+              setSelectedCategory('ambulance');
+            }}
+            accessible={true}
+            accessibilityRole="button"
+            accessibilityLabel="Ambulance Pin: 108 Emergency Services"
+            style={[styles.pinTouchZone, { left: '55%', top: '69%' }]}
+          />
+
           {/* User Location Label Tag */}
           <View
             style={[
@@ -268,6 +366,56 @@ export default function CareNearbyScreen() {
             </Text>
           </View>
         </View>
+
+        {/* INTERACTIVE PIN SELECTION CALLOUT */}
+        {selectedPin && (
+          <View
+            style={[
+              styles.pinCalloutCard,
+              {
+                backgroundColor: palette.surface,
+                borderColor: palette.line,
+                shadowColor: palette.shadow,
+              },
+            ]}
+          >
+            <View style={styles.pinCalloutInfo}>
+              <Text style={[styles.pinCalloutTitle, { color: palette.ink }]}>
+                {selectedPin === 'hospital'
+                  ? '🏥 Victoria Hospital (BMCRI)'
+                  : selectedPin === 'clinic'
+                  ? '🩺 Basavanagudi Urban PHC'
+                  : '🚑 Arogya Kavacha 108 Emergency'}
+              </Text>
+              <Text style={[styles.pinCalloutMeta, { color: palette.ink2 }]}>
+                {selectedPin === 'hospital'
+                  ? '1.2 km • 24x7 Casualty & Emergency Hospital'
+                  : selectedPin === 'clinic'
+                  ? '1.9 km • Primary Health Consultation'
+                  : 'Unified State Emergency Medical Response'}
+              </Text>
+            </View>
+            <View style={styles.pinCalloutButtons}>
+              <Pressable
+                onPress={() => {
+                  const phone = selectedPin === 'hospital' ? '080-26701150' : selectedPin === 'clinic' ? '080-22660000' : '108';
+                  handleCallPress(phone, selectedPin);
+                }}
+                style={[styles.pinCalloutCallBtn, { backgroundColor: palette.btn }]}
+              >
+                <PhoneIcon size={14} color={palette.btnInk} />
+                <Text style={[styles.pinCalloutCallText, { color: palette.btnInk }]}>Call</Text>
+              </Pressable>
+              <Pressable
+                onPress={handleOpenMapApp}
+                style={[styles.pinCalloutDirBtn, { backgroundColor: palette.surface2, borderColor: palette.line }]}
+              >
+                <DirectionsIcon size={14} color={palette.ink} />
+                <Text style={[styles.pinCalloutDirText, { color: palette.ink }]}>Map</Text>
+              </Pressable>
+            </View>
+          </View>
+        )}
 
         {/* CATEGORY FILTER CHIPS */}
         <ScrollView
@@ -405,26 +553,48 @@ export default function CareNearbyScreen() {
                     </Text>
                   </View>
 
-                  {/* Call Button */}
-                  <Pressable
-                    onPress={() => handleCallPress(item.phone, item.name)}
-                    accessible={true}
-                    accessibilityRole="button"
-                    accessibilityLabel={`${callLabel} for ${item.name}`}
-                    style={({ pressed }) => [
-                      styles.callButton,
-                      {
-                        backgroundColor: palette.btn,
-                        borderColor: palette.btnBorder,
-                        opacity: pressed ? 0.88 : 1.0,
-                      },
-                    ]}
-                  >
-                    <PhoneIcon size={16} color={palette.btnInk} />
-                    <Text style={[styles.callButtonText, { color: palette.btnInk }]}>
-                      {callLabel}
-                    </Text>
-                  </Pressable>
+                  {/* Action Buttons: Call & Directions */}
+                  <View style={styles.cardActionsRow}>
+                    <Pressable
+                      onPress={() => handleCallPress(item.phone, item.name)}
+                      accessible={true}
+                      accessibilityRole="button"
+                      accessibilityLabel={`${callLabel} for ${item.name}`}
+                      style={({ pressed }) => [
+                        styles.callButton,
+                        {
+                          backgroundColor: palette.btn,
+                          borderColor: palette.btnBorder,
+                          opacity: pressed ? 0.88 : 1.0,
+                        },
+                      ]}
+                    >
+                      <PhoneIcon size={16} color={palette.btnInk} />
+                      <Text style={[styles.callButtonText, { color: palette.btnInk }]}>
+                        {callLabel}
+                      </Text>
+                    </Pressable>
+
+                    <Pressable
+                      onPress={() => handleDirections(item)}
+                      accessible={true}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Get directions to ${item.name}`}
+                      style={({ pressed }) => [
+                        styles.directionsBtn,
+                        {
+                          backgroundColor: palette.surface2,
+                          borderColor: palette.line,
+                          opacity: pressed ? 0.85 : 1.0,
+                        },
+                      ]}
+                    >
+                      <DirectionsIcon size={16} color={palette.ink} />
+                      <Text style={[styles.directionsBtnText, { color: palette.ink }]}>
+                        Directions
+                      </Text>
+                    </Pressable>
+                  </View>
                 </View>
               );
             })}
@@ -494,6 +664,84 @@ const styles = StyleSheet.create({
     position: 'relative',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  openMapFloatingBtn: {
+    position: 'absolute',
+    top: 10,
+    right: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: radii.pill,
+    borderWidth: 1,
+  },
+  openMapFloatingText: {
+    fontFamily: fonts.sansBold,
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  pinTouchZone: {
+    position: 'absolute',
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+  },
+  pinCalloutCard: {
+    borderRadius: radii.card,
+    borderWidth: 1,
+    padding: 14,
+    gap: 10,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  pinCalloutInfo: {
+    gap: 2,
+  },
+  pinCalloutTitle: {
+    fontFamily: fonts.serif,
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  pinCalloutMeta: {
+    fontFamily: fonts.sans,
+    fontSize: 12,
+  },
+  pinCalloutButtons: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  pinCalloutCallBtn: {
+    flex: 1,
+    minHeight: 40,
+    borderRadius: radii.pill,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+  },
+  pinCalloutCallText: {
+    fontFamily: fonts.sansBold,
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  pinCalloutDirBtn: {
+    flex: 1,
+    minHeight: 40,
+    borderRadius: radii.pill,
+    borderWidth: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+  },
+  pinCalloutDirText: {
+    fontFamily: fonts.sansBold,
+    fontSize: 13,
+    fontWeight: '700',
   },
   mapLocationTag: {
     position: 'absolute',
@@ -607,7 +855,13 @@ const styles = StyleSheet.create({
     fontFamily: fonts.sans,
     fontSize: 12,
   },
+  cardActionsRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 2,
+  },
   callButton: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -615,11 +869,25 @@ const styles = StyleSheet.create({
     minHeight: 48,
     borderRadius: radii.pill,
     borderWidth: 1,
-    marginTop: 2,
   },
   callButtonText: {
     fontFamily: fonts.sansSemi,
     fontSize: 15,
+    fontWeight: '600',
+  },
+  directionsBtn: {
+    minHeight: 48,
+    paddingHorizontal: 18,
+    borderRadius: radii.pill,
+    borderWidth: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+  },
+  directionsBtnText: {
+    fontFamily: fonts.sansSemi,
+    fontSize: 14,
     fontWeight: '600',
   },
 });

@@ -6,6 +6,7 @@ import {
   Pressable,
   StyleSheet,
   Modal,
+  Image,
   Platform,
   StatusBar,
 } from 'react-native';
@@ -30,6 +31,10 @@ import {
   MoonIcon,
   SunIcon,
   StaffBadgeIcon,
+  SettingsIcon,
+  CloseIcon,
+  ShieldCheckIcon,
+  InfoIcon,
 } from '../../components/icons/AppIcons';
 
 export default function HomeScreen() {
@@ -42,11 +47,17 @@ export default function HomeScreen() {
     setShowOnboardingModal,
     showAreaPickerModal,
     setShowAreaPickerModal,
+    replayOnboarding,
   } = useLocation();
+
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [showPolicyModal, setShowPolicyModal] = useState(false);
 
   const [recentTerms, setRecentTerms] = useState<string[]>([
     'Metformin 500 mg',
     'Salbutamol inhaler',
+    'Paracetamol 500 mg',
+    'Cetirizine 10 mg',
   ]);
 
   useEffect(() => {
@@ -83,44 +94,32 @@ export default function HomeScreen() {
           <View style={styles.brandGroup}>
             <View
               style={[
-                styles.logoTile,
+                styles.logoWrapper,
                 {
-                  backgroundColor: palette.logoBg,
+                  backgroundColor: palette.surface,
+                  borderColor: palette.line,
                   shadowColor: palette.shadow,
                 },
               ]}
               accessible={true}
               accessibilityLabel="MedFind Logo"
             >
-              <PlusIcon size={22} color={palette.logoInk} />
+              <Image
+                source={require('../../../assets/images/icon.png')}
+                style={styles.appLogoImage}
+                resizeMode="cover"
+              />
             </View>
-            <Text style={[styles.brandText, { color: palette.ink }]}>MedFind</Text>
+            <View style={styles.brandTitleColumn}>
+              <Text style={[styles.brandText, { color: palette.ink }]}>MedFind</Text>
+              <Text style={[styles.brandSubtext, { color: palette.ink2 }]}>
+                Prescription & Care Directory
+              </Text>
+            </View>
           </View>
 
-          {/* Right: Location Pill & Dev Theme Toggle */}
+          {/* Right: Location Pill & Settings Button */}
           <View style={styles.headerRightActions}>
-            {__DEV__ && (
-              <Pressable
-                onPress={toggleTheme}
-                accessible={true}
-                accessibilityRole="button"
-                accessibilityLabel="Toggle Theme"
-                style={[
-                  styles.themeToggleBtn,
-                  {
-                    backgroundColor: palette.surface,
-                    borderColor: palette.line,
-                  },
-                ]}
-              >
-                {scheme === 'light' ? (
-                  <MoonIcon size={16} color={palette.ink2} />
-                ) : (
-                  <SunIcon size={16} color={palette.ink2} />
-                )}
-              </Pressable>
-            )}
-
             <Pressable
               onPress={() => setShowAreaPickerModal(true)}
               accessible={true}
@@ -134,13 +133,29 @@ export default function HomeScreen() {
                 },
               ]}
             >
-              <MapPinIcon size={16} color={palette.ink} />
+              <MapPinIcon size={15} color={palette.ink} />
               <Text
                 style={[styles.locationPillText, { color: palette.ink }]}
                 numberOfLines={1}
               >
                 {areaName.split(',')[0]}
               </Text>
+            </Pressable>
+
+            <Pressable
+              onPress={() => setShowSettingsModal(true)}
+              accessible={true}
+              accessibilityRole="button"
+              accessibilityLabel="Open settings and options"
+              style={[
+                styles.settingsBtn,
+                {
+                  backgroundColor: palette.surface,
+                  borderColor: palette.line,
+                },
+              ]}
+            >
+              <SettingsIcon size={20} color={palette.ink} />
             </Pressable>
           </View>
         </View>
@@ -387,6 +402,301 @@ export default function HomeScreen() {
         visible={showAreaPickerModal}
         onClose={() => setShowAreaPickerModal(false)}
       />
+
+      {/* Settings & Preferences Modal */}
+      <Modal
+        visible={showSettingsModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowSettingsModal(false)}
+      >
+        <Pressable
+          style={styles.modalOverlay}
+          onPress={() => setShowSettingsModal(false)}
+        >
+          <Pressable
+            style={[
+              styles.settingsCard,
+              {
+                backgroundColor: palette.surface,
+                borderColor: palette.line,
+                shadowColor: palette.shadow,
+              },
+            ]}
+            onPress={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <View style={styles.settingsModalHeader}>
+              <View style={styles.settingsModalTitleRow}>
+                <SettingsIcon size={20} color={palette.ink} />
+                <Text style={[styles.settingsModalTitle, { color: palette.ink }]}>
+                  Settings & Options
+                </Text>
+              </View>
+              <Pressable
+                onPress={() => setShowSettingsModal(false)}
+                hitSlop={8}
+                accessible={true}
+                accessibilityRole="button"
+                accessibilityLabel="Close settings"
+                style={[styles.closeModalBtn, { borderColor: palette.line }]}
+              >
+                <CloseIcon size={16} color={palette.ink2} />
+              </Pressable>
+            </View>
+
+            {/* Item 1: Theme Switcher */}
+            <Pressable
+              onPress={() => {
+                toggleTheme();
+              }}
+              accessible={true}
+              accessibilityRole="button"
+              accessibilityLabel={`Toggle appearance mode. Current theme is ${scheme}`}
+              style={[
+                styles.settingsRowItem,
+                { borderBottomColor: palette.line },
+              ]}
+            >
+              <View
+                style={[
+                  styles.settingsIconBox,
+                  { backgroundColor: palette.surface2, borderColor: palette.line },
+                ]}
+              >
+                {scheme === 'light' ? (
+                  <MoonIcon size={18} color={palette.ink} />
+                ) : (
+                  <SunIcon size={18} color={palette.accent} />
+                )}
+              </View>
+              <View style={styles.settingsItemInfo}>
+                <Text style={[styles.settingsItemTitle, { color: palette.ink }]}>
+                  Appearance: {scheme === 'light' ? 'Warm Editorial (Light)' : 'Cinematic (Dark)'}
+                </Text>
+                <Text style={[styles.settingsItemSubtitle, { color: palette.ink2 }]}>
+                  Tap to switch color theme
+                </Text>
+              </View>
+              <View
+                style={[
+                  styles.themeToggleBadge,
+                  { backgroundColor: palette.surface2, borderColor: palette.line },
+                ]}
+              >
+                <Text style={[styles.themeToggleBadgeText, { color: palette.ink }]}>
+                  Switch
+                </Text>
+              </View>
+            </Pressable>
+
+            {/* Item 2: Location & Area */}
+            <Pressable
+              onPress={() => {
+                setShowSettingsModal(false);
+                setShowAreaPickerModal(true);
+              }}
+              accessible={true}
+              accessibilityRole="button"
+              accessibilityLabel={`Change area. Current area is ${areaName}`}
+              style={[
+                styles.settingsRowItem,
+                { borderBottomColor: palette.line },
+              ]}
+            >
+              <View
+                style={[
+                  styles.settingsIconBox,
+                  { backgroundColor: palette.surface2, borderColor: palette.line },
+                ]}
+              >
+                <MapPinIcon size={18} color={palette.ink} />
+              </View>
+              <View style={styles.settingsItemInfo}>
+                <Text style={[styles.settingsItemTitle, { color: palette.ink }]}>
+                  Area: {areaName.split(',')[0]}
+                </Text>
+                <Text style={[styles.settingsItemSubtitle, { color: palette.ink2 }]}>
+                  Choose neighborhood or GPS
+                </Text>
+              </View>
+              <ChevronRightIcon size={18} color={palette.ink2} />
+            </Pressable>
+
+            {/* Item 3: Replay Welcome Tour */}
+            <Pressable
+              onPress={() => {
+                setShowSettingsModal(false);
+                replayOnboarding();
+              }}
+              accessible={true}
+              accessibilityRole="button"
+              accessibilityLabel="Replay location tour"
+              style={[
+                styles.settingsRowItem,
+                { borderBottomColor: palette.line },
+              ]}
+            >
+              <View
+                style={[
+                  styles.settingsIconBox,
+                  { backgroundColor: palette.surface2, borderColor: palette.line },
+                ]}
+              >
+                <InfoIcon size={18} color={palette.ink} />
+              </View>
+              <View style={styles.settingsItemInfo}>
+                <Text style={[styles.settingsItemTitle, { color: palette.ink }]}>
+                  Location Tour
+                </Text>
+                <Text style={[styles.settingsItemSubtitle, { color: palette.ink2 }]}>
+                  Replay permissions introduction
+                </Text>
+              </View>
+              <ChevronRightIcon size={18} color={palette.ink2} />
+            </Pressable>
+
+            {/* Item 4: Pharmacy Staff Portal */}
+            <Pressable
+              onPress={() => {
+                setShowSettingsModal(false);
+                router.push('/portal');
+              }}
+              accessible={true}
+              accessibilityRole="button"
+              accessibilityLabel="Pharmacy Staff Portal"
+              style={[
+                styles.settingsRowItem,
+                { borderBottomColor: palette.line },
+              ]}
+            >
+              <View
+                style={[
+                  styles.settingsIconBox,
+                  { backgroundColor: palette.surface2, borderColor: palette.line },
+                ]}
+              >
+                <StaffBadgeIcon size={18} color={palette.ink} />
+              </View>
+              <View style={styles.settingsItemInfo}>
+                <Text style={[styles.settingsItemTitle, { color: palette.ink }]}>
+                  Pharmacy Staff Portal
+                </Text>
+                <Text style={[styles.settingsItemSubtitle, { color: palette.ink2 }]}>
+                  Submit live stock updates
+                </Text>
+              </View>
+              <ChevronRightIcon size={18} color={palette.ink2} />
+            </Pressable>
+
+            {/* Item 5: Sourcing Policy */}
+            <Pressable
+              onPress={() => {
+                setShowSettingsModal(false);
+                setShowPolicyModal(true);
+              }}
+              accessible={true}
+              accessibilityRole="button"
+              accessibilityLabel="Verified Sourcing Policy"
+              style={styles.settingsRowItem}
+            >
+              <View
+                style={[
+                  styles.settingsIconBox,
+                  { backgroundColor: palette.surface2, borderColor: palette.line },
+                ]}
+              >
+                <ShieldCheckIcon size={18} color={palette.okInk} />
+              </View>
+              <View style={styles.settingsItemInfo}>
+                <Text style={[styles.settingsItemTitle, { color: palette.ink }]}>
+                  Verified Data Policy
+                </Text>
+                <Text style={[styles.settingsItemSubtitle, { color: palette.ink2 }]}>
+                  Government records & NLEM catalog
+                </Text>
+              </View>
+              <ChevronRightIcon size={18} color={palette.ink2} />
+            </Pressable>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {/* Sourcing & Clinical Policy Modal */}
+      <Modal
+        visible={showPolicyModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowPolicyModal(false)}
+      >
+        <Pressable
+          style={styles.modalOverlay}
+          onPress={() => setShowPolicyModal(false)}
+        >
+          <Pressable
+            style={[
+              styles.policyCard,
+              {
+                backgroundColor: palette.surface,
+                borderColor: palette.line,
+                shadowColor: palette.shadow,
+              },
+            ]}
+            onPress={(e) => e.stopPropagation()}
+          >
+            <View style={styles.settingsModalHeader}>
+              <View style={styles.settingsModalTitleRow}>
+                <ShieldCheckIcon size={20} color={palette.okInk} />
+                <Text style={[styles.settingsModalTitle, { color: palette.ink }]}>
+                  Verified Sourcing Policy
+                </Text>
+              </View>
+              <Pressable
+                onPress={() => setShowPolicyModal(false)}
+                hitSlop={8}
+                style={[styles.closeModalBtn, { borderColor: palette.line }]}
+              >
+                <CloseIcon size={16} color={palette.ink2} />
+              </Pressable>
+            </View>
+
+            <ScrollView style={styles.policyScrollArea} showsVerticalScrollIndicator={false}>
+              <Text style={[styles.policySectionHeading, { color: palette.ink }]}>
+                1. No Invented Stock
+              </Text>
+              <Text style={[styles.policyBodyText, { color: palette.ink2 }]}>
+                MedFind never assumes or fabricates pharmacy stock levels. Availability is only marked as "Available" or "Low stock" when directly reported by a participating pharmacy operator. Unreported medicines remain honestly labeled as "Unknown / Unreported".
+              </Text>
+
+              <Text style={[styles.policySectionHeading, { color: palette.ink }]}>
+                2. Official Government Directory
+              </Text>
+              <Text style={[styles.policyBodyText, { color: palette.ink2 }]}>
+                Emergency and healthcare directory entries are verified against official government sources: National ERSS 112, Karnataka Arogya Kavacha 108, BMCRI hospitals (Victoria & Bowring), and BBMP Public Health Centres.
+              </Text>
+
+              <Text style={[styles.policySectionHeading, { color: palette.ink }]}>
+                3. NLEM India Essential Medicines
+              </Text>
+              <Text style={[styles.policyBodyText, { color: palette.ink2 }]}>
+                The medicine catalog is based on the National List of Essential Medicines (NLEM India 2022). MedFind provides contact reference only and gives no dosage advice or automatic drug substitution.
+              </Text>
+            </ScrollView>
+
+            <Pressable
+              onPress={() => setShowPolicyModal(false)}
+              style={[
+                styles.policyDismissBtn,
+                { backgroundColor: palette.btn, borderColor: palette.btnBorder },
+              ]}
+            >
+              <Text style={[styles.policyDismissBtnText, { color: palette.btnInk }]}>
+                Understood
+              </Text>
+            </Pressable>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </View>
   );
 }
@@ -414,11 +724,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
+    flex: 1,
   },
-  logoTile: {
-    width: 38,
-    height: 38,
+  logoWrapper: {
+    width: 40,
+    height: 40,
     borderRadius: 12,
+    borderWidth: 1,
+    overflow: 'hidden',
     alignItems: 'center',
     justifyContent: 'center',
     shadowOffset: { width: 0, height: 2 },
@@ -426,22 +739,35 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 2,
   },
+  appLogoImage: {
+    width: '100%',
+    height: '100%',
+  },
+  brandTitleColumn: {
+    justifyContent: 'center',
+  },
   brandText: {
     fontFamily: fonts.serif,
-    fontSize: 23,
+    fontSize: 22,
     fontWeight: '700',
     letterSpacing: -0.23,
+    lineHeight: 24,
+  },
+  brandSubtext: {
+    fontFamily: fonts.sansMedium,
+    fontSize: 10.5,
+    fontWeight: '500',
+    marginTop: 1,
   },
   headerRightActions: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
   },
-  themeToggleBtn: {
-    minHeight: MIN_TARGET,
-    minWidth: MIN_TARGET,
-    paddingHorizontal: 10,
-    borderRadius: radii.pill,
+  settingsBtn: {
+    width: 42,
+    height: 42,
+    borderRadius: 14,
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
@@ -669,5 +995,130 @@ const styles = StyleSheet.create({
     fontFamily: fonts.sansMedium,
     fontSize: 13,
     fontWeight: '500',
+  },
+
+  // MODALS
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  settingsCard: {
+    width: '100%',
+    maxWidth: 400,
+    borderRadius: 24,
+    borderWidth: 1,
+    padding: 20,
+    gap: 16,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.25,
+    shadowRadius: 20,
+    elevation: 8,
+  },
+  settingsModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingBottom: 4,
+  },
+  settingsModalTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  settingsModalTitle: {
+    fontFamily: fonts.serif,
+    fontSize: 19,
+    fontWeight: '700',
+  },
+  closeModalBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  settingsRowItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  settingsIconBox: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  settingsItemInfo: {
+    flex: 1,
+  },
+  settingsItemTitle: {
+    fontFamily: fonts.sansBold,
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  settingsItemSubtitle: {
+    fontFamily: fonts.sans,
+    fontSize: 12,
+    marginTop: 2,
+  },
+  themeToggleBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  themeToggleBadgeText: {
+    fontFamily: fonts.sansBold,
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  policyCard: {
+    width: '100%',
+    maxWidth: 440,
+    maxHeight: '80%',
+    borderRadius: 24,
+    borderWidth: 1,
+    padding: 20,
+    gap: 14,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.25,
+    shadowRadius: 20,
+    elevation: 8,
+  },
+  policyScrollArea: {
+    marginVertical: 4,
+  },
+  policySectionHeading: {
+    fontFamily: fonts.sansBold,
+    fontSize: 14,
+    fontWeight: '700',
+    marginTop: 10,
+    marginBottom: 4,
+  },
+  policyBodyText: {
+    fontFamily: fonts.sans,
+    fontSize: 13,
+    lineHeight: 19,
+  },
+  policyDismissBtn: {
+    minHeight: 46,
+    borderRadius: 14,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 8,
+  },
+  policyDismissBtnText: {
+    fontFamily: fonts.sansBold,
+    fontSize: 15,
+    fontWeight: '700',
   },
 });
