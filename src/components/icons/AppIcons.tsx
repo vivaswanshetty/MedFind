@@ -978,5 +978,74 @@ export function ZapIcon({ size = 16, color }: IconProps) {
   );
 }
 
+/**
+ * 45. Refresh / Reset Cycle Icon
+ */
+export function RefreshIcon({ size = 18, color = '#DC2626' }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"
+        stroke={color}
+        strokeWidth="2.2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Path
+        d="M3 3v5h5"
+        stroke={color}
+        strokeWidth="2.2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Path
+        d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"
+        stroke={color}
+        strokeWidth="2.2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Path
+        d="M16 16h5v5"
+        stroke={color}
+        strokeWidth="2.2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
+/**
+ * 46. Globe / Language Icon
+ */
+export function GlobeIcon({ size = 18, color = '#2563EB' }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Circle
+        cx="12"
+        cy="12"
+        r="10"
+        stroke={color}
+        strokeWidth="2"
+      />
+      <Path
+        d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20z"
+        stroke={color}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Path
+        d="M2 12h20"
+        stroke={color}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
 
 

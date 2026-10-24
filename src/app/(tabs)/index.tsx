@@ -50,6 +50,10 @@ import {
   CheckCircleIcon,
   TriangleAlertIcon,
   CircleHelpIcon,
+  RefreshIcon,
+  GlobeIcon,
+  PillCapsuleIcon,
+  TrashIcon,
 } from '../../components/icons/AppIcons';
 
 function formatHeaderArea(raw: string): string {
@@ -692,350 +696,144 @@ export default function HomeScreen() {
               </Pressable>
             </View>
 
-            {/* Item 1: Theme Switcher */}
-            <Pressable
-              onPress={() => {
-                toggleTheme();
-              }}
-              accessible={true}
-              accessibilityRole="button"
-              accessibilityLabel={`Toggle appearance mode. Current theme is ${scheme}`}
-              style={[
-                styles.settingsRowItem,
-                { borderBottomColor: palette.line },
-              ]}
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              bounces={false}
+              style={{ flexShrink: 1, width: '100%' }}
+              contentContainerStyle={styles.settingsScrollContent}
             >
-              <View
+              {/* Section 1: Preferences */}
+              <Text
                 style={[
-                  styles.settingsIconBox,
-                  {
-                    backgroundColor:
-                      scheme === 'light' ? '#FEF3C7' : 'rgba(168, 85, 247, 0.2)',
-                    borderColor:
-                      scheme === 'light' ? '#FDE68A' : 'rgba(168, 85, 247, 0.4)',
-                  },
+                  styles.settingsSectionHeader,
+                  { color: palette.ink2, marginTop: 4 },
                 ]}
               >
-                {scheme === 'light' ? (
-                  <MoonIcon size={18} color="#D97706" />
-                ) : (
-                  <SunIcon size={18} color="#FCD34D" />
-                )}
-              </View>
-              <View style={styles.settingsItemInfo}>
-                <Text style={[styles.settingsItemTitle, { color: palette.ink }]}>
-                  Appearance: {scheme === 'light' ? 'Light theme' : 'Dark theme'}
-                </Text>
-                <Text style={[styles.settingsItemSubtitle, { color: palette.ink2 }]}>
-                  Tap to switch to {scheme === 'light' ? 'dark' : 'light'} theme
-                </Text>
-              </View>
-              <View
-                style={[
-                  styles.themeToggleBadge,
-                  { backgroundColor: palette.surface2, borderColor: palette.line },
-                ]}
-              >
-                <Text style={[styles.themeToggleBadgeText, { color: palette.ink }]}>
-                  {t('switch_theme', 'Switch')}
-                </Text>
-              </View>
-            </Pressable>
+                Preferences
+              </Text>
 
-            {/* Item 2: App Language */}
-            <Pressable
-              onPress={() => {
-                setShowSettingsModal(false);
-                setShowLanguageModal(true);
-              }}
-              accessible={true}
-              accessibilityRole="button"
-              accessibilityLabel={`Select app language. Currently ${SUPPORTED_LANGUAGES.find((l) => l.code === language)?.nativeName}`}
-              style={[
-                styles.settingsRowItem,
-                { borderBottomColor: palette.line },
-              ]}
-            >
-              <View
-                style={[
-                  styles.settingsIconBox,
-                  {
-                    backgroundColor:
-                      scheme === 'light' ? 'rgba(59, 130, 246, 0.16)' : 'rgba(96, 165, 250, 0.2)',
-                    borderColor:
-                      scheme === 'light' ? 'rgba(59, 130, 246, 0.35)' : 'rgba(96, 165, 250, 0.4)',
-                  },
-                ]}
-              >
-                <Text style={{ fontSize: 16 }}>🌐</Text>
-              </View>
-              <View style={styles.settingsItemInfo}>
-                <Text style={[styles.settingsItemTitle, { color: palette.ink }]}>
-                  {t('language', 'App Language')}: {SUPPORTED_LANGUAGES.find((l) => l.code === language)?.nativeName}
-                </Text>
-                <Text style={[styles.settingsItemSubtitle, { color: palette.ink2 }]}>
-                  English • ಕನ್ನಡ • हिंदी
-                </Text>
-              </View>
-              <View
-                style={[
-                  styles.themeToggleBadge,
-                  { backgroundColor: palette.surface2, borderColor: palette.line },
-                ]}
-              >
-                <Text style={[styles.themeToggleBadgeText, { color: palette.ink }]}>
-                  {t('change_language', 'Change')}
-                </Text>
-              </View>
-            </Pressable>
-
-            {/* Item 3: How Location Works */}
-            <Pressable
-              onPress={() => {
-                setShowSettingsModal(false);
-                setShowLocationInfoModal(true);
-              }}
-              accessible={true}
-              accessibilityRole="button"
-              accessibilityLabel="How Location Works"
-              style={[
-                styles.settingsRowItem,
-                { borderBottomColor: palette.line },
-              ]}
-            >
-              <View
-                style={[
-                  styles.settingsIconBox,
-                  {
-                    backgroundColor:
-                      scheme === 'light'
-                        ? 'rgba(14, 165, 233, 0.16)'
-                        : 'rgba(56, 189, 248, 0.2)',
-                    borderColor:
-                      scheme === 'light'
-                        ? 'rgba(14, 165, 233, 0.35)'
-                        : 'rgba(56, 189, 248, 0.4)',
-                  },
-                ]}
-              >
-                <MapPinIcon
-                  size={18}
-                  color={scheme === 'light' ? '#0284C7' : '#38BDF8'}
-                />
-              </View>
-              <View style={styles.settingsItemInfo}>
-                <Text style={[styles.settingsItemTitle, { color: palette.ink }]}>
-                  How Location Works
-                </Text>
-                <Text style={[styles.settingsItemSubtitle, { color: palette.ink2 }]}>
-                  GPS usage, distance calculation & privacy
-                </Text>
-              </View>
-              <ChevronRightIcon size={18} color={palette.ink2} />
-            </Pressable>
-
-            {/* Item 3: Pharmacy Staff Portal */}
-            <Pressable
-              onPress={() => {
-                setShowSettingsModal(false);
-                router.push('/portal');
-              }}
-              accessible={true}
-              accessibilityRole="button"
-              accessibilityLabel="Pharmacy Staff Portal"
-              style={[
-                styles.settingsRowItem,
-                { borderBottomColor: palette.line },
-              ]}
-            >
-              <View
-                style={[
-                  styles.settingsIconBox,
-                  {
-                    backgroundColor:
-                      scheme === 'light'
-                        ? 'rgba(168, 85, 247, 0.16)'
-                        : 'rgba(192, 132, 252, 0.2)',
-                    borderColor:
-                      scheme === 'light'
-                        ? 'rgba(168, 85, 247, 0.35)'
-                        : 'rgba(192, 132, 252, 0.4)',
-                  },
-                ]}
-              >
-                <StaffBadgeIcon
-                  size={18}
-                  color={scheme === 'light' ? '#9333EA' : '#C084FC'}
-                />
-              </View>
-              <View style={styles.settingsItemInfo}>
-                <Text style={[styles.settingsItemTitle, { color: palette.ink }]}>
-                  Pharmacy Staff Portal
-                </Text>
-                <Text style={[styles.settingsItemSubtitle, { color: palette.ink2 }]}>
-                  Submit live stock updates
-                </Text>
-              </View>
-              <ChevronRightIcon size={18} color={palette.ink2} />
-            </Pressable>
-
-            {/* Item 4: Sourcing Policy */}
-            <Pressable
-              onPress={() => {
-                setShowSettingsModal(false);
-                setShowPolicyModal(true);
-              }}
-              accessible={true}
-              accessibilityRole="button"
-              accessibilityLabel="Verified Sourcing Policy"
-              style={styles.settingsRowItem}
-            >
-              <View
-                style={[
-                  styles.settingsIconBox,
-                  {
-                    backgroundColor:
-                      scheme === 'light'
-                        ? 'rgba(34, 197, 94, 0.16)'
-                        : 'rgba(74, 222, 128, 0.2)',
-                    borderColor:
-                      scheme === 'light'
-                        ? 'rgba(34, 197, 94, 0.35)'
-                        : 'rgba(74, 222, 128, 0.4)',
-                  },
-                ]}
-              >
-                <ShieldCheckIcon
-                  size={18}
-                  color={scheme === 'light' ? '#16A34A' : '#4ADE80'}
-                />
-              </View>
-              <View style={styles.settingsItemInfo}>
-                <Text style={[styles.settingsItemTitle, { color: palette.ink }]}>
-                  {t('quality_policy', 'Quality & Safety Policy')}
-                </Text>
-                <Text style={[styles.settingsItemSubtitle, { color: palette.ink2 }]}>
-                  {t('quality_policy_subtitle', 'Official records & verified stores')}
-                </Text>
-              </View>
-              <ChevronRightIcon size={18} color={palette.ink2} />
-            </Pressable>
-
-            {/* User-accessible: Reset my answers */}
-            <Pressable
-              onPress={async () => {
-                setShowSettingsModal(false);
-                await resetProfile();
-              }}
-              accessible={true}
-              accessibilityRole="button"
-              accessibilityLabel="Reset my answers. Retake questions to update your buddy and recommendations"
-              style={[
-                styles.settingsRowItem,
-                { borderTopWidth: 1, borderTopColor: palette.line, marginTop: 4 },
-              ]}
-            >
-              <View
-                style={[
-                  styles.settingsIconBox,
-                  {
-                    backgroundColor:
-                      scheme === 'light'
-                        ? 'rgba(239, 68, 68, 0.12)'
-                        : 'rgba(248, 113, 113, 0.2)',
-                    borderColor:
-                      scheme === 'light'
-                        ? 'rgba(239, 68, 68, 0.3)'
-                        : 'rgba(248, 113, 113, 0.4)',
-                  },
-                ]}
-              >
-                <Text style={{ fontSize: 16 }}>🔄</Text>
-              </View>
-              <View style={styles.settingsItemInfo}>
-                <Text
-                  style={[
-                    styles.settingsItemTitle,
-                    { color: scheme === 'light' ? '#DC2626' : '#F87171' },
-                  ]}
-                >
-                  Reset my answers
-                </Text>
-                <Text style={[styles.settingsItemSubtitle, { color: palette.ink2 }]}>
-                  Retake questions to update your buddy and recommendations
-                </Text>
-              </View>
-            </Pressable>
-
-            {/* User-accessible: Delete all medicine box data */}
-            <Pressable
-              onPress={() => {
-                Alert.alert(
-                  'Delete all medicine box data?',
-                  'This will remove all saved medicines and cancel any scheduled reminders. This action cannot be undone.',
-                  [
-                    { text: 'Cancel', style: 'cancel' },
-                    {
-                      text: 'Delete all',
-                      style: 'destructive',
-                      onPress: async () => {
-                        await clearMedicineBox();
-                        setShowSettingsModal(false);
-                      },
-                    },
-                  ]
-                );
-              }}
-              accessible={true}
-              accessibilityRole="button"
-              accessibilityLabel="Delete all medicine box data. Remove all saved medicines and cancel scheduled reminders."
-              style={[
-                styles.settingsRowItem,
-                { borderTopWidth: 1, borderTopColor: palette.line, marginTop: 4 },
-              ]}
-            >
-              <View
-                style={[
-                  styles.settingsIconBox,
-                  {
-                    backgroundColor:
-                      scheme === 'light'
-                        ? 'rgba(239, 68, 68, 0.12)'
-                        : 'rgba(248, 113, 113, 0.2)',
-                    borderColor:
-                      scheme === 'light'
-                        ? 'rgba(239, 68, 68, 0.3)'
-                        : 'rgba(248, 113, 113, 0.4)',
-                  },
-                ]}
-              >
-                <Text style={{ fontSize: 16 }}>🗑️</Text>
-              </View>
-              <View style={styles.settingsItemInfo}>
-                <Text
-                  style={[
-                    styles.settingsItemTitle,
-                    { color: scheme === 'light' ? '#DC2626' : '#F87171' },
-                  ]}
-                >
-                  Delete all medicine box data
-                </Text>
-                <Text style={[styles.settingsItemSubtitle, { color: palette.ink2 }]}>
-                  Remove all saved medicines and cancel scheduled reminders
-                </Text>
-              </View>
-            </Pressable>
-
-            {/* Dev Only: Proof of Local Notifications */}
-            {__DEV__ && (
+              {/* Item 1: Theme Switcher */}
               <Pressable
-                onPress={handleSendTestReminder}
+                onPress={() => {
+                  toggleTheme();
+                }}
                 accessible={true}
                 accessibilityRole="button"
-                accessibilityLabel="Send test reminder in 10 seconds (Dev proof)"
+                accessibilityLabel={`Toggle appearance mode. Current theme is ${scheme}`}
                 style={[
                   styles.settingsRowItem,
-                  { borderTopWidth: 1, borderTopColor: palette.line, marginTop: 4 },
+                  { borderBottomColor: palette.line },
+                ]}
+              >
+                <View
+                  style={[
+                    styles.settingsIconBox,
+                    {
+                      backgroundColor:
+                        scheme === 'light' ? '#FEF3C7' : 'rgba(168, 85, 247, 0.2)',
+                      borderColor:
+                        scheme === 'light' ? '#FDE68A' : 'rgba(168, 85, 247, 0.4)',
+                    },
+                  ]}
+                >
+                  {scheme === 'light' ? (
+                    <MoonIcon size={18} color="#D97706" />
+                  ) : (
+                    <SunIcon size={18} color="#FCD34D" />
+                  )}
+                </View>
+                <View style={styles.settingsItemInfo}>
+                  <Text style={[styles.settingsItemTitle, { color: palette.ink }]}>
+                    Appearance: {scheme === 'light' ? 'Light theme' : 'Dark theme'}
+                  </Text>
+                  <Text style={[styles.settingsItemSubtitle, { color: palette.ink2 }]}>
+                    Tap to switch to {scheme === 'light' ? 'dark' : 'light'} theme
+                  </Text>
+                </View>
+                <View
+                  style={[
+                    styles.themeToggleBadge,
+                    { backgroundColor: palette.surface2, borderColor: palette.line },
+                  ]}
+                >
+                  <Text style={[styles.themeToggleBadgeText, { color: palette.ink }]}>
+                    {t('switch_theme', 'Switch')}
+                  </Text>
+                </View>
+              </Pressable>
+
+              {/* Item 2: App Language */}
+              <Pressable
+                onPress={() => {
+                  setShowSettingsModal(false);
+                  setShowLanguageModal(true);
+                }}
+                accessible={true}
+                accessibilityRole="button"
+                accessibilityLabel={`Select app language. Currently ${SUPPORTED_LANGUAGES.find((l) => l.code === language)?.nativeName}`}
+                style={[
+                  styles.settingsRowItem,
+                  { borderBottomColor: palette.line },
+                ]}
+              >
+                <View
+                  style={[
+                    styles.settingsIconBox,
+                    {
+                      backgroundColor:
+                        scheme === 'light' ? 'rgba(59, 130, 246, 0.16)' : 'rgba(96, 165, 250, 0.2)',
+                      borderColor:
+                        scheme === 'light' ? 'rgba(59, 130, 246, 0.35)' : 'rgba(96, 165, 250, 0.4)',
+                    },
+                  ]}
+                >
+                  <GlobeIcon
+                    size={18}
+                    color={scheme === 'light' ? '#2563EB' : '#60A5FA'}
+                  />
+                </View>
+                <View style={styles.settingsItemInfo}>
+                  <Text style={[styles.settingsItemTitle, { color: palette.ink }]}>
+                    {t('language', 'App Language')}: {SUPPORTED_LANGUAGES.find((l) => l.code === language)?.nativeName}
+                  </Text>
+                  <Text style={[styles.settingsItemSubtitle, { color: palette.ink2 }]}>
+                    English • ಕನ್ನಡ • हिंदी
+                  </Text>
+                </View>
+                <View
+                  style={[
+                    styles.themeToggleBadge,
+                    { backgroundColor: palette.surface2, borderColor: palette.line },
+                  ]}
+                >
+                  <Text style={[styles.themeToggleBadgeText, { color: palette.ink }]}>
+                    {t('change_language', 'Change')}
+                  </Text>
+                </View>
+              </Pressable>
+
+              {/* Section 2: Healthcare & Services */}
+              <Text
+                style={[
+                  styles.settingsSectionHeader,
+                  { color: palette.ink2 },
+                ]}
+              >
+                Services & Information
+              </Text>
+
+              {/* Item: My Medicine Box */}
+              <Pressable
+                onPress={() => {
+                  setShowSettingsModal(false);
+                  router.push('/medicine-box');
+                }}
+                accessible={true}
+                accessibilityRole="button"
+                accessibilityLabel="My Medicine Box. Track saved medicines, expiry and refill dates"
+                style={[
+                  styles.settingsRowItem,
+                  { borderBottomColor: palette.line },
                 ]}
               >
                 <View
@@ -1044,32 +842,358 @@ export default function HomeScreen() {
                     {
                       backgroundColor:
                         scheme === 'light'
-                          ? 'rgba(135, 169, 107, 0.15)'
+                          ? 'rgba(135, 169, 107, 0.16)'
                           : 'rgba(135, 169, 107, 0.25)',
                       borderColor:
                         scheme === 'light'
-                          ? 'rgba(135, 169, 107, 0.4)'
-                          : 'rgba(135, 169, 107, 0.5)',
+                          ? 'rgba(135, 169, 107, 0.35)'
+                          : 'rgba(135, 169, 107, 0.45)',
                     },
                   ]}
                 >
-                  <Text style={{ fontSize: 16 }}>⏰</Text>
+                  <PillCapsuleIcon
+                    size={18}
+                    color={scheme === 'light' ? '#4A7036' : '#87A96B'}
+                  />
+                </View>
+                <View style={styles.settingsItemInfo}>
+                  <Text style={[styles.settingsItemTitle, { color: palette.ink }]}>
+                    My Medicine Box
+                  </Text>
+                  <Text style={[styles.settingsItemSubtitle, { color: palette.ink2 }]}>
+                    Track saved medicines, expiry & refill dates
+                  </Text>
+                </View>
+                <ChevronRightIcon size={18} color={palette.ink2} />
+              </Pressable>
+
+              {/* Item: How Location Works */}
+              <Pressable
+                onPress={() => {
+                  setShowSettingsModal(false);
+                  setShowLocationInfoModal(true);
+                }}
+                accessible={true}
+                accessibilityRole="button"
+                accessibilityLabel="How Location Works"
+                style={[
+                  styles.settingsRowItem,
+                  { borderBottomColor: palette.line },
+                ]}
+              >
+                <View
+                  style={[
+                    styles.settingsIconBox,
+                    {
+                      backgroundColor:
+                        scheme === 'light'
+                          ? 'rgba(14, 165, 233, 0.16)'
+                          : 'rgba(56, 189, 248, 0.2)',
+                      borderColor:
+                        scheme === 'light'
+                          ? 'rgba(14, 165, 233, 0.35)'
+                          : 'rgba(56, 189, 248, 0.4)',
+                    },
+                  ]}
+                >
+                  <MapPinIcon
+                    size={18}
+                    color={scheme === 'light' ? '#0284C7' : '#38BDF8'}
+                  />
+                </View>
+                <View style={styles.settingsItemInfo}>
+                  <Text style={[styles.settingsItemTitle, { color: palette.ink }]}>
+                    How Location Works
+                  </Text>
+                  <Text style={[styles.settingsItemSubtitle, { color: palette.ink2 }]}>
+                    GPS usage, distance calculation & privacy
+                  </Text>
+                </View>
+                <ChevronRightIcon size={18} color={palette.ink2} />
+              </Pressable>
+
+              {/* Item: Pharmacy Staff Portal */}
+              <Pressable
+                onPress={() => {
+                  setShowSettingsModal(false);
+                  router.push('/portal');
+                }}
+                accessible={true}
+                accessibilityRole="button"
+                accessibilityLabel="Pharmacy Staff Portal"
+                style={[
+                  styles.settingsRowItem,
+                  { borderBottomColor: palette.line },
+                ]}
+              >
+                <View
+                  style={[
+                    styles.settingsIconBox,
+                    {
+                      backgroundColor:
+                        scheme === 'light'
+                          ? 'rgba(168, 85, 247, 0.16)'
+                          : 'rgba(192, 132, 252, 0.2)',
+                      borderColor:
+                        scheme === 'light'
+                          ? 'rgba(168, 85, 247, 0.35)'
+                          : 'rgba(192, 132, 252, 0.4)',
+                    },
+                  ]}
+                >
+                  <StaffBadgeIcon
+                    size={18}
+                    color={scheme === 'light' ? '#9333EA' : '#C084FC'}
+                  />
+                </View>
+                <View style={styles.settingsItemInfo}>
+                  <Text style={[styles.settingsItemTitle, { color: palette.ink }]}>
+                    Pharmacy Staff Portal
+                  </Text>
+                  <Text style={[styles.settingsItemSubtitle, { color: palette.ink2 }]}>
+                    Submit live stock updates
+                  </Text>
+                </View>
+                <ChevronRightIcon size={18} color={palette.ink2} />
+              </Pressable>
+
+              {/* Item: Sourcing Policy */}
+              <Pressable
+                onPress={() => {
+                  setShowSettingsModal(false);
+                  setShowPolicyModal(true);
+                }}
+                accessible={true}
+                accessibilityRole="button"
+                accessibilityLabel="Verified Sourcing Policy"
+                style={[
+                  styles.settingsRowItem,
+                  { borderBottomColor: palette.line },
+                ]}
+              >
+                <View
+                  style={[
+                    styles.settingsIconBox,
+                    {
+                      backgroundColor:
+                        scheme === 'light'
+                          ? 'rgba(34, 197, 94, 0.16)'
+                          : 'rgba(74, 222, 128, 0.2)',
+                      borderColor:
+                        scheme === 'light'
+                          ? 'rgba(34, 197, 94, 0.35)'
+                          : 'rgba(74, 222, 128, 0.4)',
+                    },
+                  ]}
+                >
+                  <ShieldCheckIcon
+                    size={18}
+                    color={scheme === 'light' ? '#16A34A' : '#4ADE80'}
+                  />
+                </View>
+                <View style={styles.settingsItemInfo}>
+                  <Text style={[styles.settingsItemTitle, { color: palette.ink }]}>
+                    {t('quality_policy', 'Quality & Safety Policy')}
+                  </Text>
+                  <Text style={[styles.settingsItemSubtitle, { color: palette.ink2 }]}>
+                    {t('quality_policy_subtitle', 'Official records & verified stores')}
+                  </Text>
+                </View>
+                <ChevronRightIcon size={18} color={palette.ink2} />
+              </Pressable>
+
+              {/* Section 3: Data & Privacy */}
+              <Text
+                style={[
+                  styles.settingsSectionHeader,
+                  { color: palette.ink2 },
+                ]}
+              >
+                Data & Privacy
+              </Text>
+
+              {/* User-accessible: Reset my answers */}
+              <Pressable
+                onPress={() => {
+                  Alert.alert(
+                    'Reset answers?',
+                    'This will reset your onboarding answers so you can retake the questions and update your buddy and recommendations.',
+                    [
+                      { text: 'Cancel', style: 'cancel' },
+                      {
+                        text: 'Reset',
+                        style: 'destructive',
+                        onPress: async () => {
+                          setShowSettingsModal(false);
+                          await resetProfile();
+                        },
+                      },
+                    ]
+                  );
+                }}
+                accessible={true}
+                accessibilityRole="button"
+                accessibilityLabel="Reset my answers. Retake questions to update your buddy and recommendations"
+                style={[
+                  styles.settingsRowItem,
+                  { borderBottomColor: palette.line },
+                ]}
+              >
+                <View
+                  style={[
+                    styles.settingsIconBox,
+                    {
+                      backgroundColor:
+                        scheme === 'light'
+                          ? 'rgba(239, 68, 68, 0.12)'
+                          : 'rgba(248, 113, 113, 0.2)',
+                      borderColor:
+                        scheme === 'light'
+                          ? 'rgba(239, 68, 68, 0.3)'
+                          : 'rgba(248, 113, 113, 0.4)',
+                    },
+                  ]}
+                >
+                  <RefreshIcon
+                    size={18}
+                    color={scheme === 'light' ? '#DC2626' : '#F87171'}
+                  />
                 </View>
                 <View style={styles.settingsItemInfo}>
                   <Text
                     style={[
                       styles.settingsItemTitle,
-                      { color: scheme === 'light' ? '#2B4A1D' : '#87A96B' },
+                      { color: scheme === 'light' ? '#DC2626' : '#F87171' },
                     ]}
                   >
-                    Send test reminder in 10 seconds
+                    Reset my answers
                   </Text>
                   <Text style={[styles.settingsItemSubtitle, { color: palette.ink2 }]}>
-                    Requests permission and schedules a local notification
+                    Retake questions to update your buddy and recommendations
                   </Text>
                 </View>
               </Pressable>
-            )}
+
+              {/* User-accessible: Delete all medicine box data */}
+              <Pressable
+                onPress={() => {
+                  Alert.alert(
+                    'Delete all medicine box data?',
+                    'This will remove all saved medicines and cancel any scheduled reminders. This action cannot be undone.',
+                    [
+                      { text: 'Cancel', style: 'cancel' },
+                      {
+                        text: 'Delete all',
+                        style: 'destructive',
+                        onPress: async () => {
+                          await clearMedicineBox();
+                          setShowSettingsModal(false);
+                        },
+                      },
+                    ]
+                  );
+                }}
+                accessible={true}
+                accessibilityRole="button"
+                accessibilityLabel="Delete all medicine box data. Remove all saved medicines and cancel scheduled reminders."
+                style={[
+                  styles.settingsRowItem,
+                  { borderBottomColor: palette.line },
+                ]}
+              >
+                <View
+                  style={[
+                    styles.settingsIconBox,
+                    {
+                      backgroundColor:
+                        scheme === 'light'
+                          ? 'rgba(239, 68, 68, 0.12)'
+                          : 'rgba(248, 113, 113, 0.2)',
+                      borderColor:
+                        scheme === 'light'
+                          ? 'rgba(239, 68, 68, 0.3)'
+                          : 'rgba(248, 113, 113, 0.4)',
+                    },
+                  ]}
+                >
+                  <TrashIcon
+                    size={16}
+                    color={scheme === 'light' ? '#DC2626' : '#F87171'}
+                  />
+                </View>
+                <View style={styles.settingsItemInfo}>
+                  <Text
+                    style={[
+                      styles.settingsItemTitle,
+                      { color: scheme === 'light' ? '#DC2626' : '#F87171' },
+                    ]}
+                  >
+                    Delete all medicine box data
+                  </Text>
+                  <Text style={[styles.settingsItemSubtitle, { color: palette.ink2 }]}>
+                    Remove all saved medicines and cancel scheduled reminders
+                  </Text>
+                </View>
+              </Pressable>
+
+              {/* Dev Only: Proof of Local Notifications */}
+              {__DEV__ && (
+                <>
+                  <Text
+                    style={[
+                      styles.settingsSectionHeader,
+                      { color: palette.ink2 },
+                    ]}
+                  >
+                    Developer Tools
+                  </Text>
+                  <Pressable
+                    onPress={handleSendTestReminder}
+                    accessible={true}
+                    accessibilityRole="button"
+                    accessibilityLabel="Send test reminder in 10 seconds (Dev proof)"
+                    style={[
+                      styles.settingsRowItem,
+                      { borderBottomColor: palette.line },
+                    ]}
+                  >
+                    <View
+                      style={[
+                        styles.settingsIconBox,
+                        {
+                          backgroundColor:
+                            scheme === 'light'
+                              ? 'rgba(135, 169, 107, 0.15)'
+                              : 'rgba(135, 169, 107, 0.25)',
+                          borderColor:
+                            scheme === 'light'
+                              ? 'rgba(135, 169, 107, 0.4)'
+                              : 'rgba(135, 169, 107, 0.5)',
+                        },
+                      ]}
+                    >
+                      <ClockIcon
+                        size={17}
+                        color={scheme === 'light' ? '#2B4A1D' : '#87A96B'}
+                      />
+                    </View>
+                    <View style={styles.settingsItemInfo}>
+                      <Text
+                        style={[
+                          styles.settingsItemTitle,
+                          { color: scheme === 'light' ? '#2B4A1D' : '#87A96B' },
+                        ]}
+                      >
+                        Send test reminder in 10 seconds
+                      </Text>
+                      <Text style={[styles.settingsItemSubtitle, { color: palette.ink2 }]}>
+                        Requests permission and schedules a local notification
+                      </Text>
+                    </View>
+                  </Pressable>
+                </>
+              )}
+            </ScrollView>
           </Pressable>
         </Pressable>
       </Modal>
@@ -1098,7 +1222,7 @@ export default function HomeScreen() {
           >
             <View style={styles.settingsModalHeader}>
               <View style={styles.settingsModalTitleRow}>
-                <Text style={{ fontSize: 20 }}>🌐</Text>
+                <GlobeIcon size={20} color={palette.ink} />
                 <Text style={[styles.settingsModalTitle, { color: palette.ink }]}>
                   {t('language', 'App Language')}
                 </Text>
@@ -1723,14 +1847,27 @@ const styles = StyleSheet.create({
   settingsCard: {
     width: '100%',
     maxWidth: 400,
+    maxHeight: '85%',
     borderRadius: 24,
     borderWidth: 1,
     padding: 20,
-    gap: 16,
+    gap: 12,
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.25,
     shadowRadius: 20,
     elevation: 8,
+  },
+  settingsScrollContent: {
+    paddingBottom: 6,
+  },
+  settingsSectionHeader: {
+    fontFamily: fonts.sansBold,
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
+    marginTop: 18,
+    marginBottom: 4,
   },
   settingsModalHeader: {
     flexDirection: 'row',
