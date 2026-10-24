@@ -9,9 +9,9 @@ import {
   LocationRequestResult,
 } from '../services/locationService';
 
-const ONBOARDING_COMPLETED_KEY = '@medfind_onboarding_completed_v1';
-const SELECTED_AREA_NAME_KEY = '@medfind_user_area_name_v1';
-const LOCATION_SOURCE_KEY = '@medfind_location_source_v1';
+export const ONBOARDING_COMPLETED_KEY = '@medfind_onboarding_completed_v1';
+export const SELECTED_AREA_NAME_KEY = '@medfind_user_area_name_v1';
+export const LOCATION_SOURCE_KEY = '@medfind_location_source_v1';
 
 export type LocationSource = 'gps' | 'manual_area' | 'none';
 
@@ -67,10 +67,6 @@ export function LocationProvider({ children }: { children: ReactNode }) {
         if (!isCancelled) {
           setHasCompletedOnboarding(isDone);
           setHasLocationPermission(hasPermission);
-
-          if (!isDone) {
-            setShowOnboardingModal(true);
-          }
 
           if (savedSource === 'manual_area' && savedAreaName) {
             // User intentionally selected a manual area previously

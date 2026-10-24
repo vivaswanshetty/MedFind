@@ -1,7 +1,9 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const RECENT_SEARCHES_KEY = '@medfind_recent_searches_v1';
-const FAVORITES_KEY = '@medfind_favorites_v1';
+export const RECENT_SEARCHES_STORAGE_KEY = '@medfind_recent_searches_v1';
+export const FAVORITES_STORAGE_KEY = '@medfind_favorites_v1';
+const RECENT_SEARCHES_KEY = RECENT_SEARCHES_STORAGE_KEY;
+const FAVORITES_KEY = FAVORITES_STORAGE_KEY;
 const MAX_RECENT_SEARCHES = 8;
 
 export const storageService = {
@@ -85,6 +87,17 @@ export const storageService = {
       return !isFav;
     } catch {
       return false;
+    }
+  },
+
+  /**
+   * Clear all favorited medicine IDs
+   */
+  async clearFavorites(): Promise<void> {
+    try {
+      await AsyncStorage.removeItem(FAVORITES_KEY);
+    } catch {
+      // noop
     }
   },
 

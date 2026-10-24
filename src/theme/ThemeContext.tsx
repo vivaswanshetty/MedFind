@@ -4,7 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { palettes, Palette, SchemeName } from '../constants/theme';
 import { ColorPalette, lightPalette, darkPalette, ThemeMode } from './tokens';
 
-const THEME_STORAGE_KEY = 'medfind.theme';
+export const THEME_STORAGE_KEY = 'medfind.theme';
 
 interface ThemeContextType {
   scheme: SchemeName;

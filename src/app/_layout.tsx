@@ -140,6 +140,12 @@ function RootNavigation() {
             headerShown: false,
           }}
         />
+        <Stack.Screen
+          name="profile"
+          options={{
+            headerShown: false,
+          }}
+        />
       </Stack>
       {showSplash && (
         <SplashIntro

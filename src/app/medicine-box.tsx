@@ -484,15 +484,15 @@ export default function MedicineBoxScreen() {
                         style={[
                           styles.expiredNoticeRow,
                           {
-                            backgroundColor: scheme === 'light' ? '#FEF2F2' : '#450A0A',
-                            borderColor: scheme === 'light' ? '#FECACA' : '#7F1D1D',
+                            backgroundColor: theme.emergencyBackground,
+                            borderColor: theme.emergencyBorder,
                           },
                         ]}
                       >
                         <Text
                           style={[
                             styles.expiredNoticeText,
-                            { color: scheme === 'light' ? '#B91C1C' : '#FCA5A5' },
+                            { color: theme.urgentAccent },
                           ]}
                         >
                           Past its expiry date. Ask a pharmacist how to dispose of it safely.

@@ -15,7 +15,7 @@ export const SUPPORTED_LANGUAGES: LanguageInfo[] = [
   { code: 'hi', name: 'Hindi', nativeName: 'हिंदी' },
 ];
 
-const LANGUAGE_STORAGE_KEY = 'medfind.language_v1';
+export const LANGUAGE_STORAGE_KEY = 'medfind.language_v1';
 
 const translations: Record<AppLanguage, Record<string, string>> = {
   en: {

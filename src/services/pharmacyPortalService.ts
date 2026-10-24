@@ -36,7 +36,7 @@ export interface StorePartnerAuth {
   verifiedAt: string;
 }
 
-const STORE_AUTH_STORAGE_KEY = '@medfind_store_partner_auth_v1';
+export const STORE_AUTH_STORAGE_KEY = '@medfind_store_partner_auth_v1';
 let memoryPartnerAuth: StorePartnerAuth | null = null;
 
 

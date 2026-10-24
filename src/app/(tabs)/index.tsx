@@ -21,7 +21,6 @@ import { AtmosphereBackground } from '../../components/AtmosphereBackground';
 import { AnimatedScreenTransition } from '../../components/AnimatedScreenTransition';
 import { StatusChip } from '../../components/StatusChip';
 import { useLocation } from '../../context/LocationContext';
-import { OnboardingFlow } from '../../components/onboarding/OnboardingFlow';
 import { AreaPickerModal } from '../../components/location/AreaPickerModal';
 import { storageService } from '../../services/storageService';
 import { useProfile } from '../../store/profile';
@@ -210,8 +209,12 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        {/* BUDDY GREETING BANNER */}
-        <View
+        {/* BUDDY GREETING BANNER - Tappable to open Profile */}
+        <Pressable
+          onPress={() => router.push('/profile')}
+          accessible={true}
+          accessibilityRole="button"
+          accessibilityLabel="Profile and device settings. Tap to view or edit profile"
           style={[
             styles.greetingCard,
             {
@@ -261,7 +264,7 @@ export default function HomeScreen() {
               {greetingInfo.subline}
             </Text>
           ) : null}
-        </View>
+        </Pressable>
 
         {/* B) HERO */}
         <View style={styles.heroSection}>
@@ -638,16 +641,6 @@ export default function HomeScreen() {
       </ScrollView>
       </AnimatedScreenTransition>
 
-      {/* Onboarding Flow Modal */}
-      <Modal
-        visible={showOnboardingModal}
-        animationType="slide"
-        presentationStyle="fullScreen"
-        onRequestClose={() => setShowOnboardingModal(false)}
-      >
-        <OnboardingFlow onDismiss={() => setShowOnboardingModal(false)} />
-      </Modal>
-
       {/* Area Picker Modal */}
       <AreaPickerModal
         visible={showAreaPickerModal}
@@ -1011,6 +1004,51 @@ export default function HomeScreen() {
               >
                 Data & Privacy
               </Text>
+
+              {/* Profile & Local Data */}
+              <Pressable
+                onPress={() => {
+                  setShowSettingsModal(false);
+                  router.push('/profile');
+                }}
+                accessible={true}
+                accessibilityRole="button"
+                accessibilityLabel="Profile and Local Data. Manage your answers, saved data, and privacy"
+                style={[
+                  styles.settingsRowItem,
+                  { borderBottomColor: palette.line },
+                ]}
+              >
+                <View
+                  style={[
+                    styles.settingsIconBox,
+                    {
+                      backgroundColor:
+                        scheme === 'light'
+                          ? 'rgba(135, 169, 107, 0.16)'
+                          : 'rgba(135, 169, 107, 0.25)',
+                      borderColor:
+                        scheme === 'light'
+                          ? 'rgba(135, 169, 107, 0.35)'
+                          : 'rgba(135, 169, 107, 0.45)',
+                    },
+                  ]}
+                >
+                  <ShieldCheckIcon
+                    size={18}
+                    color={scheme === 'light' ? '#4A7036' : '#87A96B'}
+                  />
+                </View>
+                <View style={styles.settingsItemInfo}>
+                  <Text style={[styles.settingsItemTitle, { color: palette.ink }]}>
+                    Profile & Local Data
+                  </Text>
+                  <Text style={[styles.settingsItemSubtitle, { color: palette.ink2 }]}>
+                    Manage preferences, saved storage & privacy
+                  </Text>
+                </View>
+                <ChevronRightIcon size={18} color={palette.ink2} />
+              </Pressable>
 
               {/* User-accessible: Reset my answers */}
               <Pressable

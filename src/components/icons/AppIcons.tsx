@@ -1047,5 +1047,46 @@ export function GlobeIcon({ size = 18, color = '#2563EB' }: IconProps) {
   );
 }
 
+/**
+ * 47. User / Avatar Icon
+ */
+export function UserIcon({ size = 18, color = '#5A3E2B' }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Circle cx="12" cy="8" r="4" stroke={color} strokeWidth="2" />
+      <Path
+        d="M6 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"
+        stroke={color}
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+    </Svg>
+  );
+}
+
+/**
+ * 48. Pencil / Edit Icon
+ */
+export function PencilIcon({ size = 16, color = '#5A3E2B' }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"
+        stroke={color}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Path
+        d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"
+        stroke={color}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
 
 
