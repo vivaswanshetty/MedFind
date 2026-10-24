@@ -31,6 +31,8 @@ import {
   BackArrowIcon,
   SearchIcon,
   ClearIcon,
+  CloseIcon,
+  TrashIcon,
   ShieldCheckIcon,
   InfoIcon,
   PhoneIcon,
@@ -66,6 +68,32 @@ export default function SearchScreen() {
   const [isLoading, setIsLoading] = useState(false);
   const [searchResults, setSearchResults] = useState<MedicineSearchResultItem[]>([]);
   const [selectedRecordId, setSelectedRecordId] = useState<string | null>(null);
+  const [recentSearches, setRecentSearches] = useState<string[]>([]);
+
+  // Load recent searches from local device storage
+  useEffect(() => {
+    async function loadRecents() {
+      const stored = await storageService.getRecentSearches();
+      setRecentSearches(stored);
+    }
+    loadRecents();
+  }, []);
+
+  const handleClearAllRecents = async () => {
+    await storageService.clearRecentSearches();
+    setRecentSearches([]);
+  };
+
+  const handleRemoveRecent = async (term: string) => {
+    const updated = await storageService.removeRecentSearch(term);
+    setRecentSearches(updated);
+  };
+
+  const handleClearSearchInput = () => {
+    setSearchQuery('');
+    setSelectedStrength('');
+    setSelectedDosageForm('');
+  };
 
   const strengthOptions = ['250 mg', '500 mg', '650 mg', '1000 mg'];
   const dosageOptions = ['Tablet', 'Syrup', 'Inhaler', 'Cream', 'Drops'];
@@ -116,7 +144,10 @@ export default function SearchScreen() {
             setSelectedRecordId(null);
           }
           if (query.length >= 2) {
-            await storageService.saveRecentSearch(query);
+            const updated = await storageService.saveRecentSearch(query);
+            if (!isCancelled && updated.length > 0) {
+              setRecentSearches(updated);
+            }
           }
         }
       } catch {
@@ -324,7 +355,7 @@ export default function SearchScreen() {
             />
             {searchQuery.length > 0 && (
               <Pressable
-                onPress={() => setSearchQuery('')}
+                onPress={handleClearSearchInput}
                 hitSlop={8}
                 accessible={true}
                 accessibilityRole="button"
@@ -339,11 +370,89 @@ export default function SearchScreen() {
           </Text>
         </View>
 
-        {/* 1) POPULAR MEDICINES & SEARCH PROMPT (WHEN NO QUERY ENTERED) */}
+        {/* 1) RECENT & POPULAR MEDICINES (WHEN NO QUERY ENTERED) */}
         {!hasQuery && (
           <View style={styles.suggestionsContainer}>
+            {/* A) RECENT SEARCHES (SAVED ON LOCAL DEVICE) */}
+            {recentSearches.length > 0 && (
+              <View style={styles.recentSection}>
+                <View style={styles.recentHeaderRow}>
+                  <View style={styles.recentTitleGroup}>
+                    <ClockIcon size={15} color={palette.ink2} />
+                    <Text style={[styles.recentHeaderText, { color: palette.ink2 }]}>
+                      {t('recent_searches_device', 'Recent, saved on this device only')}
+                    </Text>
+                  </View>
+                  <Pressable
+                    onPress={handleClearAllRecents}
+                    hitSlop={8}
+                    accessible={true}
+                    accessibilityRole="button"
+                    accessibilityLabel="Clear all recent searches"
+                    style={({ pressed }) => [
+                      styles.clearAllButton,
+                      { opacity: pressed ? 0.6 : 1.0 },
+                    ]}
+                  >
+                    <TrashIcon size={13} color={palette.ink2} />
+                    <Text style={[styles.clearAllText, { color: palette.ink2 }]}>
+                      {t('clear_all', 'Clear all')}
+                    </Text>
+                  </Pressable>
+                </View>
+
+                <View style={styles.chipsRow}>
+                  {recentSearches.map((term) => (
+                    <View
+                      key={term}
+                      style={[
+                        styles.recentChipWrapper,
+                        {
+                          backgroundColor: palette.surface,
+                          borderColor: palette.line,
+                        },
+                      ]}
+                    >
+                      <Pressable
+                        onPress={() => {
+                          setSearchQuery(term);
+                          setSelectedStrength('');
+                          setSelectedDosageForm('');
+                        }}
+                        accessible={true}
+                        accessibilityRole="button"
+                        accessibilityLabel={`Recent search: ${term}`}
+                        style={({ pressed }) => [
+                          styles.recentChipMain,
+                          { opacity: pressed ? 0.8 : 1.0 },
+                        ]}
+                      >
+                        <Text style={[styles.recentChipText, { color: palette.ink }]}>
+                          {term}
+                        </Text>
+                      </Pressable>
+
+                      <Pressable
+                        onPress={() => handleRemoveRecent(term)}
+                        hitSlop={8}
+                        accessible={true}
+                        accessibilityRole="button"
+                        accessibilityLabel={`Remove ${term} from recent searches`}
+                        style={({ pressed }) => [
+                          styles.recentChipRemove,
+                          { opacity: pressed ? 0.5 : 1.0 },
+                        ]}
+                      >
+                        <CloseIcon size={11} color={palette.ink2} />
+                      </Pressable>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            )}
+
+            {/* B) COMMON MEDICINES */}
             <View style={styles.suggestionsHeaderRow}>
-              <ClockIcon size={15} color={palette.ink2} />
               <Text style={[styles.suggestionsHeaderText, { color: palette.ink2 }]}>
                 {t('popular_medicines', 'Common medicines')}
               </Text>
@@ -1096,8 +1205,67 @@ const styles = StyleSheet.create({
 
   // EMPTY & SUGGESTIONS SECTIONS
   suggestionsContainer: {
-    gap: 12,
+    gap: 14,
     marginTop: 4,
+  },
+  recentSection: {
+    gap: 8,
+    marginBottom: 6,
+  },
+  recentHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  recentTitleGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    flex: 1,
+  },
+  recentHeaderText: {
+    fontFamily: fonts.sansBold,
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  clearAllButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: radii.chip,
+  },
+  clearAllText: {
+    fontFamily: fonts.sansMedium,
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  recentChipWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    minHeight: MIN_TARGET,
+    borderRadius: radii.chip,
+    borderWidth: 1,
+    paddingLeft: 14,
+    paddingRight: 6,
+  },
+  recentChipMain: {
+    paddingVertical: 10,
+    justifyContent: 'center',
+  },
+  recentChipText: {
+    fontFamily: fonts.sansSemi,
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  recentChipRemove: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 4,
   },
   suggestionsHeaderRow: {
     flexDirection: 'row',

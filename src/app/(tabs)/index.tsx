@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -9,10 +9,12 @@ import {
   Image,
   Platform,
   StatusBar,
+  Alert,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useTheme } from '../../theme/ThemeContext';
+import { typography } from '../../theme/tokens';
 import { useLanguage, AppLanguage, SUPPORTED_LANGUAGES } from '../../context/LanguageContext';
 import { fonts, radii, MIN_TARGET } from '../../constants/theme';
 import { AtmosphereBackground } from '../../components/AtmosphereBackground';
@@ -22,7 +24,13 @@ import { useLocation } from '../../context/LocationContext';
 import { OnboardingFlow } from '../../components/onboarding/OnboardingFlow';
 import { AreaPickerModal } from '../../components/location/AreaPickerModal';
 import { storageService } from '../../services/storageService';
+import { useProfile } from '../../store/profile';
+import { useMedicineBox } from '../../store/medicineBox';
+import { onboardingAssets } from '../../../assets/onboarding';
+import { getRecommendations, getHomeGreeting } from '../../lib/recommendations';
+import { RecommendationCard } from '../../components/home/RecommendationCard';
 import { cleanLocalityName, isInvalidLocality } from '../../services/locationService';
+import { sendDevTestReminder } from '../../lib/reminders';
 import {
   PlusIcon,
   MapPinIcon,
@@ -54,7 +62,9 @@ function formatHeaderArea(raw: string): string {
 export default function HomeScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { scheme, palette, toggleTheme } = useTheme();
+  const { scheme, palette, theme, toggleTheme } = useTheme();
+  const { profile, updateProfile, resetProfile } = useProfile();
+  const { clearAll: clearMedicineBox } = useMedicineBox();
   const {
     areaName,
     showOnboardingModal,
@@ -69,22 +79,21 @@ export default function HomeScreen() {
   const [showLanguageModal, setShowLanguageModal] = useState(false);
   const { language, setLanguage, t } = useLanguage();
 
-  const [recentTerms, setRecentTerms] = useState<string[]>([
-    'Metformin 500 mg',
-    'Salbutamol inhaler',
-    'Paracetamol 500 mg',
-    'Cetirizine 10 mg',
-  ]);
+  // Recommendations and greeting derived from local profile
+  const recommendations = useMemo(() => getRecommendations(profile), [profile]);
+  const greetingInfo = useMemo(() => getHomeGreeting(profile), [profile]);
 
+  // Mark first home visit as seen after initial display
   useEffect(() => {
-    async function loadRecents() {
-      const stored = await storageService.getRecentSearches();
-      if (stored && stored.length > 0) {
-        setRecentTerms(stored.slice(0, 4));
-      }
+    if (profile?.onboardingComplete && !profile?.hasSeenFirstHomeVisit) {
+      updateProfile({ hasSeenFirstHomeVisit: true });
     }
-    loadRecents();
-  }, []);
+  }, [profile?.onboardingComplete, profile?.hasSeenFirstHomeVisit, updateProfile]);
+
+  const handleSendTestReminder = async () => {
+    const res = await sendDevTestReminder();
+    alert(res.message);
+  };
 
   const statusBarHeight = Platform.OS === 'android' ? (StatusBar.currentHeight ?? 24) : 0;
   const paddingTop = Math.max(insets.top, statusBarHeight) + 8;
@@ -197,6 +206,55 @@ export default function HomeScreen() {
           </View>
         </View>
 
+        {/* BUDDY GREETING BANNER */}
+        <View
+          style={[
+            styles.greetingCard,
+            {
+              backgroundColor: palette.surface,
+              borderColor: palette.line,
+              shadowColor: palette.shadow,
+            },
+          ]}
+        >
+          <View style={styles.greetingLeftRow}>
+            <Image
+              source={onboardingAssets.mascotWave}
+              style={styles.greetingMascot}
+              resizeMode="contain"
+              accessibilityLabel={`${greetingInfo.caption} waving`}
+            />
+            <View style={styles.greetingTextGroup}>
+              <Text
+                style={[
+                  styles.greetingCaption,
+                  { color: palette.accent || theme.primaryAccentText },
+                ]}
+              >
+                {greetingInfo.caption}
+              </Text>
+              <Text
+                style={[
+                  styles.greetingHeadline,
+                  { color: palette.ink, fontFamily: typography.fontFamilyBold },
+                ]}
+              >
+                {greetingInfo.headline}
+              </Text>
+            </View>
+          </View>
+          {greetingInfo.isFirstVisit && greetingInfo.subline ? (
+            <Text
+              style={[
+                styles.greetingSubline,
+                { color: palette.ink2, fontFamily: typography.fontFamilyRegular },
+              ]}
+            >
+              {greetingInfo.subline}
+            </Text>
+          ) : null}
+        </View>
+
         {/* B) HERO */}
         <View style={styles.heroSection}>
           <View style={styles.headlineContainer}>
@@ -249,44 +307,48 @@ export default function HomeScreen() {
           </Text>
         </Pressable>
 
-        {/* D) RECENT SEARCHES */}
-        <View style={styles.recentSection}>
-          <View style={styles.recentLabelRow}>
-            <ClockIcon size={15} color={palette.ink2} />
-            <Text style={[styles.recentLabelText, { color: palette.ink2 }]}>
-              Recent, saved on this device only
-            </Text>
-          </View>
-
-          <View style={styles.recentChipsRow}>
-            {recentTerms.map((term, idx) => (
-              <Pressable
-                key={`${term}-${idx}`}
-                onPress={() => {
-                  router.push({
-                    pathname: '/(tabs)/search',
-                    params: { q: term },
-                  });
-                }}
-                accessible={true}
-                accessibilityRole="button"
-                accessibilityLabel={`Recent search: ${term}`}
-                style={({ pressed }) => [
-                  styles.recentChip,
-                  {
-                    backgroundColor: palette.surface2,
-                    borderColor: palette.line,
-                    opacity: pressed ? 0.85 : 1.0,
-                  },
+        {/* D) "FOR YOU" SECTION */}
+        {recommendations.length > 0 && (
+          <View style={styles.forYouSection}>
+            <View style={styles.forYouHeader}>
+              <Text
+                style={[
+                  styles.forYouTitle,
+                  { color: palette.ink, fontFamily: typography.fontFamilyBold },
                 ]}
               >
-                <Text style={[styles.recentChipText, { color: palette.ink }]}>
-                  {term}
-                </Text>
-              </Pressable>
+                For you
+              </Text>
+              <Text style={[styles.forYouSubtitle, { color: palette.ink2 }]}>
+                Tailored based on your onboarding preferences
+              </Text>
+            </View>
+            {recommendations.map((rec, index) => (
+              <RecommendationCard
+                key={rec.id}
+                item={rec}
+                index={index}
+                theme={theme}
+                onPress={(route) => {
+                  if (route === 'restart-onboarding') {
+                    updateProfile({
+                      onboardingSkippedAt: null,
+                      dismissedSetupCard: false,
+                    });
+                    return;
+                  }
+                  router.push(route as any);
+                }}
+                onDismiss={(id) => {
+                  if (id === 'rec-finish-setup') {
+                    updateProfile({ dismissedSetupCard: true });
+                  }
+                }}
+              />
             ))}
           </View>
-        </View>
+        )}
+
 
         {/* E) CARE NEARBY CARD */}
         <Pressable
@@ -854,6 +916,156 @@ export default function HomeScreen() {
               </View>
               <ChevronRightIcon size={18} color={palette.ink2} />
             </Pressable>
+
+            {/* User-accessible: Reset my answers */}
+            <Pressable
+              onPress={async () => {
+                setShowSettingsModal(false);
+                await resetProfile();
+              }}
+              accessible={true}
+              accessibilityRole="button"
+              accessibilityLabel="Reset my answers. Retake questions to update your buddy and recommendations"
+              style={[
+                styles.settingsRowItem,
+                { borderTopWidth: 1, borderTopColor: palette.line, marginTop: 4 },
+              ]}
+            >
+              <View
+                style={[
+                  styles.settingsIconBox,
+                  {
+                    backgroundColor:
+                      scheme === 'light'
+                        ? 'rgba(239, 68, 68, 0.12)'
+                        : 'rgba(248, 113, 113, 0.2)',
+                    borderColor:
+                      scheme === 'light'
+                        ? 'rgba(239, 68, 68, 0.3)'
+                        : 'rgba(248, 113, 113, 0.4)',
+                  },
+                ]}
+              >
+                <Text style={{ fontSize: 16 }}>🔄</Text>
+              </View>
+              <View style={styles.settingsItemInfo}>
+                <Text
+                  style={[
+                    styles.settingsItemTitle,
+                    { color: scheme === 'light' ? '#DC2626' : '#F87171' },
+                  ]}
+                >
+                  Reset my answers
+                </Text>
+                <Text style={[styles.settingsItemSubtitle, { color: palette.ink2 }]}>
+                  Retake questions to update your buddy and recommendations
+                </Text>
+              </View>
+            </Pressable>
+
+            {/* User-accessible: Delete all medicine box data */}
+            <Pressable
+              onPress={() => {
+                Alert.alert(
+                  'Delete all medicine box data?',
+                  'This will remove all saved medicines and cancel any scheduled reminders. This action cannot be undone.',
+                  [
+                    { text: 'Cancel', style: 'cancel' },
+                    {
+                      text: 'Delete all',
+                      style: 'destructive',
+                      onPress: async () => {
+                        await clearMedicineBox();
+                        setShowSettingsModal(false);
+                      },
+                    },
+                  ]
+                );
+              }}
+              accessible={true}
+              accessibilityRole="button"
+              accessibilityLabel="Delete all medicine box data. Remove all saved medicines and cancel scheduled reminders."
+              style={[
+                styles.settingsRowItem,
+                { borderTopWidth: 1, borderTopColor: palette.line, marginTop: 4 },
+              ]}
+            >
+              <View
+                style={[
+                  styles.settingsIconBox,
+                  {
+                    backgroundColor:
+                      scheme === 'light'
+                        ? 'rgba(239, 68, 68, 0.12)'
+                        : 'rgba(248, 113, 113, 0.2)',
+                    borderColor:
+                      scheme === 'light'
+                        ? 'rgba(239, 68, 68, 0.3)'
+                        : 'rgba(248, 113, 113, 0.4)',
+                  },
+                ]}
+              >
+                <Text style={{ fontSize: 16 }}>🗑️</Text>
+              </View>
+              <View style={styles.settingsItemInfo}>
+                <Text
+                  style={[
+                    styles.settingsItemTitle,
+                    { color: scheme === 'light' ? '#DC2626' : '#F87171' },
+                  ]}
+                >
+                  Delete all medicine box data
+                </Text>
+                <Text style={[styles.settingsItemSubtitle, { color: palette.ink2 }]}>
+                  Remove all saved medicines and cancel scheduled reminders
+                </Text>
+              </View>
+            </Pressable>
+
+            {/* Dev Only: Proof of Local Notifications */}
+            {__DEV__ && (
+              <Pressable
+                onPress={handleSendTestReminder}
+                accessible={true}
+                accessibilityRole="button"
+                accessibilityLabel="Send test reminder in 10 seconds (Dev proof)"
+                style={[
+                  styles.settingsRowItem,
+                  { borderTopWidth: 1, borderTopColor: palette.line, marginTop: 4 },
+                ]}
+              >
+                <View
+                  style={[
+                    styles.settingsIconBox,
+                    {
+                      backgroundColor:
+                        scheme === 'light'
+                          ? 'rgba(135, 169, 107, 0.15)'
+                          : 'rgba(135, 169, 107, 0.25)',
+                      borderColor:
+                        scheme === 'light'
+                          ? 'rgba(135, 169, 107, 0.4)'
+                          : 'rgba(135, 169, 107, 0.5)',
+                    },
+                  ]}
+                >
+                  <Text style={{ fontSize: 16 }}>⏰</Text>
+                </View>
+                <View style={styles.settingsItemInfo}>
+                  <Text
+                    style={[
+                      styles.settingsItemTitle,
+                      { color: scheme === 'light' ? '#2B4A1D' : '#87A96B' },
+                    ]}
+                  >
+                    Send test reminder in 10 seconds
+                  </Text>
+                  <Text style={[styles.settingsItemSubtitle, { color: palette.ink2 }]}>
+                    Requests permission and schedules a local notification
+                  </Text>
+                </View>
+              </Pressable>
+            )}
           </Pressable>
         </Pressable>
       </Modal>
@@ -1287,38 +1499,6 @@ const styles = StyleSheet.create({
   },
 
   // D) RECENT
-  recentSection: {
-    gap: 8,
-  },
-  recentLabelRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  recentLabelText: {
-    fontFamily: fonts.sansBold,
-    fontSize: 13,
-    fontWeight: '700',
-  },
-  recentChipsRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  recentChip: {
-    minHeight: MIN_TARGET,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: radii.chip,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  recentChipText: {
-    fontFamily: fonts.sansSemi,
-    fontSize: 15,
-    fontWeight: '600',
-  },
 
   // E) CARE NEARBY CARD
   actionCard: {
@@ -1651,5 +1831,60 @@ const styles = StyleSheet.create({
     fontFamily: fonts.sansBold,
     fontSize: 15,
     fontWeight: '700',
+  },
+  greetingCard: {
+    borderRadius: radii.cardLg,
+    borderWidth: 1,
+    padding: 16,
+    marginBottom: 16,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    elevation: 3,
+    gap: 10,
+  },
+  greetingLeftRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+  },
+  greetingMascot: {
+    width: 60,
+    height: 60,
+  },
+  greetingTextGroup: {
+    flex: 1,
+  },
+  greetingCaption: {
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+    marginBottom: 2,
+  },
+  greetingHeadline: {
+    fontSize: 22,
+    lineHeight: 28,
+  },
+  greetingSubline: {
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  forYouSection: {
+    marginTop: 8,
+    marginBottom: 16,
+    gap: 10,
+  },
+  forYouHeader: {
+    marginBottom: 4,
+  },
+  forYouTitle: {
+    fontSize: 18,
+    lineHeight: 24,
+  },
+  forYouSubtitle: {
+    fontSize: 13,
+    lineHeight: 18,
+    marginTop: 2,
   },
 });

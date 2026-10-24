@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, Image } from 'react-native';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -12,6 +12,7 @@ import Animated, {
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '../../theme/ThemeContext';
 import { typography } from '../../theme/tokens';
+import { SplashArt } from './SplashArt';
 
 interface SplashIntroProps {
   onDone: () => void;
@@ -120,6 +121,46 @@ export function SplashIntro({ onDone }: SplashIntroProps) {
     opacity: ringOpacity.value,
   }));
 
+  // App icon entrance spring at 280ms
+  const appIconProgress = useSharedValue(shouldReduceMotion ? 1 : 0);
+  useEffect(() => {
+    if (!shouldReduceMotion) {
+      appIconProgress.value = withDelay(
+        280,
+        withSpring(1, { damping: 14, stiffness: 120 })
+      );
+    }
+  }, [shouldReduceMotion, appIconProgress]);
+
+  const appIconAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: appIconProgress.value,
+    transform: [
+      { scale: 0.7 + 0.3 * appIconProgress.value },
+      { translateY: (1 - appIconProgress.value) * 16 },
+    ],
+  }));
+
+  // Soft pill-shaped highlight scaling in at 400ms
+  const pillScale = useSharedValue(shouldReduceMotion ? 1 : 0.5);
+  const pillOpacity = useSharedValue(shouldReduceMotion ? 1 : 0);
+  useEffect(() => {
+    if (!shouldReduceMotion) {
+      pillScale.value = withDelay(
+        400,
+        withSpring(1, { damping: 14, stiffness: 120 })
+      );
+      pillOpacity.value = withDelay(
+        400,
+        withTiming(1, { duration: 300, easing: Easing.out(Easing.quad) })
+      );
+    }
+  }, [shouldReduceMotion, pillScale, pillOpacity]);
+
+  const pillAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: pillScale.value }],
+    opacity: pillOpacity.value * 0.12,
+  }));
+
   // Tagline fade in at 1300ms (textSecondary, size 15, translateY 10 to 0)
   const taglineProgress = useSharedValue(0);
   useEffect(() => {
@@ -151,23 +192,39 @@ export function SplashIntro({ onDone }: SplashIntroProps) {
         accessible={true}
         accessibilityLabel="MedFind"
       >
+        <SplashArt />
         <View style={styles.centerContainer}>
-          <View style={styles.wordmarkRow}>
-            {WORDMARK.map((char, index) => (
-              <Text
-                key={index}
-                importantForAccessibility="no-hide-descendants"
-                style={[
-                  styles.letter,
-                  {
-                    color: theme.textPrimary,
-                    fontFamily: typography.fontFamilyBold,
-                  },
-                ]}
-              >
-                {char}
-              </Text>
-            ))}
+          <View style={styles.appIconContainer}>
+            <Image
+              source={require('../../../assets/images/icon.png')}
+              style={styles.appIcon}
+              resizeMode="cover"
+            />
+          </View>
+          <View style={styles.wordmarkContainer}>
+            <View
+              style={[
+                styles.pillHighlight,
+                { backgroundColor: theme.primaryAccent, opacity: 0.12 },
+              ]}
+            />
+            <View style={styles.wordmarkRow}>
+              {WORDMARK.map((char, index) => (
+                <Text
+                  key={index}
+                  importantForAccessibility="no-hide-descendants"
+                  style={[
+                    styles.letter,
+                    {
+                      color: theme.textPrimary,
+                      fontFamily: typography.fontFamilyBold,
+                    },
+                  ]}
+                >
+                  {char}
+                </Text>
+              ))}
+            </View>
           </View>
           <Text
             style={[
@@ -196,6 +253,9 @@ export function SplashIntro({ onDone }: SplashIntroProps) {
       accessible={true}
       accessibilityLabel="MedFind"
     >
+      {/* Background illustration art behind ring and wordmark */}
+      <SplashArt />
+
       {/* 220px Pulse Ring behind the wordmark */}
       <Animated.View
         pointerEvents="none"
@@ -206,18 +266,38 @@ export function SplashIntro({ onDone }: SplashIntroProps) {
         ]}
       />
 
-      {/* Centered Wordmark and Tagline */}
+      {/* Centered App Icon, Wordmark and Tagline */}
       <View style={styles.centerContainer}>
-        <View style={styles.wordmarkRow}>
-          {WORDMARK.map((char, index) => (
-            <AnimatedLetter
-              key={index}
-              letter={char}
-              index={index}
-              color={theme.textPrimary}
-              fontFamily={typography.fontFamilyBold}
-            />
-          ))}
+        {/* App Icon */}
+        <Animated.View style={[styles.appIconContainer, appIconAnimatedStyle]}>
+          <Image
+            source={require('../../../assets/images/icon.png')}
+            style={styles.appIcon}
+            resizeMode="cover"
+          />
+        </Animated.View>
+
+        {/* Wordmark with soft pill highlight */}
+        <View style={styles.wordmarkContainer}>
+          <Animated.View
+            pointerEvents="none"
+            style={[
+              styles.pillHighlight,
+              { backgroundColor: theme.primaryAccent },
+              pillAnimatedStyle,
+            ]}
+          />
+          <View style={styles.wordmarkRow}>
+            {WORDMARK.map((char, index) => (
+              <AnimatedLetter
+                key={index}
+                letter={char}
+                index={index}
+                color={theme.textPrimary}
+                fontFamily={typography.fontFamilyBold}
+              />
+            ))}
+          </View>
         </View>
 
         <Animated.Text
@@ -254,13 +334,38 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  appIconContainer: {
+    marginBottom: 16,
+    borderRadius: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.14,
+    shadowRadius: 12,
+    elevation: 4,
+  },
+  appIcon: {
+    width: 58,
+    height: 58,
+    borderRadius: 14,
+  },
+  wordmarkContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+  },
+  pillHighlight: {
+    position: 'absolute',
+    width: 250,
+    height: 64,
+    borderRadius: 32,
+  },
   wordmarkRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
   },
   letter: {
-    fontSize: 44,
+    fontSize: 52,
     letterSpacing: -1,
     includeFontPadding: false,
   },
@@ -271,3 +376,4 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
 });
+

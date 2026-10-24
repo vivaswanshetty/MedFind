@@ -34,7 +34,14 @@
           "locationWhenInUsePermission": "MedFind uses your foreground location to calculate distances to participating pharmacies and healthcare providers near you."
         }
       ],
-      "expo-audio"
+      "expo-audio",
+      [
+        "expo-notifications",
+        {
+          "color": "#87A96B"
+        }
+      ],
+      "@react-native-community/datetimepicker"
     ]
   }
 }

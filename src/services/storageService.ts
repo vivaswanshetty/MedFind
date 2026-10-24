@@ -47,6 +47,21 @@ export const storageService = {
   },
 
   /**
+   * Remove a single recent search term
+   */
+  async removeRecentSearch(query: string): Promise<string[]> {
+    const trimmed = query.trim().toLowerCase();
+    try {
+      const existing = await this.getRecentSearches();
+      const filtered = existing.filter((item) => item.toLowerCase() !== trimmed);
+      await AsyncStorage.setItem(RECENT_SEARCHES_KEY, JSON.stringify(filtered));
+      return filtered;
+    } catch {
+      return [];
+    }
+  },
+
+  /**
    * Retrieve list of bookmarked / favorited medicine IDs
    */
   async getFavoriteIds(): Promise<string[]> {
