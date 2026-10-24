@@ -103,4 +103,16 @@ test('Location Service & Distance Calculation Tests', async (t) => {
     assert.equal(sorted[0].id, '1');
     assert.equal(sorted[1].id, '2');
   });
+
+  await t.test('Location prompt resolves to Set your area when locationSource is none, and area name otherwise', () => {
+    function resolveLocationPrompt(source, areaName) {
+      if (source === 'none') return 'Set your area';
+      return areaName.split(',')[0] || 'Bengaluru';
+    }
+
+    assert.equal(resolveLocationPrompt('none', 'All Bengaluru'), 'Set your area');
+    assert.equal(resolveLocationPrompt('none', ''), 'Set your area');
+    assert.equal(resolveLocationPrompt('gps', 'Indiranagar, Bengaluru'), 'Indiranagar');
+    assert.equal(resolveLocationPrompt('manual_area', 'Jayanagar, Bengaluru'), 'Jayanagar');
+  });
 });

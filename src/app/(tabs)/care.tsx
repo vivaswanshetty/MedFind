@@ -33,13 +33,15 @@ import {
   DirectionsIcon,
 } from '../../components/icons/AppIcons';
 import { InteractiveCareMap, MapMarkerItem } from '../../components/map/InteractiveCareMap';
+import { AreaPickerModal } from '../../components/location/AreaPickerModal';
 
 export default function CareNearbyScreen() {
   const insets = useSafeAreaInsets();
   const { scheme, palette } = useTheme();
-  const { userLocation, areaName, requestGpsLocation } = useLocation();
+  const { userLocation, areaName, locationSource, requestGpsLocation } = useLocation();
   const { t } = useLanguage();
 
+  const [showAreaPickerModal, setShowAreaPickerModal] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedPin, setSelectedPin] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -267,6 +269,7 @@ export default function CareNearbyScreen() {
         <InteractiveCareMap
           userLocation={userLocation}
           areaName={areaName}
+          locationSource={locationSource}
           markers={mapMarkers}
           selectedPin={selectedPin}
           onSelectPin={(id) => {
@@ -275,6 +278,7 @@ export default function CareNearbyScreen() {
           onOpenExternalMap={handleOpenMapApp}
           onInteractionChange={setIsMapInteracting}
           onRequestLocation={requestGpsLocation}
+          onPressArea={() => setShowAreaPickerModal(true)}
         />
 
         {/* INTERACTIVE PIN SELECTION CALLOUT */}
@@ -541,6 +545,12 @@ export default function CareNearbyScreen() {
         </View>
       </ScrollView>
       </AnimatedScreenTransition>
+
+      {/* Area Picker Modal */}
+      <AreaPickerModal
+        visible={showAreaPickerModal}
+        onClose={() => setShowAreaPickerModal(false)}
+      />
     </View>
   );
 }

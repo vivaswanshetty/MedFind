@@ -17,6 +17,7 @@ import {
   FitBoundsIcon,
 } from '../icons/AppIcons';
 import { Coordinates } from '../../services/locationService';
+import { LocationSource } from '../../context/LocationContext';
 
 export interface MapMarkerItem {
   id: string;
@@ -31,23 +32,27 @@ export interface MapMarkerItem {
 interface InteractiveCareMapProps {
   userLocation: Coordinates | null;
   areaName: string;
+  locationSource?: LocationSource;
   markers: MapMarkerItem[];
   selectedPin: string | null;
   onSelectPin: (id: string) => void;
   onOpenExternalMap: () => void;
   onInteractionChange?: (isInteracting: boolean) => void;
   onRequestLocation?: () => void;
+  onPressArea?: () => void;
 }
 
 export function InteractiveCareMap({
   userLocation,
   areaName,
+  locationSource,
   markers,
   selectedPin,
   onSelectPin,
   onOpenExternalMap,
   onInteractionChange,
   onRequestLocation,
+  onPressArea,
 }: InteractiveCareMapProps) {
   const { scheme, palette } = useTheme();
   const webViewRef = useRef<WebView>(null);
@@ -481,20 +486,38 @@ export function InteractiveCareMap({
       {/* Overlaid Top Header Bar with responsive layout */}
       <View style={styles.topHeaderBar} pointerEvents="box-none">
         {/* User Location Pill */}
-        <View
-          style={[
+        <Pressable
+          onPress={onPressArea}
+          disabled={!onPressArea}
+          accessible={true}
+          accessibilityRole="button"
+          accessibilityLabel={
+            locationSource === 'none'
+              ? 'No area set. Tap to set your area'
+              : `Current location ${areaName}. Tap to change area.`
+          }
+          style={({ pressed }) => [
             styles.userLocationPill,
             {
               backgroundColor: palette.surface,
               borderColor: palette.line,
+              opacity: pressed && onPressArea ? 0.85 : 1.0,
             },
           ]}
         >
-          <View style={[styles.locationDot, { backgroundColor: palette.accent }]} />
+          <View
+            style={[
+              styles.locationDot,
+              {
+                backgroundColor:
+                  locationSource === 'none' ? palette.ink2 : palette.accent,
+              },
+            ]}
+          />
           <Text style={[styles.userLocationText, { color: palette.ink }]} numberOfLines={1}>
-            {areaName.split(',')[0]}
+            {locationSource === 'none' ? 'Set your area' : areaName.split(',')[0]}
           </Text>
-        </View>
+        </Pressable>
 
         {/* 2 Top Right Action Buttons: Expand/Contract + Google Maps */}
         <View style={styles.topRightControls}>

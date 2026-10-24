@@ -70,8 +70,7 @@ export default function HomeScreen() {
   const { clearAll: clearMedicineBox } = useMedicineBox();
   const {
     areaName,
-    showOnboardingModal,
-    setShowOnboardingModal,
+    locationSource,
     showAreaPickerModal,
     setShowAreaPickerModal,
   } = useLocation();
@@ -150,7 +149,11 @@ export default function HomeScreen() {
               onPress={() => setShowAreaPickerModal(true)}
               accessible={true}
               accessibilityRole="button"
-              accessibilityLabel={`Current location ${areaName}. Tap to change area.`}
+              accessibilityLabel={
+                locationSource === 'none'
+                  ? 'No area set. Tap to set your area'
+                  : `Current location ${areaName}. Tap to change area.`
+              }
               style={({ pressed }) => [
                 styles.locationPill,
                 {
@@ -182,7 +185,7 @@ export default function HomeScreen() {
                 numberOfLines={1}
                 ellipsizeMode="tail"
               >
-                {formatHeaderArea(areaName)}
+                {locationSource === 'none' ? 'Set your area' : formatHeaderArea(areaName)}
               </Text>
             </Pressable>
 

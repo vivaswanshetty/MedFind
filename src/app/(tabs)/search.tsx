@@ -21,6 +21,7 @@ import { AtmosphereBackground } from '../../components/AtmosphereBackground';
 import { AnimatedScreenTransition } from '../../components/AnimatedScreenTransition';
 import { StatusChip } from '../../components/StatusChip';
 import { useLocation } from '../../context/LocationContext';
+import { AreaPickerModal } from '../../components/location/AreaPickerModal';
 import {
   searchMedicineStock,
   MedicineSearchResultItem,
@@ -59,9 +60,10 @@ export default function SearchScreen() {
   const insets = useSafeAreaInsets();
   const params = useLocalSearchParams<{ q?: string }>();
   const { scheme, palette } = useTheme();
-  const { userLocation } = useLocation();
+  const { userLocation, areaName, locationSource } = useLocation();
   const { t } = useLanguage();
 
+  const [showAreaPickerModal, setShowAreaPickerModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState(params.q || '');
   const [selectedStrength, setSelectedStrength] = useState<string>('');
   const [selectedDosageForm, setSelectedDosageForm] = useState<string>('');
@@ -310,25 +312,73 @@ export default function SearchScreen() {
       >
         {/* TOP HEADER */}
         <View style={styles.topHeaderRow}>
+          <View style={styles.topHeaderLeft}>
+            <Pressable
+              onPress={() => router.back()}
+              accessible={true}
+              accessibilityRole="button"
+              accessibilityLabel="Back to Home"
+              style={[
+                styles.backButton,
+                {
+                  backgroundColor: palette.surface,
+                  borderColor: palette.line,
+                },
+              ]}
+            >
+              <BackArrowIcon size={18} color={palette.ink} />
+            </Pressable>
+
+            <Text style={[styles.screenTitle, { color: palette.ink }]}>
+              Search medicine
+            </Text>
+          </View>
+
           <Pressable
-            onPress={() => router.back()}
+            onPress={() => setShowAreaPickerModal(true)}
             accessible={true}
             accessibilityRole="button"
-            accessibilityLabel="Back to Home"
-            style={[
-              styles.backButton,
+            accessibilityLabel={
+              locationSource === 'none'
+                ? 'No area set. Tap to set your area'
+                : `Current location ${areaName}. Tap to change area.`
+            }
+            style={({ pressed }) => [
+              styles.locationPill,
               {
                 backgroundColor: palette.surface,
-                borderColor: palette.line,
+                borderColor:
+                  scheme === 'dark'
+                    ? 'rgba(255, 255, 255, 0.14)'
+                    : 'rgba(90, 62, 43, 0.14)',
+                shadowColor: palette.shadow,
+                opacity: pressed ? 0.85 : 1.0,
               },
             ]}
           >
-            <BackArrowIcon size={18} color={palette.ink} />
+            <View
+              style={[
+                styles.locationPinBadge,
+                {
+                  backgroundColor:
+                    scheme === 'dark'
+                      ? 'rgba(255, 71, 87, 0.2)'
+                      : 'rgba(255, 71, 87, 0.12)',
+                },
+              ]}
+            >
+              <MapPinIcon size={14} color="#FF4757" />
+            </View>
+            <Text
+              style={[styles.locationPillText, { color: palette.ink }]}
+              numberOfLines={1}
+              ellipsizeMode="tail"
+            >
+              {locationSource === 'none'
+                ? 'Set your area'
+                : (areaName.split(',')[0] || 'Bengaluru')}
+            </Text>
           </Pressable>
-
-          <Text style={[styles.screenTitle, { color: palette.ink }]}>
-            Search medicine
-          </Text>
         </View>
 
         {/* SEARCH INPUT BOX */}
@@ -878,6 +928,12 @@ export default function SearchScreen() {
         )}
       </ScrollView>
       </AnimatedScreenTransition>
+
+      {/* Area Picker Modal */}
+      <AreaPickerModal
+        visible={showAreaPickerModal}
+        onClose={() => setShowAreaPickerModal(false)}
+      />
     </View>
   );
 }
@@ -898,8 +954,44 @@ const styles = StyleSheet.create({
   topHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    justifyContent: 'space-between',
     minHeight: MIN_TARGET,
+  },
+  topHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    flexShrink: 1,
+  },
+  locationPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    height: 38,
+    paddingLeft: 6,
+    paddingRight: 12,
+    borderRadius: radii.pill,
+    borderWidth: 1.2,
+    maxWidth: 160,
+    flexShrink: 0,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  locationPinBadge: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  locationPillText: {
+    fontFamily: fonts.sansBold,
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: -0.2,
+    flexShrink: 1,
   },
   backButton: {
     width: 38,
