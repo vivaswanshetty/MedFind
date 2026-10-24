@@ -218,21 +218,25 @@ export default function HomeScreen() {
           ]}
         >
           <View style={styles.greetingLeftRow}>
-            <Image
-              source={onboardingAssets.mascotWave}
-              style={styles.greetingMascot}
-              resizeMode="contain"
-              accessibilityLabel={`${greetingInfo.caption} waving`}
-            />
+            {!greetingInfo.isGuest && (
+              <Image
+                source={onboardingAssets.mascotWave}
+                style={styles.greetingMascot}
+                resizeMode="contain"
+                accessibilityLabel={`${greetingInfo.caption || 'Mascot'} waving`}
+              />
+            )}
             <View style={styles.greetingTextGroup}>
-              <Text
-                style={[
-                  styles.greetingCaption,
-                  { color: palette.accent || theme.primaryAccentText },
-                ]}
-              >
-                {greetingInfo.caption}
-              </Text>
+              {Boolean(greetingInfo.caption) && (
+                <Text
+                  style={[
+                    styles.greetingCaption,
+                    { color: palette.accent || theme.primaryAccentText },
+                  ]}
+                >
+                  {greetingInfo.caption}
+                </Text>
+              )}
               <Text
                 style={[
                   styles.greetingHeadline,
@@ -243,7 +247,7 @@ export default function HomeScreen() {
               </Text>
             </View>
           </View>
-          {greetingInfo.isFirstVisit && greetingInfo.subline ? (
+          {!greetingInfo.isGuest && greetingInfo.isFirstVisit && greetingInfo.subline ? (
             <Text
               style={[
                 styles.greetingSubline,

@@ -36,6 +36,28 @@ test('Reminders - calculateExpiryReminderMoment sets moment 30 days before expir
   assert.equal(monthMoment.getDate(), 31);
   assert.equal(monthMoment.getHours(), 9);
 
+  // Month-precision expiry: "March 2027", "2027-03-01", and "2027-03-31"
+  // All end on March 31, 2027; 30 days before is March 1, 2027 at 9:00 AM
+  const marchFirstDayMoment = calculateExpiryReminderMoment('2027-03-01');
+  const marchLastDayMoment = calculateExpiryReminderMoment('2027-03-31');
+  const marchTextMoment = calculateExpiryReminderMoment('March 2027');
+
+  assert.ok(marchFirstDayMoment instanceof Date);
+  assert.equal(marchFirstDayMoment.getFullYear(), 2027);
+  assert.equal(marchFirstDayMoment.getMonth(), 2); // March
+  assert.equal(marchFirstDayMoment.getDate(), 1);
+  assert.equal(marchFirstDayMoment.getHours(), 9);
+
+  assert.equal(marchLastDayMoment.getFullYear(), 2027);
+  assert.equal(marchLastDayMoment.getMonth(), 2);
+  assert.equal(marchLastDayMoment.getDate(), 1);
+  assert.equal(marchLastDayMoment.getHours(), 9);
+
+  assert.equal(marchTextMoment.getFullYear(), 2027);
+  assert.equal(marchTextMoment.getMonth(), 2);
+  assert.equal(marchTextMoment.getDate(), 1);
+  assert.equal(marchTextMoment.getHours(), 9);
+
   assert.equal(calculateExpiryReminderMoment(null), null);
 });
 

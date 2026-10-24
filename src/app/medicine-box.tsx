@@ -176,9 +176,11 @@ export default function MedicineBoxScreen() {
     }
     if (event.type === 'set' && selectedDate) {
       const year = selectedDate.getFullYear();
-      const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
-      const day = String(selectedDate.getDate()).padStart(2, '0');
-      setExpiryDate(`${year}-${month}-${day}`);
+      const month = selectedDate.getMonth() + 1;
+      const lastDay = new Date(year, month, 0).getDate();
+      const monthStr = String(month).padStart(2, '0');
+      const dayStr = String(lastDay).padStart(2, '0');
+      setExpiryDate(`${year}-${monthStr}-${dayStr}`);
     }
   };
 
@@ -446,6 +448,28 @@ export default function MedicineBoxScreen() {
                         </View>
                       )}
                     </View>
+
+                    {/* Expired Advisory Line */}
+                    {expiryInfo?.status === 'expired' && (
+                      <View
+                        style={[
+                          styles.expiredNoticeRow,
+                          {
+                            backgroundColor: scheme === 'light' ? '#FEF2F2' : '#450A0A',
+                            borderColor: scheme === 'light' ? '#FECACA' : '#7F1D1D',
+                          },
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.expiredNoticeText,
+                            { color: scheme === 'light' ? '#B91C1C' : '#FCA5A5' },
+                          ]}
+                        >
+                          Past its expiry date. Ask a pharmacist how to dispose of it safely.
+                        </Text>
+                      </View>
+                    )}
                   </Pressable>
                 );
               })}
@@ -890,6 +914,18 @@ const styles = StyleSheet.create({
   chipText: {
     fontFamily: fonts.sansSemi,
     fontSize: 11.5,
+  },
+  expiredNoticeRow: {
+    marginTop: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  expiredNoticeText: {
+    fontFamily: fonts.sansMedium,
+    fontSize: 12,
+    lineHeight: 16,
   },
   privacyFooter: {
     flexDirection: 'row',

@@ -29,6 +29,7 @@ export interface GreetingInfo {
   caption: string;
   subline: string;
   isFirstVisit: boolean;
+  isGuest?: boolean;
 }
 
 /**
@@ -134,7 +135,7 @@ export function getRecommendations(profile: Profile | null | undefined): Recomme
       subtitle: 'Track your home medicines and get refill reminders',
       kind: 'feature',
       route: '/medicine-box',
-      whyReason: 'Because you keep a medicine box and want refill reminders',
+      whyReason: 'Because you said you keep a medicine box at home and would like refill reminders',
     });
   } else if (hasMedicineBox) {
     recs.push({
@@ -143,7 +144,7 @@ export function getRecommendations(profile: Profile | null | undefined): Recomme
       subtitle: "Track what you have at home so you don't buy twice",
       kind: 'feature',
       route: '/medicine-box',
-      whyReason: 'Because you keep a medicine box at home',
+      whyReason: 'Because you said you keep a medicine box at home',
     });
   } else if (wantsReminders) {
     recs.push({
@@ -152,7 +153,7 @@ export function getRecommendations(profile: Profile | null | undefined): Recomme
       subtitle: 'Never run out of essentials',
       kind: 'feature',
       route: '/medicine-box',
-      whyReason: 'Because you want refill and expiry reminders',
+      whyReason: "Because you said you'd like refill reminders",
     });
   }
 
@@ -166,6 +167,19 @@ export function getRecommendations(profile: Profile | null | undefined): Recomme
  * Generates personalized home greeting data based on profile, displayName, and buddy metadata.
  */
 export function getHomeGreeting(profile: Profile | null | undefined): GreetingInfo {
+  // If buddy is null and onboardingComplete is false (guest / skipped onboarding),
+  // show plain "Welcome" with no buddy name, no archetype caption, and no mascot persona.
+  const isGuest = !profile?.onboardingComplete && !profile?.buddy;
+  if (isGuest) {
+    return {
+      headline: 'Welcome',
+      caption: '',
+      subline: '',
+      isFirstVisit: false,
+      isGuest: true,
+    };
+  }
+
   const displayName = profile?.displayName?.trim();
   const headline = displayName ? `Hi ${displayName}` : 'Welcome';
 
@@ -188,5 +202,6 @@ export function getHomeGreeting(profile: Profile | null | undefined): GreetingIn
     caption,
     subline,
     isFirstVisit,
+    isGuest: false,
   };
 }

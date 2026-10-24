@@ -176,6 +176,10 @@ test('Recommendations - Medicine Box and Reminders cards', () => {
   assert.equal(recsMedBoxOnly[0].subtitle, "Track what you have at home so you don't buy twice");
   assert.equal(recsMedBoxOnly[0].kind, 'feature');
   assert.equal(recsMedBoxOnly[0].route, '/medicine-box');
+  assert.equal(
+    recsMedBoxOnly[0].whyReason,
+    'Because you said you keep a medicine box at home'
+  );
 
   // Case 2: Only wantsReminders === true
   const remindersOnlyProfile = {
@@ -195,6 +199,10 @@ test('Recommendations - Medicine Box and Reminders cards', () => {
   assert.equal(recsRemindersOnly[0].subtitle, 'Never run out of essentials');
   assert.equal(recsRemindersOnly[0].kind, 'feature');
   assert.equal(recsRemindersOnly[0].route, '/medicine-box');
+  assert.equal(
+    recsRemindersOnly[0].whyReason,
+    "Because you said you'd like refill reminders"
+  );
 
   // Case 3: Both medicineBox === true AND wantsReminders === true (Show exactly ONE card)
   const bothProfile = {
@@ -214,6 +222,10 @@ test('Recommendations - Medicine Box and Reminders cards', () => {
   assert.equal(recsBoth[0].subtitle, 'Track your home medicines and get refill reminders');
   assert.equal(recsBoth[0].kind, 'feature');
   assert.equal(recsBoth[0].route, '/medicine-box');
+  assert.equal(
+    recsBoth[0].whyReason,
+    'Because you said you keep a medicine box at home and would like refill reminders'
+  );
 
   // Case 4: Neither is true
   const neitherProfile = {
@@ -357,14 +369,28 @@ test('Recommendations - Null and partial profile safety', () => {
   assert.equal(recsPartial.length, 1);
   assert.equal(recsPartial[0].id, 'rec-medicine-box-only');
 
-  // Case D: getHomeGreeting with null/partial profile
+  // Case D: getHomeGreeting with null/partial profile (guest mode: no buddy, no archetype caption)
   assert.doesNotThrow(() => getHomeGreeting(null));
   assert.doesNotThrow(() => getHomeGreeting(undefined));
   assert.doesNotThrow(() => getHomeGreeting(allNullProfile));
 
   const nullGreeting = getHomeGreeting(null);
   assert.equal(nullGreeting.headline, 'Welcome');
-  assert.equal(nullGreeting.caption, 'Pip, The Explorer');
-  assert.equal(typeof nullGreeting.subline, 'string');
+  assert.equal(nullGreeting.caption, '');
+  assert.equal(nullGreeting.subline, '');
+  assert.equal(nullGreeting.isGuest, true);
+
+  const skippedGreeting = getHomeGreeting({
+    who: null,
+    ageGroup: null,
+    answers: null,
+    buddy: null,
+    onboardingComplete: false,
+    onboardingSkippedAt: '2026-10-24T20:00:00Z',
+    createdAt: '',
+  });
+  assert.equal(skippedGreeting.headline, 'Welcome');
+  assert.equal(skippedGreeting.caption, '');
+  assert.equal(skippedGreeting.isGuest, true);
 });
 

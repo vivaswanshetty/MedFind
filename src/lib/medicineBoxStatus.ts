@@ -6,8 +6,8 @@
 export type ExpiryStatus = 'expired' | 'soon' | 'ok' | 'none';
 
 /**
- * Parses an ISO date string (YYYY-MM or YYYY-MM-DD) into a valid end-of-day Date.
- * If only YYYY-MM is provided, it resolves to the final moment of that calendar month.
+ * Parses an expiry date string (YYYY-MM, YYYY-MM-DD, or "Month YYYY") into an end-of-month Date.
+ * Medicine packs print month and year, which means the expiry is the final moment of that month.
  */
 export function parseExpiryDate(dateStr?: string | null): Date | null {
   if (!dateStr || typeof dateStr !== 'string') return null;
@@ -20,24 +20,39 @@ export function parseExpiryDate(dateStr?: string | null): Date | null {
     const year = parseInt(yearMonthMatch[1], 10);
     const month = parseInt(yearMonthMatch[2], 10);
     if (month < 1 || month > 12) return null;
-    // Day 0 of next month is the last day of the given month
+    // Day 0 of next month is the last day of the given month at end of day
     return new Date(year, month, 0, 23, 59, 59, 999);
   }
 
-  // Case 2: YYYY-MM-DD format
+  // Case 2: YYYY-MM-DD format (normalized to the last day of that month)
   const yearMonthDayMatch = trimmed.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
   if (yearMonthDayMatch) {
     const year = parseInt(yearMonthDayMatch[1], 10);
     const month = parseInt(yearMonthDayMatch[2], 10);
     const day = parseInt(yearMonthDayMatch[3], 10);
     if (month < 1 || month > 12 || day < 1 || day > 31) return null;
-    const parsed = new Date(year, month - 1, day, 23, 59, 59, 999);
-    if (isNaN(parsed.getTime())) return null;
-    return parsed;
+    // Medicine packs specify month and year, which means the end of that month.
+    return new Date(year, month, 0, 23, 59, 59, 999);
+  }
+
+  // Case 3: "Month YYYY" (e.g. "March 2027" or "Mar 2027")
+  const monthNameMatch = trimmed.match(/^([A-Za-z]+)\s+(\d{4})$/);
+  if (monthNameMatch) {
+    const monthNames = ['january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december'];
+    const shortMonthNames = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+    const mStr = monthNameMatch[1].toLowerCase();
+    let mIdx = monthNames.indexOf(mStr);
+    if (mIdx === -1) mIdx = shortMonthNames.indexOf(mStr);
+    if (mIdx !== -1) {
+      const year = parseInt(monthNameMatch[2], 10);
+      return new Date(year, mIdx + 1, 0, 23, 59, 59, 999);
+    }
   }
 
   const parsed = new Date(trimmed);
-  return isNaN(parsed.getTime()) ? null : parsed;
+  if (isNaN(parsed.getTime())) return null;
+  // If a generic Date was parsed, also normalize to end of its month
+  return new Date(parsed.getFullYear(), parsed.getMonth() + 1, 0, 23, 59, 59, 999);
 }
 
 /**
