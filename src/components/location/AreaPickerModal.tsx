@@ -24,9 +24,10 @@ import {
 interface AreaPickerModalProps {
   visible: boolean;
   onClose: () => void;
+  onAreaSelected?: () => void;
 }
 
-export function AreaPickerModal({ visible, onClose }: AreaPickerModalProps) {
+export function AreaPickerModal({ visible, onClose, onAreaSelected }: AreaPickerModalProps) {
   const { scheme, palette } = useTheme();
   const {
     areaName,
@@ -42,12 +43,14 @@ export function AreaPickerModal({ visible, onClose }: AreaPickerModalProps) {
   const handleUseGps = async () => {
     const res = await requestGpsLocation();
     if (res.granted) {
+      onAreaSelected?.();
       onClose();
     }
   };
 
   const handleSelectArea = async (area: KnownArea) => {
     await selectManualArea(area);
+    onAreaSelected?.();
     onClose();
   };
 
@@ -56,6 +59,7 @@ export function AreaPickerModal({ visible, onClose }: AreaPickerModalProps) {
     if (!trimmed) return;
     await selectManualArea({ name: `${trimmed}, Bengaluru` });
     setFilterText('');
+    onAreaSelected?.();
     onClose();
   };
 

@@ -28,7 +28,7 @@ import { useMedicineBox } from '../../store/medicineBox';
 import { onboardingAssets } from '../../../assets/onboarding';
 import { getRecommendations, getHomeGreeting } from '../../lib/recommendations';
 import { RecommendationCard } from '../../components/home/RecommendationCard';
-import { cleanLocalityName, isInvalidLocality } from '../../services/locationService';
+import { cleanLocalityName, isInvalidLocality, isWithinCoverageArea } from '../../services/locationService';
 import { sendDevTestReminder } from '../../lib/reminders';
 import {
   PlusIcon,
@@ -69,11 +69,17 @@ export default function HomeScreen() {
   const { profile, updateProfile, resetProfile } = useProfile();
   const { clearAll: clearMedicineBox } = useMedicineBox();
   const {
+    userLocation,
     areaName,
     locationSource,
     showAreaPickerModal,
     setShowAreaPickerModal,
   } = useLocation();
+
+  const isOutsideCoverage =
+    locationSource === 'gps' &&
+    userLocation !== null &&
+    !isWithinCoverageArea(userLocation);
 
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [showPolicyModal, setShowPolicyModal] = useState(false);
@@ -150,7 +156,7 @@ export default function HomeScreen() {
               accessible={true}
               accessibilityRole="button"
               accessibilityLabel={
-                locationSource === 'none'
+                locationSource === 'none' || isOutsideCoverage
                   ? 'No area set. Tap to set your area'
                   : `Current location ${areaName}. Tap to change area.`
               }
@@ -185,7 +191,7 @@ export default function HomeScreen() {
                 numberOfLines={1}
                 ellipsizeMode="tail"
               >
-                {locationSource === 'none' ? 'Set your area' : formatHeaderArea(areaName)}
+                {locationSource === 'none' || isOutsideCoverage ? 'Set your area' : formatHeaderArea(areaName)}
               </Text>
             </Pressable>
 
@@ -268,6 +274,48 @@ export default function HomeScreen() {
             </Text>
           ) : null}
         </Pressable>
+
+        {/* OUTSIDE BENGALURU COVERAGE BANNER */}
+        {isOutsideCoverage && (
+          <View
+            style={[
+              styles.coverageBanner,
+              {
+                backgroundColor: palette.amberTint,
+                borderColor: palette.amberLine,
+              },
+            ]}
+          >
+            <View style={styles.coverageTextGroup}>
+              <View style={styles.coverageTitleRow}>
+                <MapPinIcon size={16} color={palette.amberInk} />
+                <Text style={[styles.coverageBannerTitle, { color: palette.amberInk }]}>
+                  MedFind currently covers Bengaluru
+                </Text>
+              </View>
+              <Text style={[styles.coverageBannerSub, { color: palette.ink2 }]}>
+                Your GPS location is outside our coverage area. Choose an area in Bengaluru to see available medicine stock.
+              </Text>
+            </View>
+            <Pressable
+              onPress={() => setShowAreaPickerModal(true)}
+              accessible={true}
+              accessibilityRole="button"
+              accessibilityLabel="Choose an area in Bengaluru"
+              style={[
+                styles.coveragePickerBtn,
+                {
+                  backgroundColor: palette.btn,
+                  borderColor: palette.btnBorder,
+                },
+              ]}
+            >
+              <Text style={[styles.coveragePickerBtnText, { color: palette.btnInk }]}>
+                Choose area
+              </Text>
+            </Pressable>
+          </View>
+        )}
 
         {/* B) HERO */}
         <View style={styles.heroSection}>
@@ -1593,6 +1641,48 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     letterSpacing: -0.2,
     flexShrink: 1,
+  },
+
+  coverageBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    padding: 14,
+    borderRadius: radii.card,
+    borderWidth: 1,
+    marginTop: 6,
+    marginBottom: 4,
+  },
+  coverageTextGroup: {
+    flex: 1,
+    gap: 4,
+  },
+  coverageTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  coverageBannerTitle: {
+    fontFamily: fonts.sansBold,
+    fontSize: 14,
+    letterSpacing: -0.2,
+  },
+  coverageBannerSub: {
+    fontFamily: fonts.sans,
+    fontSize: 12,
+    lineHeight: 16,
+  },
+  coveragePickerBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: radii.pill,
+    minHeight: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  coveragePickerBtnText: {
+    fontFamily: fonts.sansBold,
+    fontSize: 12,
   },
 
   // B) HERO

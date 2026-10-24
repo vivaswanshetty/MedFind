@@ -13,7 +13,10 @@
       "backgroundColor": "#FCF8ED"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "MedFind uses your location to show medicines available near you."
+      }
     },
     "android": {
       "package": "com.bmsce.medfind",
@@ -31,7 +34,7 @@
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "MedFind uses your foreground location to calculate distances to participating pharmacies and healthcare providers near you."
+          "locationWhenInUsePermission": "MedFind uses your location to show medicines available near you."
         }
       ],
       "expo-audio",

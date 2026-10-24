@@ -24,6 +24,7 @@ import { AgePicker, AgeGroup } from '../components/onboarding/AgePicker';
 import { SwipeCards } from '../components/onboarding/SwipeCards';
 import { BuddyReveal } from '../components/onboarding/BuddyReveal';
 import { NamePicker } from '../components/onboarding/NamePicker';
+import { LocationStep } from '../components/onboarding/LocationStep';
 import { AllDone } from '../components/onboarding/AllDone';
 import { EmergencySkip } from '../components/onboarding/EmergencySkip';
 import { BuddyProfile } from '../lib/buddy';
@@ -41,6 +42,7 @@ function RootNavigation() {
   const [showSwipeCards, setShowSwipeCards] = useState(false);
   const [showBuddyReveal, setShowBuddyReveal] = useState(false);
   const [showNamePicker, setShowNamePicker] = useState(false);
+  const [showLocationStep, setShowLocationStep] = useState(false);
   const [showAllDone, setShowAllDone] = useState(false);
   const [selectedWho, setSelectedWho] = useState<WhoOption | null>(null);
   const [selectedAge, setSelectedAge] = useState<AgeGroup | null>(null);
@@ -51,7 +53,7 @@ function RootNavigation() {
   // Re-launch onboarding flow if resetProfile is triggered (e.g. from dev settings) or restart onboarding
   React.useEffect(() => {
     if (!isLoading && !profile.onboardingComplete && !profile.onboardingSkippedAt && !showSplash) {
-      if (!showWhoPicker && !showAgePicker && !showSwipeCards && !showBuddyReveal && !showNamePicker && !showAllDone) {
+      if (!showWhoPicker && !showAgePicker && !showSwipeCards && !showBuddyReveal && !showNamePicker && !showLocationStep && !showAllDone) {
         setSelectedWho(null);
         setSelectedAge(null);
         setQuickAnswers(null);
@@ -60,7 +62,7 @@ function RootNavigation() {
         setShowWhoPicker(true);
       }
     }
-  }, [profile.onboardingComplete, profile.onboardingSkippedAt, isLoading, showSplash, showWhoPicker, showAgePicker, showSwipeCards, showBuddyReveal, showNamePicker, showAllDone]);
+  }, [profile.onboardingComplete, profile.onboardingSkippedAt, isLoading, showSplash, showWhoPicker, showAgePicker, showSwipeCards, showBuddyReveal, showNamePicker, showLocationStep, showAllDone]);
 
   const handleEmergencySkip = async () => {
     // 1. Dismiss splash and all onboarding steps immediately
@@ -70,6 +72,7 @@ function RootNavigation() {
     setShowSwipeCards(false);
     setShowBuddyReveal(false);
     setShowNamePicker(false);
+    setShowLocationStep(false);
     setShowAllDone(false);
 
     // 2. Discard partial in-progress answers
@@ -95,6 +98,7 @@ function RootNavigation() {
     showSwipeCards ||
     showBuddyReveal ||
     showNamePicker ||
+    showLocationStep ||
     showAllDone;
 
   return (
@@ -201,6 +205,14 @@ function RootNavigation() {
           onDone={(name) => {
             setDisplayName(name);
             setShowNamePicker(false);
+            setShowLocationStep(true);
+          }}
+        />
+      )}
+      {showLocationStep && (
+        <LocationStep
+          onDone={() => {
+            setShowLocationStep(false);
             setShowAllDone(true);
           }}
         />

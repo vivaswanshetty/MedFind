@@ -26,7 +26,7 @@ import {
   searchMedicineStock,
   MedicineSearchResultItem,
 } from '../../services/medicineSearch';
-import { sortListingsByDistance, formatDistance } from '../../services/locationService';
+import { sortListingsByDistance, formatDistance, isWithinCoverageArea } from '../../services/locationService';
 import { storageService } from '../../services/storageService';
 import {
   BackArrowIcon,
@@ -62,6 +62,11 @@ export default function SearchScreen() {
   const { scheme, palette } = useTheme();
   const { userLocation, areaName, locationSource } = useLocation();
   const { t } = useLanguage();
+
+  const isOutsideCoverage =
+    locationSource === 'gps' &&
+    userLocation !== null &&
+    !isWithinCoverageArea(userLocation);
 
   const [showAreaPickerModal, setShowAreaPickerModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState(params.q || '');
@@ -269,8 +274,8 @@ export default function SearchScreen() {
     },
   ];
 
-  // Verified pharmacy results for selected record (sorted by real distance)
-  const pharmacyItems = userLocation
+  // Verified pharmacy results for selected record (sorted by real distance within coverage)
+  const pharmacyItems = userLocation && !isOutsideCoverage
     ? sortListingsByDistance(baseStores, userLocation)
     : baseStores;
 
@@ -339,7 +344,7 @@ export default function SearchScreen() {
             accessible={true}
             accessibilityRole="button"
             accessibilityLabel={
-              locationSource === 'none'
+              locationSource === 'none' || isOutsideCoverage
                 ? 'No area set. Tap to set your area'
                 : `Current location ${areaName}. Tap to change area.`
             }
@@ -374,12 +379,54 @@ export default function SearchScreen() {
               numberOfLines={1}
               ellipsizeMode="tail"
             >
-              {locationSource === 'none'
+              {locationSource === 'none' || isOutsideCoverage
                 ? 'Set your area'
                 : (areaName.split(',')[0] || 'Bengaluru')}
             </Text>
           </Pressable>
         </View>
+
+        {/* OUTSIDE BENGALURU COVERAGE BANNER */}
+        {isOutsideCoverage && (
+          <View
+            style={[
+              styles.coverageBanner,
+              {
+                backgroundColor: palette.amberTint,
+                borderColor: palette.amberLine,
+              },
+            ]}
+          >
+            <View style={styles.coverageTextGroup}>
+              <View style={styles.coverageTitleRow}>
+                <MapPinIcon size={16} color={palette.amberInk} />
+                <Text style={[styles.coverageBannerTitle, { color: palette.amberInk }]}>
+                  MedFind currently covers Bengaluru
+                </Text>
+              </View>
+              <Text style={[styles.coverageBannerSub, { color: palette.ink2 }]}>
+                Choose your area in Bengaluru to see available medicine stock.
+              </Text>
+            </View>
+            <Pressable
+              onPress={() => setShowAreaPickerModal(true)}
+              accessible={true}
+              accessibilityRole="button"
+              accessibilityLabel="Choose an area in Bengaluru"
+              style={[
+                styles.coveragePickerBtn,
+                {
+                  backgroundColor: palette.btn,
+                  borderColor: palette.btnBorder,
+                },
+              ]}
+            >
+              <Text style={[styles.coveragePickerBtnText, { color: palette.btnInk }]}>
+                Choose area
+              </Text>
+            </Pressable>
+          </View>
+        )}
 
         {/* SEARCH INPUT BOX */}
         <View style={styles.searchBoxContainer}>
@@ -1006,6 +1053,48 @@ const styles = StyleSheet.create({
     fontSize: 26,
     fontWeight: '700',
     letterSpacing: -0.3,
+  },
+
+  coverageBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    padding: 14,
+    borderRadius: radii.card,
+    borderWidth: 1,
+    marginTop: 2,
+    marginBottom: 4,
+  },
+  coverageTextGroup: {
+    flex: 1,
+    gap: 4,
+  },
+  coverageTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  coverageBannerTitle: {
+    fontFamily: fonts.sansBold,
+    fontSize: 14,
+    letterSpacing: -0.2,
+  },
+  coverageBannerSub: {
+    fontFamily: fonts.sans,
+    fontSize: 12,
+    lineHeight: 16,
+  },
+  coveragePickerBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: radii.pill,
+    minHeight: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  coveragePickerBtnText: {
+    fontFamily: fonts.sansBold,
+    fontSize: 12,
   },
 
   // SEARCH BOX

@@ -16,7 +16,7 @@ import {
   CompressIcon,
   FitBoundsIcon,
 } from '../icons/AppIcons';
-import { Coordinates } from '../../services/locationService';
+import { Coordinates, isWithinCoverageArea } from '../../services/locationService';
 import { LocationSource } from '../../context/LocationContext';
 
 export interface MapMarkerItem {
@@ -59,8 +59,10 @@ export function InteractiveCareMap({
   const [isExpanded, setIsExpanded] = useState(false);
   const [showHint, setShowHint] = useState(true);
 
-  const defaultLat = userLocation?.latitude ?? 12.9416; // Basavanagudi centroid fallback
-  const defaultLng = userLocation?.longitude ?? 77.5738;
+  const inCoverage = isWithinCoverageArea(userLocation);
+  const isOutsideCoverage = userLocation !== null && !inCoverage;
+  const defaultLat = inCoverage && userLocation ? userLocation.latitude : 12.9416; // Basavanagudi centroid fallback
+  const defaultLng = inCoverage && userLocation ? userLocation.longitude : 77.5738;
 
   // Sync selected pin from parent to WebView map
   useEffect(() => {
@@ -492,7 +494,7 @@ export function InteractiveCareMap({
           accessible={true}
           accessibilityRole="button"
           accessibilityLabel={
-            locationSource === 'none'
+            locationSource === 'none' || isOutsideCoverage
               ? 'No area set. Tap to set your area'
               : `Current location ${areaName}. Tap to change area.`
           }
@@ -510,12 +512,12 @@ export function InteractiveCareMap({
               styles.locationDot,
               {
                 backgroundColor:
-                  locationSource === 'none' ? palette.ink2 : palette.accent,
+                  locationSource === 'none' || isOutsideCoverage ? palette.ink2 : palette.accent,
               },
             ]}
           />
           <Text style={[styles.userLocationText, { color: palette.ink }]} numberOfLines={1}>
-            {locationSource === 'none' ? 'Set your area' : areaName.split(',')[0]}
+            {locationSource === 'none' || isOutsideCoverage ? 'Set your area' : areaName.split(',')[0]}
           </Text>
         </Pressable>
 

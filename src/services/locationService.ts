@@ -294,6 +294,30 @@ export interface LocationRequestResult {
   coords?: Coordinates;
   areaName?: string;
   error?: string;
+  isOutsideCoverage?: boolean;
+}
+
+export const BENGALURU_CENTROID: Coordinates = {
+  latitude: 12.9716,
+  longitude: 77.5946,
+};
+
+export const BENGALURU_COVERAGE_RADIUS_KM = 45;
+
+/**
+ * Checks if the given coordinates are within the Bengaluru coverage area (approx. 45km from city centroid).
+ */
+export function isWithinCoverageArea(coords: Coordinates | null | undefined): boolean {
+  if (!coords || typeof coords.latitude !== 'number' || typeof coords.longitude !== 'number' || isNaN(coords.latitude) || isNaN(coords.longitude)) {
+    return false;
+  }
+  const dist = calculateDistanceKm(
+    coords.latitude,
+    coords.longitude,
+    BENGALURU_CENTROID.latitude,
+    BENGALURU_CENTROID.longitude
+  );
+  return dist !== null && dist <= BENGALURU_COVERAGE_RADIUS_KM;
 }
 
 /**
@@ -400,6 +424,7 @@ export async function requestDeviceLocation(): Promise<LocationRequestResult> {
       granted: true,
       coords,
       areaName,
+      isOutsideCoverage: !isWithinCoverageArea(coords),
     };
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
