@@ -127,3 +127,51 @@ test('ExpiryStatus - getExpiryChipInfo and formatRefillDate formatting', () => {
   assert.equal(formatRefillDate(null), null);
 });
 
+test('ExpiryStatus - Exact day only (the day before is ok, the day after is expired)', () => {
+  const item = { exactExpiryDate: '2027-03-15' };
+
+  // 60 days before (14 Jan 2027) -> ok
+  const jan14 = new Date(2027, 0, 14, 12, 0, 0);
+  assert.equal(getExpiryStatus(item, jan14), 'ok');
+
+  // The day before (14 March 2027 12:00) -> not expired (soon: within 30 days)
+  const march14 = new Date(2027, 2, 14, 12, 0, 0);
+  assert.notEqual(getExpiryStatus(item, march14), 'expired');
+  assert.equal(getExpiryStatus(item, march14), 'soon');
+
+  // On the exact day (15 March 2027 12:00) -> not expired yet (expires at end of day 23:59:59.999)
+  const march15Noon = new Date(2027, 2, 15, 12, 0, 0);
+  assert.notEqual(getExpiryStatus(item, march15Noon), 'expired');
+
+  // The day after (16 March 2027 00:00:01) -> expired
+  const march16 = new Date(2027, 2, 16, 0, 0, 1);
+  assert.equal(getExpiryStatus(item, march16), 'expired');
+});
+
+test('ExpiryStatus - Both set (exact day wins)', () => {
+  // Month is March 2027 (which would end March 31), but exact day is March 15
+  const item = { expiryDate: '2027-03', exactExpiryDate: '2027-03-15' };
+
+  // The day before exact day (14 March 2027 12:00) -> not expired
+  const march14 = new Date(2027, 2, 14, 12, 0, 0);
+  assert.notEqual(getExpiryStatus(item, march14), 'expired');
+
+  // The day after exact day (16 March 2027 00:00:01) -> expired (exact day wins over month end March 31!)
+  const march16 = new Date(2027, 2, 16, 0, 0, 1);
+  assert.equal(getExpiryStatus(item, march16), 'expired');
+});
+
+test('ExpiryStatus - Legacy stored items with full date but no exactExpiryDate are treated as month precision', () => {
+  // Legacy item saved with full date like '2027-03-15' but without exactExpiryDate field
+  const legacyItem = { expiryDate: '2027-03-15' };
+
+  // On 20 March 2027 -> MUST NOT show expired because month precision extends to March 31
+  const march20 = new Date(2027, 2, 20, 12, 0, 0);
+  assert.notEqual(getExpiryStatus(legacyItem, march20), 'expired');
+
+  // On 1 April 2027 -> expired
+  const april1 = new Date(2027, 3, 1, 0, 0, 1);
+  assert.equal(getExpiryStatus(legacyItem, april1), 'expired');
+});
+
+

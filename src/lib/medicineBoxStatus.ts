@@ -5,6 +5,27 @@
 
 export type ExpiryStatus = 'expired' | 'soon' | 'ok' | 'none';
 
+export interface ExpiryInputItem {
+  expiryDate?: string | null;
+  exactExpiryDate?: string | null;
+}
+
+/**
+ * Parses an exact expiry day string (YYYY-MM-DD) into an end-of-day Date (23:59:59.999).
+ */
+export function parseExactExpiryDate(dateStr?: string | null): Date | null {
+  if (!dateStr || typeof dateStr !== 'string') return null;
+  const trimmed = dateStr.trim();
+  const match = trimmed.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+  if (!match) return null;
+  const year = parseInt(match[1], 10);
+  const month = parseInt(match[2], 10);
+  const day = parseInt(match[3], 10);
+  if (month < 1 || month > 12 || day < 1 || day > 31) return null;
+  // End of that exact day
+  return new Date(year, month - 1, day, 23, 59, 59, 999);
+}
+
 /**
  * Parses an expiry date string (YYYY-MM, YYYY-MM-DD, or "Month YYYY") into an end-of-month Date.
  * Medicine packs print month and year, which means the expiry is the final moment of that month.
@@ -56,6 +77,45 @@ export function parseExpiryDate(dateStr?: string | null): Date | null {
 }
 
 /**
+ * Resolves the effective expiry Date for an item.
+ * When exactExpiryDate is set, the exact day (end of day) wins.
+ * Otherwise, month-precision expiryDate (end of month) is used.
+ */
+export function resolveItemExpiryDate(item?: ExpiryInputItem | null): Date | null {
+  if (!item) return null;
+  if (item.exactExpiryDate) {
+    const exact = parseExactExpiryDate(item.exactExpiryDate);
+    if (exact) return exact;
+  }
+  if (item.expiryDate) {
+    return parseExpiryDate(item.expiryDate);
+  }
+  return null;
+}
+
+/**
+ * Formats a month & year string (e.g. "2027-03" or "2027-03-31") as "Mar 2027".
+ */
+export function formatExpiryMonthYear(dateStr?: string | null): string | null {
+  if (!dateStr) return null;
+  const parsed = parseExpiryDate(dateStr);
+  if (!parsed) return null;
+  const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  return `${monthNames[parsed.getMonth()]} ${parsed.getFullYear()}`;
+}
+
+/**
+ * Formats an exact expiry day string (e.g. "2027-03-15") as "15 Mar 2027".
+ */
+export function formatExactExpiryDate(dateStr?: string | null): string | null {
+  if (!dateStr) return null;
+  const parsed = parseExactExpiryDate(dateStr);
+  if (!parsed) return null;
+  const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  return `${parsed.getDate()} ${monthNames[parsed.getMonth()]} ${parsed.getFullYear()}`;
+}
+
+/**
  * Evaluates the expiry status of an item relative to a reference time (defaults to Date.now()).
  * - 'expired': Date has passed
  * - 'soon': Date is within the next 30 days (0 <= diffDays <= 30)
@@ -63,14 +123,10 @@ export function parseExpiryDate(dateStr?: string | null): Date | null {
  * - 'none': No valid date configured
  */
 export function getExpiryStatus(
-  item?: { expiryDate?: string | null } | null,
+  item?: ExpiryInputItem | null,
   now: Date = new Date()
 ): ExpiryStatus {
-  if (!item?.expiryDate) {
-    return 'none';
-  }
-
-  const expiry = parseExpiryDate(item.expiryDate);
+  const expiry = resolveItemExpiryDate(item);
   if (!expiry) {
     return 'none';
   }
@@ -100,17 +156,17 @@ export interface ExpiryChipInfo {
  * Returns formatted status chip info for an item:
  * - 'expired': destructive red (bad), "Expired"
  * - 'soon': amber warning (warn), "Expires in N days" / "Expires today"
- * - 'ok': green (ok), "Expires Month Year"
+ * - 'ok': green (ok), "Expires Month Year" or "Expires Day Month Year" (if exact day specified)
  * - 'none': null (no chip)
  */
 export function getExpiryChipInfo(
-  item?: { expiryDate?: string | null } | null,
+  item?: ExpiryInputItem | null,
   now: Date = new Date()
 ): ExpiryChipInfo | null {
   const status = getExpiryStatus(item, now);
   if (status === 'none') return null;
 
-  const expiry = parseExpiryDate(item?.expiryDate)!;
+  const expiry = resolveItemExpiryDate(item)!;
   const diffDays = Math.ceil((expiry.getTime() - now.getTime()) / (24 * 60 * 60 * 1000));
 
   if (status === 'expired') {
@@ -133,6 +189,15 @@ export function getExpiryChipInfo(
   const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   const monthStr = monthNames[expiry.getMonth()];
   const yearStr = expiry.getFullYear();
+
+  if (item?.exactExpiryDate) {
+    return {
+      status,
+      tone: 'ok',
+      label: `Expires ${expiry.getDate()} ${monthStr} ${yearStr}`,
+    };
+  }
+
   return {
     status,
     tone: 'ok',
@@ -154,4 +219,5 @@ export function formatRefillDate(refillOn?: string | null): string | null {
   const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   return `${day} ${monthNames[month - 1]} ${year}`;
 }
+
 

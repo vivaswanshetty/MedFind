@@ -1,5 +1,5 @@
 import type * as Notifications from 'expo-notifications';
-import { parseExpiryDate } from './medicineBoxStatus';
+import { parseExpiryDate, resolveItemExpiryDate, ExpiryInputItem } from './medicineBoxStatus';
 
 const isWeb = typeof window !== 'undefined' && typeof window.document !== 'undefined';
 
@@ -129,8 +129,15 @@ export function calculateRefillMoment(refillOn?: string | null): Date | null {
 /**
  * Calculates the expiry reminder moment: 30 days before expiry at 9:00 AM local time.
  */
-export function calculateExpiryReminderMoment(expiryDateStr?: string | null): Date | null {
-  const expiry = parseExpiryDate(expiryDateStr);
+export function calculateExpiryReminderMoment(
+  itemOrDate?: string | ExpiryInputItem | null
+): Date | null {
+  let expiry: Date | null = null;
+  if (typeof itemOrDate === 'string') {
+    expiry = parseExpiryDate(itemOrDate);
+  } else if (itemOrDate && typeof itemOrDate === 'object') {
+    expiry = resolveItemExpiryDate(itemOrDate);
+  }
   if (!expiry) return null;
   // 30 days before expiry
   const reminderDate = new Date(expiry.getTime() - 30 * 24 * 60 * 60 * 1000);
@@ -148,6 +155,7 @@ export async function scheduleItemReminders(
   item: {
     name: string;
     expiryDate?: string | null;
+    exactExpiryDate?: string | null;
     refillOn?: string | null;
     remindersEnabled?: boolean;
   },
@@ -157,7 +165,7 @@ export async function scheduleItemReminders(
     return { permissionGranted: true };
   }
 
-  const hasDate = Boolean(item.expiryDate || item.refillOn);
+  const hasDate = Boolean(item.expiryDate || item.exactExpiryDate || item.refillOn);
   if (!hasDate) {
     return { permissionGranted: true };
   }
@@ -179,7 +187,7 @@ export async function scheduleItemReminders(
   const nowMs = now.getTime();
 
   // 1. Expiry reminder: 30 days before expiry at 9:00 AM
-  const expiryMoment = calculateExpiryReminderMoment(item.expiryDate);
+  const expiryMoment = calculateExpiryReminderMoment(item);
   if (expiryMoment && expiryMoment.getTime() > nowMs) {
     try {
       expiryNotificationId = await client.scheduleNotificationAsync({

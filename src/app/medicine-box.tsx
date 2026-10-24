@@ -30,7 +30,12 @@ import {
   getExpiryChipInfo,
   formatRefillDate,
   parseExpiryDate,
+  parseExactExpiryDate,
+  formatExpiryMonthYear,
+  formatExactExpiryDate,
 } from '../lib/medicineBoxStatus';
+
+const MONTHS_LIST = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 import {
   BackArrowIcon,
   PlusIcon,
@@ -57,12 +62,16 @@ export default function MedicineBoxScreen() {
   const [name, setName] = useState('');
   const [note, setNote] = useState('');
   const [expiryDate, setExpiryDate] = useState<string | null>(null);
+  const [exactExpiryDate, setExactExpiryDate] = useState<string | null>(null);
   const [refillOn, setRefillOn] = useState<string | null>(null);
   const [remindersEnabled, setRemindersEnabled] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
-  // Date Pickers visibility
-  const [showExpiryPicker, setShowExpiryPicker] = useState(false);
+  // Month-Year and Date Pickers visibility
+  const currentYear = new Date().getFullYear();
+  const [selectedYear, setSelectedYear] = useState(currentYear);
+  const [showMonthYearPicker, setShowMonthYearPicker] = useState(false);
+  const [showExactExpiryPicker, setShowExactExpiryPicker] = useState(false);
   const [showRefillPicker, setShowRefillPicker] = useState(false);
 
   const isFull = items.length >= MAX_MEDICINE_BOX_ITEMS;
@@ -79,6 +88,10 @@ export default function MedicineBoxScreen() {
     setName('');
     setNote('');
     setExpiryDate(null);
+    setExactExpiryDate(null);
+    setSelectedYear(new Date().getFullYear());
+    setShowMonthYearPicker(false);
+    setShowExactExpiryPicker(false);
     setRefillOn(null);
     setRemindersEnabled(false);
     setFormError(null);
@@ -90,6 +103,16 @@ export default function MedicineBoxScreen() {
     setName(item.name);
     setNote(item.note || '');
     setExpiryDate(item.expiryDate || null);
+    setExactExpiryDate(item.exactExpiryDate || null);
+    if (item.expiryDate) {
+      const parsed = parseExpiryDate(item.expiryDate);
+      if (parsed) setSelectedYear(parsed.getFullYear());
+      else setSelectedYear(new Date().getFullYear());
+    } else {
+      setSelectedYear(new Date().getFullYear());
+    }
+    setShowMonthYearPicker(false);
+    setShowExactExpiryPicker(false);
     setRefillOn(item.refillOn || null);
     setRemindersEnabled(Boolean(item.remindersEnabled));
     setFormError(null);
@@ -113,6 +136,7 @@ export default function MedicineBoxScreen() {
         name: trimmedName,
         note: note.trim() || undefined,
         expiryDate: expiryDate || undefined,
+        exactExpiryDate: exactExpiryDate || undefined,
         refillOn: refillOn || undefined,
         remindersEnabled,
       });
@@ -130,6 +154,7 @@ export default function MedicineBoxScreen() {
         name: trimmedName,
         note: note.trim() || undefined,
         expiryDate: expiryDate || undefined,
+        exactExpiryDate: exactExpiryDate || undefined,
         refillOn: refillOn || undefined,
         remindersEnabled,
       });
@@ -170,17 +195,21 @@ export default function MedicineBoxScreen() {
     return parsed && !isNaN(parsed.getTime()) ? parsed : new Date();
   };
 
-  const handleExpiryPickerChange = (event: DateTimePickerEvent, selectedDate?: Date) => {
+  const formatExactDatePickerValue = (dateStr?: string | null): Date => {
+    if (!dateStr) return new Date();
+    const parsed = parseExactExpiryDate(dateStr);
+    return parsed && !isNaN(parsed.getTime()) ? parsed : new Date();
+  };
+
+  const handleExactExpiryPickerChange = (event: DateTimePickerEvent, selectedDate?: Date) => {
     if (Platform.OS === 'android') {
-      setShowExpiryPicker(false);
+      setShowExactExpiryPicker(false);
     }
     if (event.type === 'set' && selectedDate) {
       const year = selectedDate.getFullYear();
-      const month = selectedDate.getMonth() + 1;
-      const lastDay = new Date(year, month, 0).getDate();
-      const monthStr = String(month).padStart(2, '0');
-      const dayStr = String(lastDay).padStart(2, '0');
-      setExpiryDate(`${year}-${monthStr}-${dayStr}`);
+      const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
+      const day = String(selectedDate.getDate()).padStart(2, '0');
+      setExactExpiryDate(`${year}-${month}-${day}`);
     }
   };
 
@@ -573,13 +602,13 @@ export default function MedicineBoxScreen() {
                 ]}
               />
 
-              {/* Expiry Date */}
+              {/* Field 1: Expiry Month & Year */}
               <Text style={[styles.fieldLabel, { color: palette.ink }]}>
-                Expiry date (optional)
+                Expiry (month and year, as printed on the pack)
               </Text>
               <View style={styles.datePickerRow}>
                 <Pressable
-                  onPress={() => setShowExpiryPicker(true)}
+                  onPress={() => setShowMonthYearPicker((prev) => !prev)}
                   style={[
                     styles.dateSelectBtn,
                     { backgroundColor: palette.bg, borderColor: palette.line },
@@ -592,7 +621,7 @@ export default function MedicineBoxScreen() {
                       { color: expiryDate ? palette.ink : palette.ink2 },
                     ]}
                   >
-                    {expiryDate ? `Expires: ${expiryDate}` : 'Select expiry date'}
+                    {expiryDate ? formatExpiryMonthYear(expiryDate) : 'Select month & year'}
                   </Text>
                 </Pressable>
                 {expiryDate && (
@@ -607,18 +636,137 @@ export default function MedicineBoxScreen() {
                 )}
               </View>
 
-              {/* DateTimePicker for Expiry */}
-              {showExpiryPicker && (
+              {/* Month & Year Picker Panel (No day selection) */}
+              {showMonthYearPicker && (
+                <View
+                  style={[
+                    styles.monthYearPickerBox,
+                    { backgroundColor: palette.bg, borderColor: palette.line },
+                  ]}
+                >
+                  {/* Year selector row */}
+                  <View style={styles.monthYearYearRow}>
+                    <Pressable
+                      onPress={() => setSelectedYear((y) => Math.max(y - 1, currentYear - 3))}
+                      hitSlop={8}
+                      style={[styles.yearArrowBtn, { borderColor: palette.line }]}
+                      accessible={true}
+                      accessibilityRole="button"
+                      accessibilityLabel="Previous year"
+                    >
+                      <Text style={[styles.yearArrowText, { color: palette.ink }]}>‹</Text>
+                    </Pressable>
+                    <Text style={[styles.monthYearYearLabel, { color: palette.ink }]}>
+                      {selectedYear}
+                    </Text>
+                    <Pressable
+                      onPress={() => setSelectedYear((y) => Math.min(y + 1, currentYear + 15))}
+                      hitSlop={8}
+                      style={[styles.yearArrowBtn, { borderColor: palette.line }]}
+                      accessible={true}
+                      accessibilityRole="button"
+                      accessibilityLabel="Next year"
+                    >
+                      <Text style={[styles.yearArrowText, { color: palette.ink }]}>›</Text>
+                    </Pressable>
+                  </View>
+
+                  {/* 12 Months Grid */}
+                  <View style={styles.monthsGrid}>
+                    {MONTHS_LIST.map((m, idx) => {
+                      const mStr = String(idx + 1).padStart(2, '0');
+                      const fullVal = `${selectedYear}-${mStr}`;
+                      const isSelected =
+                        Boolean(expiryDate) &&
+                        parseExpiryDate(expiryDate)?.getMonth() === idx &&
+                        parseExpiryDate(expiryDate)?.getFullYear() === selectedYear;
+
+                      return (
+                        <Pressable
+                          key={m}
+                          onPress={() => {
+                            setExpiryDate(fullVal);
+                            setShowMonthYearPicker(false);
+                          }}
+                          accessible={true}
+                          accessibilityRole="button"
+                          accessibilityLabel={`${m} ${selectedYear}`}
+                          style={[
+                            styles.monthGridCell,
+                            {
+                              backgroundColor: isSelected ? theme.primaryAccent : palette.surface,
+                              borderColor: isSelected ? theme.primaryAccent : palette.line,
+                            },
+                          ]}
+                        >
+                          <Text
+                            style={[
+                              styles.monthGridCellText,
+                              { color: isSelected ? '#FFFFFF' : palette.ink },
+                            ]}
+                          >
+                            {m}
+                          </Text>
+                        </Pressable>
+                      );
+                    })}
+                  </View>
+
+                  <Pressable
+                    onPress={() => setShowMonthYearPicker(false)}
+                    style={[styles.pickerDoneBtn, { backgroundColor: theme.primaryAccent, marginTop: 8 }]}
+                  >
+                    <Text style={styles.pickerDoneText}>Done</Text>
+                  </Pressable>
+                </View>
+              )}
+
+              {/* Field 2: Exact Expiry Day (if printed) */}
+              <Text style={[styles.fieldLabel, { color: palette.ink, marginTop: 12 }]}>
+                Exact expiry day (if printed)
+              </Text>
+              <View style={styles.datePickerRow}>
+                <Pressable
+                  onPress={() => setShowExactExpiryPicker(true)}
+                  style={[
+                    styles.dateSelectBtn,
+                    { backgroundColor: palette.bg, borderColor: palette.line },
+                  ]}
+                >
+                  <ClockIcon size={16} color={palette.ink2} />
+                  <Text
+                    style={[
+                      styles.dateSelectText,
+                      { color: exactExpiryDate ? palette.ink : palette.ink2 },
+                    ]}
+                  >
+                    {exactExpiryDate ? formatExactExpiryDate(exactExpiryDate) : 'Select exact day (optional)'}
+                  </Text>
+                </Pressable>
+                {exactExpiryDate && (
+                  <Pressable
+                    onPress={() => setExactExpiryDate(null)}
+                    style={styles.clearDateBtn}
+                  >
+                    <Text style={[styles.clearDateText, { color: palette.ink2 }]}>
+                      Clear
+                    </Text>
+                  </Pressable>
+                )}
+              </View>
+
+              {/* DateTimePicker for Exact Expiry */}
+              {showExactExpiryPicker && (
                 <View style={styles.pickerContainer}>
                   <DateTimePicker
-                    value={formatDatePickerValue(expiryDate)}
+                    value={formatExactDatePickerValue(exactExpiryDate)}
                     mode="date"
                     display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                    onChange={handleExpiryPickerChange}
+                    onChange={handleExactExpiryPickerChange}
                   />
                   {Platform.OS === 'ios' && (
                     <Pressable
-                      onPress={() => setShowExpiryPicker(false)}
+                      onPress={() => setShowExactExpiryPicker(false)}
                       style={[styles.pickerDoneBtn, { backgroundColor: theme.primaryAccent }]}
                     >
                       <Text style={styles.pickerDoneText}>Done</Text>
@@ -1040,6 +1188,57 @@ const styles = StyleSheet.create({
   pickerContainer: {
     marginVertical: 8,
     alignItems: 'center',
+  },
+  monthYearPickerBox: {
+    borderRadius: 14,
+    borderWidth: 1,
+    padding: 12,
+    marginVertical: 8,
+    gap: 10,
+  },
+  monthYearYearRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  yearArrowBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  yearArrowText: {
+    fontSize: 20,
+    fontWeight: '700',
+    lineHeight: 22,
+  },
+  monthYearYearLabel: {
+    fontFamily: fonts.sansBold,
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  monthsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    justifyContent: 'space-between',
+  },
+  monthGridCell: {
+    width: '31%',
+    paddingVertical: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  monthGridCellText: {
+    fontFamily: fonts.sansSemi,
+    fontSize: 13,
+    fontWeight: '600',
   },
   pickerDoneBtn: {
     marginTop: 8,

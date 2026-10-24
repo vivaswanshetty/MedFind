@@ -21,7 +21,8 @@ test('MedicineBox Store - validateMedicineBoxItem handles valid and corrupt entr
     id: 'mb_123',
     name: 'Paracetamol 500mg',
     note: 'Take after meals',
-    expiryDate: '2026-12-31',
+    expiryDate: '2026-12',
+    exactExpiryDate: '2026-12-15',
     refillOn: '2026-11-01',
     remindersEnabled: true,
     expiryNotificationId: 'notif_1',
@@ -32,7 +33,8 @@ test('MedicineBox Store - validateMedicineBoxItem handles valid and corrupt entr
   assert.equal(valid.id, 'mb_123');
   assert.equal(valid.name, 'Paracetamol 500mg');
   assert.equal(valid.note, 'Take after meals');
-  assert.equal(valid.expiryDate, '2026-12-31');
+  assert.equal(valid.expiryDate, '2026-12');
+  assert.equal(valid.exactExpiryDate, '2026-12-15');
   assert.equal(valid.refillOn, '2026-11-01');
   assert.equal(valid.remindersEnabled, true);
   assert.equal(valid.expiryNotificationId, 'notif_1');

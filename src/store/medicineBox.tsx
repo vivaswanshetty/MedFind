@@ -21,6 +21,7 @@ export interface MedicineBoxItem {
   name: string;
   note?: string;
   expiryDate?: string; // YYYY-MM or YYYY-MM-DD
+  exactExpiryDate?: string; // YYYY-MM-DD
   refillOn?: string; // YYYY-MM-DD
   remindersEnabled?: boolean;
   expiryNotificationId?: string;
@@ -44,6 +45,7 @@ export function validateMedicineBoxItem(raw: any): MedicineBoxItem | null {
 
   const note = typeof raw.note === 'string' && raw.note.trim() ? raw.note.trim() : undefined;
   const expiryDate = typeof raw.expiryDate === 'string' && raw.expiryDate.trim() ? raw.expiryDate.trim() : undefined;
+  const exactExpiryDate = typeof raw.exactExpiryDate === 'string' && raw.exactExpiryDate.trim() ? raw.exactExpiryDate.trim() : undefined;
   const refillOn = typeof raw.refillOn === 'string' && raw.refillOn.trim() ? raw.refillOn.trim() : undefined;
   const remindersEnabled = Boolean(raw.remindersEnabled);
 
@@ -60,6 +62,7 @@ export function validateMedicineBoxItem(raw: any): MedicineBoxItem | null {
     name,
     ...(note ? { note } : {}),
     ...(expiryDate ? { expiryDate } : {}),
+    ...(exactExpiryDate ? { exactExpiryDate } : {}),
     ...(refillOn ? { refillOn } : {}),
     remindersEnabled,
     ...(expiryNotificationId ? { expiryNotificationId } : {}),
