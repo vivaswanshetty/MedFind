@@ -53,6 +53,7 @@ import {
   GlobeIcon,
   PillCapsuleIcon,
   TrashIcon,
+  UserIcon,
 } from '../../components/icons/AppIcons';
 
 function formatHeaderArea(raw: string): string {
@@ -730,17 +731,191 @@ export default function HomeScreen() {
               style={{ flexShrink: 1, width: '100%' }}
               contentContainerStyle={styles.settingsScrollContent}
             >
-              {/* Section 1: Preferences */}
+              {/* Top Profile Card: Most comfortable, accessible 1-tap entry */}
+              <Pressable
+                onPress={() => {
+                  setShowSettingsModal(false);
+                  router.push('/profile');
+                }}
+                accessible={true}
+                accessibilityRole="button"
+                accessibilityLabel={`Profile and Health Preferences: ${profile.displayName || (greetingInfo.isGuest ? 'Guest User' : 'Friend')}. Tap to view or edit.`}
+                style={({ pressed }) => [
+                  styles.settingsProfileBanner,
+                  {
+                    backgroundColor: palette.surface2,
+                    borderColor: palette.line,
+                    opacity: pressed ? 0.9 : 1.0,
+                  },
+                ]}
+              >
+                <View
+                  style={[
+                    styles.settingsProfileAvatarBox,
+                    {
+                      backgroundColor: theme.surfaceSubtle,
+                      borderColor: theme.border,
+                    },
+                  ]}
+                >
+                  {!greetingInfo.isGuest ? (
+                    <Image
+                      source={onboardingAssets.mascotWave}
+                      style={styles.settingsProfileMascot}
+                      resizeMode="contain"
+                    />
+                  ) : (
+                    <UserIcon size={20} color={palette.ink} />
+                  )}
+                </View>
+
+                <View style={styles.settingsProfileTextGroup}>
+                  <View style={styles.settingsProfileNameRow}>
+                    <Text style={[styles.settingsProfileName, { color: palette.ink }]} numberOfLines={1}>
+                      {profile.displayName || (greetingInfo.isGuest ? 'Guest User' : 'Friend')}
+                    </Text>
+                    {profile.buddy && (
+                      <View
+                        style={[
+                          styles.settingsBuddyBadge,
+                          {
+                            backgroundColor: theme.badgeBackground,
+                            borderColor: theme.badgeBorder,
+                          },
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.settingsBuddyBadgeText,
+                            { color: palette.accent || theme.primaryAccentText },
+                          ]}
+                        >
+                          {profile.buddy.name}
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+                  <Text style={[styles.settingsProfileSubtitle, { color: palette.ink2 }]} numberOfLines={1}>
+                    {profile.buddy
+                      ? `${profile.buddy.archetype} • Tap to view profile`
+                      : 'Personal health preferences & answers'}
+                  </Text>
+                </View>
+
+                <ChevronRightIcon size={18} color={palette.ink2} />
+              </Pressable>
+
+              {/* Section 1: Healthcare & Tools (Most Used) */}
               <Text
                 style={[
                   styles.settingsSectionHeader,
-                  { color: palette.ink2, marginTop: 4 },
+                  { color: palette.ink2, marginTop: 10 },
+                ]}
+              >
+                Healthcare & Tools
+              </Text>
+
+              {/* Item: My Medicine Box */}
+              <Pressable
+                onPress={() => {
+                  setShowSettingsModal(false);
+                  router.push('/medicine-box');
+                }}
+                accessible={true}
+                accessibilityRole="button"
+                accessibilityLabel="My Medicine Box. Track saved medicines, expiry and refill dates"
+                style={[
+                  styles.settingsRowItem,
+                  { borderBottomColor: palette.line },
+                ]}
+              >
+                <View
+                  style={[
+                    styles.settingsIconBox,
+                    {
+                      backgroundColor:
+                        scheme === 'light'
+                          ? 'rgba(135, 169, 107, 0.16)'
+                          : 'rgba(135, 169, 107, 0.25)',
+                      borderColor:
+                        scheme === 'light'
+                          ? 'rgba(135, 169, 107, 0.35)'
+                          : 'rgba(135, 169, 107, 0.45)',
+                    },
+                  ]}
+                >
+                  <PillCapsuleIcon
+                    size={18}
+                    color={scheme === 'light' ? '#4A7036' : '#87A96B'}
+                  />
+                </View>
+                <View style={styles.settingsItemInfo}>
+                  <Text style={[styles.settingsItemTitle, { color: palette.ink }]}>
+                    My Medicine Box
+                  </Text>
+                  <Text style={[styles.settingsItemSubtitle, { color: palette.ink2 }]}>
+                    Track saved medicines, expiry & refill dates
+                  </Text>
+                </View>
+                <ChevronRightIcon size={18} color={palette.ink2} />
+              </Pressable>
+
+              {/* Item: Emergency Directory */}
+              <Pressable
+                onPress={() => {
+                  setShowSettingsModal(false);
+                  router.push('/emergency-directory');
+                }}
+                accessible={true}
+                accessibilityRole="button"
+                accessibilityLabel="Worldwide Emergency Directory. 87 countries with official numbers and calling codes"
+                style={[
+                  styles.settingsRowItem,
+                  { borderBottomColor: palette.line },
+                ]}
+              >
+                <View
+                  style={[
+                    styles.settingsIconBox,
+                    {
+                      backgroundColor:
+                        scheme === 'light'
+                          ? 'rgba(37, 99, 235, 0.12)'
+                          : 'rgba(56, 189, 248, 0.18)',
+                      borderColor:
+                        scheme === 'light'
+                          ? 'rgba(37, 99, 235, 0.25)'
+                          : 'rgba(56, 189, 248, 0.35)',
+                    },
+                  ]}
+                >
+                  <GlobeIcon
+                    size={18}
+                    color={scheme === 'light' ? '#1D4ED8' : '#38BDF8'}
+                  />
+                </View>
+                <View style={styles.settingsItemInfo}>
+                  <Text style={[styles.settingsItemTitle, { color: palette.ink }]}>
+                    Emergency Directory
+                  </Text>
+                  <Text style={[styles.settingsItemSubtitle, { color: palette.ink2 }]}>
+                    87 countries • Calling codes & verified helplines
+                  </Text>
+                </View>
+                <ChevronRightIcon size={18} color={palette.ink2} />
+              </Pressable>
+
+              {/* Section 2: Preferences (Comfort Controls) */}
+              <Text
+                style={[
+                  styles.settingsSectionHeader,
+                  { color: palette.ink2 },
                 ]}
               >
                 Preferences
               </Text>
 
-              {/* Item 1: Theme Switcher */}
+              {/* Item: Theme Switcher */}
               <Pressable
                 onPress={() => {
                   toggleTheme();
@@ -790,7 +965,7 @@ export default function HomeScreen() {
                 </View>
               </Pressable>
 
-              {/* Item 2: App Language */}
+              {/* Item: App Language */}
               <Pressable
                 onPress={() => {
                   setShowSettingsModal(false);
@@ -840,7 +1015,7 @@ export default function HomeScreen() {
                 </View>
               </Pressable>
 
-              {/* Section 2: Healthcare & Services */}
+              {/* Section 3: Services & Information */}
               <Text
                 style={[
                   styles.settingsSectionHeader,
@@ -849,51 +1024,6 @@ export default function HomeScreen() {
               >
                 Services & Information
               </Text>
-
-              {/* Item: My Medicine Box */}
-              <Pressable
-                onPress={() => {
-                  setShowSettingsModal(false);
-                  router.push('/medicine-box');
-                }}
-                accessible={true}
-                accessibilityRole="button"
-                accessibilityLabel="My Medicine Box. Track saved medicines, expiry and refill dates"
-                style={[
-                  styles.settingsRowItem,
-                  { borderBottomColor: palette.line },
-                ]}
-              >
-                <View
-                  style={[
-                    styles.settingsIconBox,
-                    {
-                      backgroundColor:
-                        scheme === 'light'
-                          ? 'rgba(135, 169, 107, 0.16)'
-                          : 'rgba(135, 169, 107, 0.25)',
-                      borderColor:
-                        scheme === 'light'
-                          ? 'rgba(135, 169, 107, 0.35)'
-                          : 'rgba(135, 169, 107, 0.45)',
-                    },
-                  ]}
-                >
-                  <PillCapsuleIcon
-                    size={18}
-                    color={scheme === 'light' ? '#4A7036' : '#87A96B'}
-                  />
-                </View>
-                <View style={styles.settingsItemInfo}>
-                  <Text style={[styles.settingsItemTitle, { color: palette.ink }]}>
-                    My Medicine Box
-                  </Text>
-                  <Text style={[styles.settingsItemSubtitle, { color: palette.ink2 }]}>
-                    Track saved medicines, expiry & refill dates
-                  </Text>
-                </View>
-                <ChevronRightIcon size={18} color={palette.ink2} />
-              </Pressable>
 
               {/* Item: How Location Works */}
               <Pressable
@@ -935,51 +1065,6 @@ export default function HomeScreen() {
                   </Text>
                   <Text style={[styles.settingsItemSubtitle, { color: palette.ink2 }]}>
                     GPS usage, distance calculation & privacy
-                  </Text>
-                </View>
-                <ChevronRightIcon size={18} color={palette.ink2} />
-              </Pressable>
-
-              {/* Item: Pharmacy Staff Portal */}
-              <Pressable
-                onPress={() => {
-                  setShowSettingsModal(false);
-                  router.push('/portal');
-                }}
-                accessible={true}
-                accessibilityRole="button"
-                accessibilityLabel="Pharmacy Staff Portal"
-                style={[
-                  styles.settingsRowItem,
-                  { borderBottomColor: palette.line },
-                ]}
-              >
-                <View
-                  style={[
-                    styles.settingsIconBox,
-                    {
-                      backgroundColor:
-                        scheme === 'light'
-                          ? 'rgba(168, 85, 247, 0.16)'
-                          : 'rgba(192, 132, 252, 0.2)',
-                      borderColor:
-                        scheme === 'light'
-                          ? 'rgba(168, 85, 247, 0.35)'
-                          : 'rgba(192, 132, 252, 0.4)',
-                    },
-                  ]}
-                >
-                  <StaffBadgeIcon
-                    size={18}
-                    color={scheme === 'light' ? '#9333EA' : '#C084FC'}
-                  />
-                </View>
-                <View style={styles.settingsItemInfo}>
-                  <Text style={[styles.settingsItemTitle, { color: palette.ink }]}>
-                    Pharmacy Staff Portal
-                  </Text>
-                  <Text style={[styles.settingsItemSubtitle, { color: palette.ink2 }]}>
-                    Submit live stock updates
                   </Text>
                 </View>
                 <ChevronRightIcon size={18} color={palette.ink2} />
@@ -1030,25 +1115,15 @@ export default function HomeScreen() {
                 <ChevronRightIcon size={18} color={palette.ink2} />
               </Pressable>
 
-              {/* Section 3: Data & Privacy */}
-              <Text
-                style={[
-                  styles.settingsSectionHeader,
-                  { color: palette.ink2 },
-                ]}
-              >
-                Data & Privacy
-              </Text>
-
-              {/* Profile & Local Data */}
+              {/* Item: Pharmacy Staff Portal */}
               <Pressable
                 onPress={() => {
                   setShowSettingsModal(false);
-                  router.push('/profile');
+                  router.push('/portal');
                 }}
                 accessible={true}
                 accessibilityRole="button"
-                accessibilityLabel="Profile and Local Data. Manage your answers, saved data, and privacy"
+                accessibilityLabel="Pharmacy Staff Portal"
                 style={[
                   styles.settingsRowItem,
                   { borderBottomColor: palette.line },
@@ -1060,30 +1135,40 @@ export default function HomeScreen() {
                     {
                       backgroundColor:
                         scheme === 'light'
-                          ? 'rgba(135, 169, 107, 0.16)'
-                          : 'rgba(135, 169, 107, 0.25)',
+                          ? 'rgba(168, 85, 247, 0.16)'
+                          : 'rgba(192, 132, 252, 0.2)',
                       borderColor:
                         scheme === 'light'
-                          ? 'rgba(135, 169, 107, 0.35)'
-                          : 'rgba(135, 169, 107, 0.45)',
+                          ? 'rgba(168, 85, 247, 0.35)'
+                          : 'rgba(192, 132, 252, 0.4)',
                     },
                   ]}
                 >
-                  <ShieldCheckIcon
+                  <StaffBadgeIcon
                     size={18}
-                    color={scheme === 'light' ? '#4A7036' : '#87A96B'}
+                    color={scheme === 'light' ? '#9333EA' : '#C084FC'}
                   />
                 </View>
                 <View style={styles.settingsItemInfo}>
                   <Text style={[styles.settingsItemTitle, { color: palette.ink }]}>
-                    Profile & Local Data
+                    Pharmacy Staff Portal
                   </Text>
                   <Text style={[styles.settingsItemSubtitle, { color: palette.ink2 }]}>
-                    Manage preferences, saved storage & privacy
+                    Submit live stock updates
                   </Text>
                 </View>
                 <ChevronRightIcon size={18} color={palette.ink2} />
               </Pressable>
+
+              {/* Section 4: Data Management (Bottom for safety) */}
+              <Text
+                style={[
+                  styles.settingsSectionHeader,
+                  { color: palette.ink2 },
+                ]}
+              >
+                Data Management
+              </Text>
 
               {/* User-accessible: Reset my answers */}
               <Pressable
@@ -1979,6 +2064,58 @@ const styles = StyleSheet.create({
   },
   settingsScrollContent: {
     paddingBottom: 6,
+  },
+  settingsProfileBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    padding: 12,
+    borderRadius: radii.card,
+    borderWidth: 1,
+    marginTop: 6,
+    marginBottom: 6,
+  },
+  settingsProfileAvatarBox: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  settingsProfileMascot: {
+    width: 38,
+    height: 38,
+  },
+  settingsProfileTextGroup: {
+    flex: 1,
+    gap: 2,
+  },
+  settingsProfileNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  settingsProfileName: {
+    fontFamily: fonts.sansBold,
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  settingsBuddyBadge: {
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: radii.pill,
+    borderWidth: 1,
+  },
+  settingsBuddyBadgeText: {
+    fontFamily: fonts.sansBold,
+    fontSize: 10.5,
+    fontWeight: '700',
+  },
+  settingsProfileSubtitle: {
+    fontFamily: fonts.sans,
+    fontSize: 12,
   },
   settingsSectionHeader: {
     fontFamily: fonts.sansBold,
