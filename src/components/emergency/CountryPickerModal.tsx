@@ -8,11 +8,12 @@ import {
   Pressable,
   StyleSheet,
   Platform,
+  KeyboardAvoidingView,
 } from 'react-native';
 import { useTheme } from '../../theme/ThemeContext';
 import { fonts, radii, MIN_TARGET } from '../../constants/theme';
 import { CloseIcon, SearchIcon, CheckmarkIcon } from '../icons/AppIcons';
-import { getAllCountries, CountryEmergencyData } from '../../data/emergencyNumbers';
+import { getAllCountries, searchCountries, CountryEmergencyData } from '../../data/emergencyNumbers';
 
 export interface CountryPickerModalProps {
   visible: boolean;
@@ -33,16 +34,7 @@ export function CountryPickerModal({
   const [searchQuery, setSearchQuery] = useState('');
 
   const allCountries = useMemo(() => getAllCountries(), []);
-
-  const filteredCountries = useMemo(() => {
-    const q = searchQuery.trim().toLowerCase();
-    if (!q) return allCountries;
-    return allCountries.filter(
-      (c) =>
-        c.name.toLowerCase().includes(q) ||
-        c.isoCode.toLowerCase().includes(q)
-    );
-  }, [allCountries, searchQuery]);
+  const filteredCountries = useMemo(() => searchCountries(searchQuery), [searchQuery]);
 
   const handleSelect = (item: CountryEmergencyData) => {
     onSelectCountry(item.isoCode);
@@ -63,157 +55,198 @@ export function CountryPickerModal({
       animationType="fade"
       onRequestClose={onClose}
     >
-      <Pressable style={styles.modalBackdrop} onPress={onClose}>
-        <Pressable
-          style={[
-            styles.modalCard,
-            {
-              backgroundColor: palette.surface,
-              borderColor: palette.line,
-              shadowColor: palette.shadow,
-            },
-          ]}
-          onPress={(e) => e.stopPropagation()}
-        >
-          {/* Header */}
-          <View style={[styles.modalHeader, { borderBottomColor: palette.line }]}>
-            <Text style={[styles.modalTitle, { color: palette.ink }]}>
-              Select Country
-            </Text>
-            <Pressable
-              onPress={onClose}
-              hitSlop={12}
-              style={[
-                styles.closeBtn,
-                { backgroundColor: palette.surface2, minHeight: MIN_TARGET, minWidth: MIN_TARGET },
-              ]}
-              accessible={true}
-              accessibilityRole="button"
-              accessibilityLabel="Close country selector"
-            >
-              <CloseIcon size={16} color={palette.ink2} />
-            </Pressable>
-          </View>
-
-          {/* Search bar */}
-          <View style={styles.searchContainer}>
-            <View
-              style={[
-                styles.searchBar,
-                {
-                  backgroundColor: palette.surface2,
-                  borderColor: palette.line,
-                },
-              ]}
-            >
-              <SearchIcon size={16} color={palette.ink2} />
-              <TextInput
-                style={[styles.searchInput, { color: palette.ink }]}
-                placeholder="Search country or code (e.g. India, US)..."
-                placeholderTextColor={palette.ink2}
-                value={searchQuery}
-                onChangeText={setSearchQuery}
-                autoCorrect={false}
-                clearButtonMode="while-editing"
-                accessible={true}
-                accessibilityLabel="Search country input"
-              />
-            </View>
-          </View>
-
-          {/* Reset option if user previously overrode */}
-          {onResetToAutoDetect && (
-            <View style={styles.resetContainer}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        style={styles.keyboardAvoidingView}
+      >
+        <Pressable style={styles.modalBackdrop} onPress={onClose}>
+          <Pressable
+            style={[
+              styles.modalCard,
+              {
+                backgroundColor: palette.surface,
+                borderColor: palette.line,
+                shadowColor: palette.shadow,
+              },
+            ]}
+            onPress={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <View style={[styles.modalHeader, { borderBottomColor: palette.line }]}>
+              <View>
+                <Text style={[styles.modalTitle, { color: palette.ink }]}>
+                  Select Country
+                </Text>
+                <Text style={[styles.modalSubtitle, { color: palette.ink2 }]}>
+                  {searchQuery.trim()
+                    ? `${filteredCountries.length} matching ${filteredCountries.length === 1 ? 'country' : 'countries'}`
+                    : `${allCountries.length} countries available`}
+                </Text>
+              </View>
               <Pressable
-                onPress={handleReset}
+                onPress={onClose}
+                hitSlop={12}
                 style={[
-                  styles.resetBtn,
+                  styles.closeBtn,
+                  { backgroundColor: palette.surface2, minHeight: MIN_TARGET, minWidth: MIN_TARGET },
+                ]}
+                accessible={true}
+                accessibilityRole="button"
+                accessibilityLabel="Close country selector"
+              >
+                <CloseIcon size={16} color={palette.ink2} />
+              </Pressable>
+            </View>
+
+            {/* Search bar */}
+            <View style={styles.searchContainer}>
+              <View
+                style={[
+                  styles.searchBar,
                   {
                     backgroundColor: palette.surface2,
                     borderColor: palette.line,
                   },
                 ]}
-                accessible={true}
-                accessibilityRole="button"
-                accessibilityLabel="Reset to automatically detected country"
               >
-                <Text style={[styles.resetBtnText, { color: palette.ink }]}>
-                  Reset to detected country
-                </Text>
-              </Pressable>
-            </View>
-          )}
-
-          {/* Country list */}
-          <ScrollView
-            style={styles.listArea}
-            contentContainerStyle={styles.listContent}
-            keyboardShouldPersistTaps="handled"
-            showsVerticalScrollIndicator={true}
-          >
-            {filteredCountries.length === 0 ? (
-              <View style={styles.emptyContainer}>
-                <Text style={[styles.emptyText, { color: palette.ink2 }]}>
-                  No matching countries found.
-                </Text>
-              </View>
-            ) : (
-              filteredCountries.map((item) => {
-                const isSelected =
-                  selectedCountryCode?.toUpperCase() === item.isoCode.toUpperCase();
-                return (
+                <SearchIcon size={16} color={palette.ink2} />
+                <TextInput
+                  style={[styles.searchInput, { color: palette.ink }]}
+                  placeholder="Search country or code (e.g. India, US)..."
+                  placeholderTextColor={palette.ink2}
+                  value={searchQuery}
+                  onChangeText={setSearchQuery}
+                  autoCorrect={false}
+                  autoCapitalize="none"
+                  clearButtonMode="while-editing"
+                  accessible={true}
+                  accessibilityLabel="Search country input"
+                />
+                {searchQuery.length > 0 && (
                   <Pressable
-                    key={item.isoCode}
-                    onPress={() => handleSelect(item)}
-                    style={[
-                      styles.countryRow,
-                      {
-                        borderBottomColor: palette.line,
-                        backgroundColor: isSelected
-                          ? scheme === 'dark'
-                            ? 'rgba(0,229,255,0.08)'
-                            : 'rgba(135,169,107,0.12)'
-                          : 'transparent',
-                      },
-                    ]}
-                    accessible={true}
-                    accessibilityRole="button"
-                    accessibilityState={{ selected: isSelected }}
-                    accessibilityLabel={`${item.name}, code ${item.isoCode}`}
+                    onPress={() => setSearchQuery('')}
+                    hitSlop={8}
+                    style={styles.clearSearchBtn}
+                    accessibilityLabel="Clear search input"
                   >
-                    <View style={styles.countryInfo}>
-                      <Text
-                        style={[
-                          styles.countryName,
-                          {
-                            color: palette.ink,
-                            fontFamily: isSelected ? fonts.sansBold : fonts.sansMedium,
-                          },
-                        ]}
-                      >
-                        {item.name}
-                      </Text>
-                      <Text style={[styles.countryCodeTag, { color: palette.ink2 }]}>
-                        {item.isoCode}
-                      </Text>
-                    </View>
-                    {isSelected && (
-                      <View style={[styles.checkCircle, { backgroundColor: palette.okInk }]}>
-                        <CheckmarkIcon size={12} color={palette.surface} />
-                      </View>
-                    )}
+                    <CloseIcon size={14} color={palette.ink2} />
                   </Pressable>
-                );
-              })
+                )}
+              </View>
+            </View>
+
+            {/* Reset option if user previously overrode */}
+            {onResetToAutoDetect && (
+              <View style={styles.resetContainer}>
+                <Pressable
+                  onPress={handleReset}
+                  style={[
+                    styles.resetBtn,
+                    {
+                      backgroundColor: palette.surface2,
+                      borderColor: palette.line,
+                    },
+                  ]}
+                  accessible={true}
+                  accessibilityRole="button"
+                  accessibilityLabel="Reset to automatically detected country"
+                >
+                  <Text style={[styles.resetBtnText, { color: palette.ink }]}>
+                    Reset to detected country
+                  </Text>
+                </Pressable>
+              </View>
             )}
-          </ScrollView>
+
+            {/* Country list */}
+            <ScrollView
+              style={styles.listArea}
+              contentContainerStyle={styles.listContent}
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={true}
+            >
+              {filteredCountries.length === 0 ? (
+                <View style={styles.emptyContainer}>
+                  <Text style={[styles.emptyTitle, { color: palette.ink }]}>
+                    No matching countries found
+                  </Text>
+                  <Text style={[styles.emptyText, { color: palette.ink2 }]}>
+                    Try searching by country name (e.g. India, United States) or 2-letter code (IN, US).
+                  </Text>
+                  <Pressable
+                    onPress={() => setSearchQuery('')}
+                    style={[
+                      styles.clearFilterBtn,
+                      { backgroundColor: palette.surface2, borderColor: palette.line },
+                    ]}
+                  >
+                    <Text style={[styles.clearFilterBtnText, { color: palette.ink }]}>
+                      View all countries
+                    </Text>
+                  </Pressable>
+                </View>
+              ) : (
+                filteredCountries.map((item) => {
+                  const isSelected =
+                    selectedCountryCode?.toUpperCase() === item.isoCode.toUpperCase();
+                  return (
+                    <Pressable
+                      key={item.isoCode}
+                      onPress={() => handleSelect(item)}
+                      style={[
+                        styles.countryRow,
+                        {
+                          borderBottomColor: palette.line,
+                          backgroundColor: isSelected
+                            ? scheme === 'dark'
+                              ? 'rgba(0,229,255,0.08)'
+                              : 'rgba(135,169,107,0.12)'
+                            : 'transparent',
+                        },
+                      ]}
+                      accessible={true}
+                      accessibilityRole="button"
+                      accessibilityState={{ selected: isSelected }}
+                      accessibilityLabel={`${item.name}, code ${item.isoCode}`}
+                    >
+                      <View style={styles.countryInfo}>
+                        <Text
+                          style={[
+                            styles.countryName,
+                            {
+                              color: palette.ink,
+                              fontFamily: isSelected ? fonts.sansBold : fonts.sansMedium,
+                            },
+                          ]}
+                        >
+                          {item.name}
+                        </Text>
+                        <Text style={[styles.countryCodeTag, { color: palette.ink2 }]}>
+                          {item.isoCode}
+                        </Text>
+                      </View>
+                      {isSelected && (
+                        <View style={[styles.checkCircle, { backgroundColor: palette.okInk }]}>
+                          <CheckmarkIcon size={12} color={palette.surface} />
+                        </View>
+                      )}
+                    </Pressable>
+                  );
+                })
+              )}
+            </ScrollView>
+          </Pressable>
         </Pressable>
-      </Pressable>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
+  keyboardAvoidingView: {
+    flex: 1,
+    width: '100%',
+  },
   modalBackdrop: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.5)',
@@ -223,11 +256,15 @@ const styles = StyleSheet.create({
   },
   modalCard: {
     width: '100%',
-    maxWidth: 420,
-    maxHeight: '80%',
+    maxWidth: 440,
+    height: '80%',
+    maxHeight: 640,
+    minHeight: 400,
     borderRadius: radii.cardLg,
     borderWidth: 1,
     overflow: 'hidden',
+    display: 'flex',
+    flexDirection: 'column',
     ...Platform.select({
       ios: {
         shadowOffset: { width: 0, height: 8 },
@@ -244,13 +281,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingVertical: 14,
     borderBottomWidth: 1,
   },
   modalTitle: {
     fontFamily: fonts.sansBold,
-    fontSize: 20,
+    fontSize: 19,
     fontWeight: '700',
+  },
+  modalSubtitle: {
+    fontFamily: fonts.sans,
+    fontSize: 12,
+    marginTop: 2,
   },
   closeBtn: {
     borderRadius: radii.pill,
@@ -277,6 +319,11 @@ const styles = StyleSheet.create({
     fontSize: 14,
     height: '100%',
   },
+  clearSearchBtn: {
+    padding: 4,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   resetContainer: {
     paddingHorizontal: 16,
     paddingBottom: 8,
@@ -296,10 +343,12 @@ const styles = StyleSheet.create({
   },
   listArea: {
     flex: 1,
+    width: '100%',
   },
   listContent: {
     paddingHorizontal: 16,
     paddingBottom: 24,
+    flexGrow: 1,
   },
   countryRow: {
     flexDirection: 'row',
@@ -332,11 +381,35 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   emptyContainer: {
-    paddingVertical: 32,
+    paddingVertical: 36,
+    paddingHorizontal: 16,
     alignItems: 'center',
+    gap: 8,
+  },
+  emptyTitle: {
+    fontFamily: fonts.sansBold,
+    fontSize: 15,
+    textAlign: 'center',
   },
   emptyText: {
     fontFamily: fonts.sans,
-    fontSize: 14,
+    fontSize: 13,
+    textAlign: 'center',
+    lineHeight: 18,
+  },
+  clearFilterBtn: {
+    marginTop: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: radii.pill,
+    borderWidth: 1,
+    minHeight: MIN_TARGET,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  clearFilterBtnText: {
+    fontFamily: fonts.sansSemi,
+    fontSize: 13,
+    fontWeight: '600',
   },
 });

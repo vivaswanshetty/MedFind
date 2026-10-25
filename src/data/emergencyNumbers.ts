@@ -1579,3 +1579,66 @@ export function resolveEmergencyCountry(params: {
     source: 'unknown',
   };
 }
+
+// Common aliases and alternate names for smart, dynamic suggestions
+export const COUNTRY_ALIASES: Record<string, string[]> = {
+  US: ['usa', 'united states of america', 'america'],
+  GB: ['uk', 'united kingdom', 'great britain', 'britain', 'england', 'scotland', 'wales', 'northern ireland', 'gbr'],
+  AE: ['uae', 'united arab emirates', 'emirates', 'dubai', 'abu dhabi', 'are'],
+  KR: ['south korea', 'korea', 'republic of korea', 'rok', 'kor'],
+  RU: ['russia', 'russian federation', 'rus'],
+  VN: ['vietnam', 'viet nam', 'vnm'],
+  CZ: ['czech republic', 'czechia', 'cze'],
+  NL: ['netherlands', 'holland', 'the netherlands', 'nld'],
+  DE: ['germany', 'deutschland', 'deu'],
+  FR: ['france', 'fra'],
+  IT: ['italy', 'italia', 'ita'],
+  ES: ['spain', 'espana', 'esp'],
+  IN: ['india', 'bharat', 'ind'],
+  CN: ['china', 'prc', 'chn'],
+  JP: ['japan', 'nippon', 'jpn'],
+  CA: ['canada', 'can'],
+  AU: ['australia', 'aus'],
+  NZ: ['new zealand', 'nzl'],
+  ZA: ['south africa', 'rsa', 'zaf'],
+  BR: ['brazil', 'brasil', 'bra'],
+  MX: ['mexico', 'mex'],
+  TR: ['turkey', 'turkiye', 'tur'],
+  CH: ['switzerland', 'swiss', 'che'],
+};
+
+/**
+ * Filters and ranks countries based on search query (by name, 2-letter ISO code, or alias).
+ * Yields smart dynamic suggestions as the user types.
+ */
+export function searchCountries(query: string): CountryEmergencyData[] {
+  const all = getAllCountries();
+  const q = query.trim().toLowerCase();
+  if (!q) return all;
+
+  const matches = all.filter((c) => {
+    const name = c.name.toLowerCase();
+    const code = c.isoCode.toLowerCase();
+    if (name.includes(q) || code === q) return true;
+    const aliases = COUNTRY_ALIASES[c.isoCode];
+    if (aliases && aliases.some((a) => a.includes(q) || q.includes(a))) return true;
+    return false;
+  });
+
+  return matches.sort((a, b) => {
+    const aName = a.name.toLowerCase();
+    const bName = b.name.toLowerCase();
+    const aStarts = aName.startsWith(q);
+    const bStarts = bName.startsWith(q);
+    if (aStarts && !bStarts) return -1;
+    if (!aStarts && bStarts) return 1;
+
+    const aCode = a.isoCode.toLowerCase();
+    const bCode = b.isoCode.toLowerCase();
+    if (aCode === q && bCode !== q) return -1;
+    if (aCode !== q && bCode === q) return 1;
+
+    return aName.localeCompare(bName);
+  });
+}
+

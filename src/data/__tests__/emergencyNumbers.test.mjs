@@ -9,6 +9,7 @@ import {
   EMERGENCY_NUMBERS,
   getEmergencyNumbersForCountry,
   getAllCountries,
+  searchCountries,
   resolveEmergencyCountry,
   setMockDeviceRegion,
   getDeviceRegion,
@@ -293,5 +294,28 @@ test('Emergency Numbers & Country Resolution Tests', async (t) => {
         `Countries should be sorted alphabetically: "${list[i - 1].name}" vs "${list[i].name}"`
       );
     }
+  });
+
+  await t.test('9. Country picker search: finds countries by name, code, and common aliases', () => {
+    // By name
+    const india = searchCountries('India');
+    assert.ok(india.some((c) => c.isoCode === 'IN'));
+
+    // By 2-letter code
+    const usByCode = searchCountries('us');
+    assert.ok(usByCode.some((c) => c.isoCode === 'US'));
+
+    // By common aliases
+    const usByAlias = searchCountries('usa');
+    assert.ok(usByAlias.some((c) => c.isoCode === 'US'), 'Should find United States when searching "usa"');
+
+    const ukByAlias = searchCountries('uk');
+    assert.ok(ukByAlias.some((c) => c.isoCode === 'GB'), 'Should find United Kingdom when searching "uk"');
+
+    const uaeByAlias = searchCountries('uae');
+    assert.ok(uaeByAlias.some((c) => c.isoCode === 'AE'), 'Should find United Arab Emirates when searching "uae"');
+
+    const koreaByAlias = searchCountries('korea');
+    assert.ok(koreaByAlias.some((c) => c.isoCode === 'KR'), 'Should find South Korea when searching "korea"');
   });
 });
