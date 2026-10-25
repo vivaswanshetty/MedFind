@@ -12,7 +12,7 @@ import {
   Animated,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTheme } from '../../theme/ThemeContext';
 import { useLanguage } from '../../context/LanguageContext';
@@ -31,6 +31,8 @@ import {
 import {
   resolveEmergencyCountry,
   CountryEmergencyData,
+  subscribeToEmergencyCountryChange,
+  notifyEmergencyCountryChange,
 } from '../../data/emergencyNumbers';
 import { CountryPickerModal } from '../../components/emergency/CountryPickerModal';
 import { EMERGENCY_COUNTRY_STORAGE_KEY } from '../../constants/storageKeys';
@@ -48,24 +50,34 @@ export default function EmergencyScreen() {
   const statusBarHeight = Platform.OS === 'android' ? (StatusBar.currentHeight ?? 24) : 0;
   const paddingTop = Math.max(insets.top, statusBarHeight) + 8;
 
-  // Load remembered manual country choice from AsyncStorage on mount
+  // 1. Subscribe to instant in-memory country updates across tabs and directory
   useEffect(() => {
-    let isCancelled = false;
-    async function loadSavedCountry() {
-      try {
-        const saved = await AsyncStorage.getItem(EMERGENCY_COUNTRY_STORAGE_KEY);
-        if (!isCancelled && saved) {
-          setManualCountryCode(saved);
-        }
-      } catch {
-        // Fallback gracefully
-      }
-    }
-    loadSavedCountry();
-    return () => {
-      isCancelled = true;
-    };
+    const unsubscribe = subscribeToEmergencyCountryChange((code) => {
+      setManualCountryCode(code ? code.trim().toUpperCase() : null);
+    });
+    return unsubscribe;
   }, []);
+
+  // 2. Re-sync from AsyncStorage whenever this tab screen is focused
+  useFocusEffect(
+    React.useCallback(() => {
+      let isCancelled = false;
+      async function loadSavedCountry() {
+        try {
+          const saved = await AsyncStorage.getItem(EMERGENCY_COUNTRY_STORAGE_KEY);
+          if (!isCancelled) {
+            setManualCountryCode(saved ? saved.trim().toUpperCase() : null);
+          }
+        } catch {
+          // Fallback gracefully
+        }
+      }
+      loadSavedCountry();
+      return () => {
+        isCancelled = true;
+      };
+    }, [])
+  );
 
   // Determine active country in order:
   // 1. Manual user override (if explicitly chosen by user)
@@ -147,9 +159,11 @@ export default function EmergencyScreen() {
   };
 
   const handleSelectCountry = async (code: string) => {
-    setManualCountryCode(code);
+    const normalized = code.trim().toUpperCase();
+    setManualCountryCode(normalized);
+    notifyEmergencyCountryChange(normalized);
     try {
-      await AsyncStorage.setItem(EMERGENCY_COUNTRY_STORAGE_KEY, code);
+      await AsyncStorage.setItem(EMERGENCY_COUNTRY_STORAGE_KEY, normalized);
     } catch {
       // Ignore storage errors
     }
@@ -157,6 +171,7 @@ export default function EmergencyScreen() {
 
   const handleResetToAutoDetect = async () => {
     setManualCountryCode(null);
+    notifyEmergencyCountryChange(null);
     try {
       await AsyncStorage.removeItem(EMERGENCY_COUNTRY_STORAGE_KEY);
     } catch {

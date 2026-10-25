@@ -16,6 +16,8 @@ import {
   getCallingCode,
   getCountryRegion,
   getFlagEmoji,
+  subscribeToEmergencyCountryChange,
+  notifyEmergencyCountryChange,
 } from '../emergencyNumbers.ts';
 import { getRegionForCoordinates } from '../../config/regions.ts';
 
@@ -360,5 +362,23 @@ test('Emergency Numbers & Country Resolution Tests', async (t) => {
     assert.equal(getFlagEmoji('US'), '🇺🇸');
     assert.equal(getFlagEmoji('IN'), '🇮🇳');
   });
+
+  await t.test('11. Reactive Country Subscription: notifies active listeners of country change', () => {
+    let received;
+    const unsubscribe = subscribeToEmergencyCountryChange((isoCode) => {
+      received = isoCode;
+    });
+
+    notifyEmergencyCountryChange('dz');
+    assert.equal(received, 'DZ', 'Should normalize and notify listeners of new country selection');
+
+    notifyEmergencyCountryChange(null);
+    assert.equal(received, null, 'Should notify listeners when country is reset to auto-detect');
+
+    unsubscribe();
+    notifyEmergencyCountryChange('FR');
+    assert.equal(received, null, 'Unsubscribed listener must not receive further events');
+  });
 });
+
 

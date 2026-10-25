@@ -577,7 +577,7 @@ export default function HomeScreen() {
                 <View style={[styles.tierTimeChip, { backgroundColor: palette.surface }]}>
                   <ClockIcon size={12} color={palette.amberInk} />
                   <Text style={[styles.tierTimeText, { color: palette.amberInk }]}>
-                    30 min – 2 hours
+                    30 min – 2 hrs
                   </Text>
                 </View>
               </View>
@@ -606,7 +606,7 @@ export default function HomeScreen() {
                 <View style={[styles.tierTimeChip, { backgroundColor: palette.surface }]}>
                   <ClockIcon size={12} color={palette.staleInk} />
                   <Text style={[styles.tierTimeText, { color: palette.staleInk }]}>
-                    Over 2 hours ago
+                    Over 2 hrs ago
                   </Text>
                 </View>
               </View>
@@ -1889,24 +1889,29 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    gap: 10,
   },
   tierBadgeGroup: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 7,
+    flex: 1,
+    minWidth: 0,
   },
   tierTitle: {
     fontFamily: fonts.sansBold,
-    fontSize: 14.5,
+    fontSize: 14,
     fontWeight: '700',
+    flexShrink: 1,
   },
   tierTimeChip: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
     paddingHorizontal: 8,
-    paddingVertical: 3,
+    paddingVertical: 3.5,
     borderRadius: radii.pill,
+    flexShrink: 0,
   },
   tierTimeText: {
     fontFamily: fonts.sansBold,

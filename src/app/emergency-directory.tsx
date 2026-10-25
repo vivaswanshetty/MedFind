@@ -38,6 +38,8 @@ import {
   getFlagEmoji,
   CountryEmergencyData,
   CountryRegion,
+  subscribeToEmergencyCountryChange,
+  notifyEmergencyCountryChange,
 } from '../data/emergencyNumbers';
 import { EMERGENCY_COUNTRY_STORAGE_KEY } from '../constants/storageKeys';
 
@@ -66,7 +68,15 @@ export default function EmergencyDirectoryScreen() {
   const statusBarHeight = Platform.OS === 'android' ? (StatusBar.currentHeight ?? 24) : 0;
   const paddingTop = Math.max(insets.top, statusBarHeight) + 8;
 
-  // Load current saved emergency country from AsyncStorage
+  // 1. Subscribe to instant in-memory country updates across tabs and directory
+  useEffect(() => {
+    const unsubscribe = subscribeToEmergencyCountryChange((code) => {
+      setActiveCountryCode(code ? code.trim().toUpperCase() : null);
+    });
+    return unsubscribe;
+  }, []);
+
+  // 2. Load current saved emergency country from AsyncStorage on mount
   useEffect(() => {
     let isMounted = true;
     async function loadSaved() {
@@ -104,12 +114,14 @@ export default function EmergencyDirectoryScreen() {
   }, [searchQuery, selectedFilter]);
 
   const handleSelectActiveCountry = async (isoCode: string, name: string) => {
+    const normalized = isoCode.trim().toUpperCase();
     try {
-      await AsyncStorage.setItem(EMERGENCY_COUNTRY_STORAGE_KEY, isoCode);
-      setActiveCountryCode(isoCode);
+      await AsyncStorage.setItem(EMERGENCY_COUNTRY_STORAGE_KEY, normalized);
+      notifyEmergencyCountryChange(normalized);
+      setActiveCountryCode(normalized);
       Alert.alert(
         'Emergency Country Updated',
-        `${name} (${isoCode}) is now set as your active emergency country in MedFind.`,
+        `${name} (${normalized}) is now set as your active emergency country in MedFind.`,
         [{ text: 'OK' }]
       );
     } catch {
@@ -479,22 +491,25 @@ export default function EmergencyDirectoryScreen() {
         <View style={[styles.statsBar, { backgroundColor: palette.surface, borderColor: palette.line }]}>
           <View style={styles.statItem}>
             <Text style={[styles.statNumber, { color: palette.ink }]}>87</Text>
-            <Text style={[styles.statLabel, { color: palette.ink2 }]}>Countries</Text>
+            <Text style={[styles.statLabel, { color: palette.ink2 }]} numberOfLines={1}>
+              Countries
+            </Text>
           </View>
           <View style={[styles.statDivider, { backgroundColor: palette.line }]} />
           <View style={styles.statItem}>
-            <Text style={[styles.statNumber, { color: palette.ink }]}>E.164</Text>
-            <Text style={[styles.statLabel, { color: palette.ink2 }]}>Dial Codes</Text>
+            <Text style={[styles.statNumber, { color: scheme === 'light' ? '#1D4ED8' : '#38BDF8' }]}>
+              +Codes
+            </Text>
+            <Text style={[styles.statLabel, { color: palette.ink2 }]} numberOfLines={1}>
+              Calling Codes
+            </Text>
           </View>
           <View style={[styles.statDivider, { backgroundColor: palette.line }]} />
           <View style={styles.statItem}>
             <Text style={[styles.statNumber, { color: '#16A34A' }]}>100%</Text>
-            <Text style={[styles.statLabel, { color: palette.ink2 }]}>Official Sources</Text>
-          </View>
-          <View style={[styles.statDivider, { backgroundColor: palette.line }]} />
-          <View style={styles.statItem}>
-            <Text style={[styles.statNumber, { color: palette.btn }]}>1-Tap</Text>
-            <Text style={[styles.statLabel, { color: palette.ink2 }]}>Safe Dialing</Text>
+            <Text style={[styles.statLabel, { color: palette.ink2 }]} numberOfLines={1}>
+              Official Sources
+            </Text>
           </View>
         </View>
 
@@ -668,30 +683,33 @@ const styles = StyleSheet.create({
   statsBar: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     marginHorizontal: 20,
     marginBottom: 14,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
+    paddingVertical: 14,
+    paddingHorizontal: 12,
     borderRadius: radii.card,
     borderWidth: StyleSheet.hairlineWidth,
   },
   statItem: {
     flex: 1,
     alignItems: 'center',
+    paddingHorizontal: 4,
   },
   statNumber: {
     fontFamily: fonts.sansBold,
-    fontSize: 16,
+    fontSize: 16.5,
     letterSpacing: -0.2,
   },
   statLabel: {
-    fontFamily: fonts.sans,
-    fontSize: 11,
-    marginTop: 2,
+    fontFamily: fonts.sansMedium,
+    fontSize: 11.5,
+    marginTop: 3,
+    textAlign: 'center',
   },
   statDivider: {
     width: 1,
-    height: 24,
+    height: 26,
   },
   searchSection: {
     paddingHorizontal: 20,

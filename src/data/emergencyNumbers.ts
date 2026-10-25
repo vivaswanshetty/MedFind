@@ -1798,4 +1798,32 @@ export function searchCountries(query: string): CountryEmergencyData[] {
   });
 }
 
+export type EmergencyCountryChangeListener = (isoCode: string | null) => void;
+const emergencyCountryListeners = new Set<EmergencyCountryChangeListener>();
 
+/**
+ * Subscribes to changes to the selected emergency country.
+ * Returns an unsubscribe cleanup function.
+ */
+export function subscribeToEmergencyCountryChange(
+  listener: EmergencyCountryChangeListener
+): () => void {
+  emergencyCountryListeners.add(listener);
+  return () => {
+    emergencyCountryListeners.delete(listener);
+  };
+}
+
+/**
+ * Broadcasts an emergency country selection update to all active listeners.
+ */
+export function notifyEmergencyCountryChange(isoCode: string | null): void {
+  const normalized = isoCode ? isoCode.trim().toUpperCase() : null;
+  emergencyCountryListeners.forEach((listener) => {
+    try {
+      listener(normalized);
+    } catch {
+      // Ignore errors from individual listeners
+    }
+  });
+}
