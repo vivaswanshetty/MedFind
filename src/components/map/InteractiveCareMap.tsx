@@ -66,8 +66,8 @@ export function InteractiveCareMap({
   const userRegion = getRegionForCoordinates(userLocation);
   const inCoverage = userRegion !== null && userRegion.hasPharmacyData;
   const isOutsideCoverage = userLocation !== null && !inCoverage;
-  const defaultLat = inCoverage && userLocation ? userLocation.latitude : 12.9416; // Basavanagudi centroid fallback
-  const defaultLng = inCoverage && userLocation ? userLocation.longitude : 77.5738;
+  const defaultLat = userLocation ? userLocation.latitude : 12.9416; // Basavanagudi centroid fallback if no area set
+  const defaultLng = userLocation ? userLocation.longitude : 77.5738;
 
   // Sync selected pin from parent to WebView map
   useEffect(() => {
@@ -126,8 +126,8 @@ export function InteractiveCareMap({
   const handleRecenter = () => {
     onRequestLocation?.();
     if (!webViewRef.current) return;
-    const targetLat = inCoverage && userLocation ? userLocation.latitude : defaultLat;
-    const targetLng = inCoverage && userLocation ? userLocation.longitude : defaultLng;
+    const targetLat = userLocation ? userLocation.latitude : defaultLat;
+    const targetLng = userLocation ? userLocation.longitude : defaultLng;
     const script = `
       if (window.recenterMap) {
         window.recenterMap(${targetLat}, ${targetLng});
@@ -575,7 +575,7 @@ export function InteractiveCareMap({
         </View>
       </View>
 
-      {/* Showing region note or gesture hint */}
+      {/* Showing honest out-of-region note or gesture hint */}
       {isOutsideCoverage ? (
         <View
           style={[
@@ -588,7 +588,7 @@ export function InteractiveCareMap({
           pointerEvents="none"
         >
           <Text style={[styles.regionNoteText, { color: palette.ink2 }]}>
-            {t('showing_region', 'Showing {region}').replace('{region}', region)}
+            {t('unsupported_region_notice', "MedFind doesn't have pharmacy data for this area yet.")}
           </Text>
         </View>
       ) : showHint ? (

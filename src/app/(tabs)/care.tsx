@@ -12,6 +12,7 @@ import {
   StatusBar,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
 import { useTheme } from '../../theme/ThemeContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { fonts, radii, MIN_TARGET } from '../../constants/theme';
@@ -38,6 +39,7 @@ import { AreaPickerModal } from '../../components/location/AreaPickerModal';
 export default function CareNearbyScreen() {
   const insets = useSafeAreaInsets();
   const { scheme, palette } = useTheme();
+  const router = useRouter();
   const { userLocation, areaName, locationSource, requestGpsLocation } = useLocation();
   const { t } = useLanguage();
 
@@ -126,15 +128,19 @@ export default function CareNearbyScreen() {
     };
   }, [selectedCategory]);
 
-  // Sort listings by user location within coverage
-  const displayedListings = userLocation && !isOutsideCoverage
+  // Sort listings by user location within coverage; outside coverage, do NOT list Bengaluru listings
+  const displayedListings = isOutsideCoverage
+    ? []
+    : userLocation
     ? sortListingsByDistance(listings, userLocation)
     : listings;
 
-  // Build dynamic map markers
-  const mapMarkers: MapMarkerItem[] = displayedListings
-    .filter((item) => typeof item.latitude === 'number' && typeof item.longitude === 'number')
-    .map((item) => {
+  // Build dynamic map markers (empty outside coverage)
+  const mapMarkers: MapMarkerItem[] = isOutsideCoverage
+    ? []
+    : displayedListings
+        .filter((item) => typeof item.latitude === 'number' && typeof item.longitude === 'number')
+        .map((item) => {
       const isPharm = item.id.startsWith('pharm-');
       const markerType: 'hospital' | 'clinic' | 'ambulance' | 'pharmacy' = isPharm
         ? 'pharmacy'
@@ -248,25 +254,27 @@ export default function CareNearbyScreen() {
         </View>
 
         {/* VERIFIED HEALTHCARE DIRECTORY ASSURANCE */}
-        <View
-          style={[
-            styles.disclaimerCard,
-            {
-              backgroundColor: palette.surface,
-              borderColor: palette.line,
-            },
-          ]}
-        >
-          <ShieldCheckIcon size={18} color={palette.okInk} />
-          <View style={styles.disclaimerTextGroup}>
-            <Text style={[styles.disclaimerTitle, { color: palette.ink }]}>
-              {t('sample_care_network', 'Sample healthcare directory for demonstration')}
-            </Text>
-            <Text style={[styles.disclaimerBody, { color: palette.ink2 }]}>
-              Direct phone numbers for hospitals, clinics, ambulance services & pharmacies.
-            </Text>
+        {!isOutsideCoverage && (
+          <View
+            style={[
+              styles.disclaimerCard,
+              {
+                backgroundColor: palette.surface,
+                borderColor: palette.line,
+              },
+            ]}
+          >
+            <ShieldCheckIcon size={18} color={palette.okInk} />
+            <View style={styles.disclaimerTextGroup}>
+              <Text style={[styles.disclaimerTitle, { color: palette.ink }]}>
+                {t('sample_care_network', 'Sample healthcare directory for demonstration')}
+              </Text>
+              <Text style={[styles.disclaimerBody, { color: palette.ink2 }]}>
+                Direct phone numbers for hospitals, clinics, ambulance services & pharmacies.
+              </Text>
+            </View>
           </View>
-        </View>
+        )}
 
         {/* INBUILT DYNAMIC & INTERACTIVE MAP (SWIGGY/ZOMATO STYLE) */}
         <InteractiveCareMap
@@ -347,12 +355,64 @@ export default function CareNearbyScreen() {
           </View>
         )}
 
-        {/* CATEGORY FILTER CHIPS */}
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.categoryChipsRow}
-        >
+        {isOutsideCoverage ? (
+          <View
+            style={[
+              styles.outOfRegionCard,
+              {
+                backgroundColor: palette.surface,
+                borderColor: palette.line,
+              },
+            ]}
+          >
+            <MapPinIcon size={28} color={palette.ink2} />
+            <Text style={[styles.outOfRegionTitle, { color: palette.ink }]}>
+              {t('unsupported_region_title', 'No pharmacy data for this area yet')}
+            </Text>
+            <Text style={[styles.outOfRegionNotice, { color: palette.ink2 }]}>
+              {t(
+                'unsupported_region_notice',
+                "MedFind doesn't have pharmacy data for this area yet."
+              )}
+            </Text>
+            <View style={styles.outOfRegionActions}>
+              <Pressable
+                onPress={() => setShowAreaPickerModal(true)}
+                accessible={true}
+                accessibilityRole="button"
+                accessibilityLabel="Choose another area"
+                style={[styles.chooseAreaBtn, { backgroundColor: palette.btn }]}
+              >
+                <Text style={[styles.chooseAreaBtnText, { color: palette.btnInk }]}>
+                  {t('choose_another_area', 'Choose another area')}
+                </Text>
+              </Pressable>
+
+              <Pressable
+                onPress={() => router.push('/(tabs)/emergency')}
+                accessible={true}
+                accessibilityRole="button"
+                accessibilityLabel="Emergency contacts"
+                style={[
+                  styles.emergencyLinkBtn,
+                  { backgroundColor: palette.surface2, borderColor: palette.line },
+                ]}
+              >
+                <PhoneIcon size={14} color={palette.red} />
+                <Text style={[styles.emergencyLinkText, { color: palette.ink }]}>
+                  {t('emergency_link', 'Emergency contacts')} →
+                </Text>
+              </Pressable>
+            </View>
+          </View>
+        ) : (
+          <>
+            {/* CATEGORY FILTER CHIPS */}
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.categoryChipsRow}
+            >
           {categories.map((cat) => {
             const isSelected = selectedCategory === cat.id;
 
@@ -549,6 +609,8 @@ export default function CareNearbyScreen() {
               );
             })}
         </View>
+          </>
+        )}
       </ScrollView>
       </AnimatedScreenTransition>
 
@@ -806,5 +868,61 @@ const styles = StyleSheet.create({
     fontFamily: fonts.sansSemi,
     fontSize: 14,
     fontWeight: '600',
+  },
+  outOfRegionCard: {
+    padding: 24,
+    borderRadius: radii.card,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    marginVertical: 12,
+  },
+  outOfRegionTitle: {
+    fontFamily: fonts.sansBold,
+    fontSize: 17,
+    textAlign: 'center',
+    fontWeight: '700',
+  },
+  outOfRegionNotice: {
+    fontFamily: fonts.sans,
+    fontSize: 14,
+    lineHeight: 20,
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  outOfRegionActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+  },
+  chooseAreaBtn: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: radii.pill,
+    minHeight: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  chooseAreaBtnText: {
+    fontFamily: fonts.sansBold,
+    fontSize: 13,
+  },
+  emergencyLinkBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: radii.pill,
+    borderWidth: 1,
+    minHeight: 40,
+    justifyContent: 'center',
+  },
+  emergencyLinkText: {
+    fontFamily: fonts.sansBold,
+    fontSize: 13,
   },
 });

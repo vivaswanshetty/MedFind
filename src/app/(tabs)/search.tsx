@@ -288,8 +288,10 @@ export default function SearchScreen() {
     },
   ];
 
-  // Verified pharmacy results for selected record (sorted by real distance within coverage)
-  const pharmacyItems = userLocation && !isOutsideCoverage
+  // Verified pharmacy results for selected record (sorted by real distance within coverage; empty outside coverage)
+  const pharmacyItems = isOutsideCoverage
+    ? []
+    : userLocation
     ? sortListingsByDistance(baseStores, userLocation)
     : baseStores;
 
@@ -415,15 +417,43 @@ export default function SearchScreen() {
               <View style={styles.coverageTitleRow}>
                 <MapPinIcon size={16} color={palette.ink2} />
                 <Text style={[styles.coverageBannerTitle, { color: palette.ink }]}>
-                  {t('unsupported_region_title', 'No pharmacy stock reports here yet')}
+                  {t('unsupported_region_title', 'No pharmacy data for this area yet')}
                 </Text>
               </View>
               <Text style={[styles.coverageBannerSub, { color: palette.ink2 }]}>
                 {t(
                   'unsupported_region_notice',
-                  "Pharmacy stock reports aren't available here yet. We'll show nearby places when you search."
+                  "MedFind doesn't have pharmacy data for this area yet."
                 )}
               </Text>
+            </View>
+            <View style={styles.bannerActionsRow}>
+              <Pressable
+                onPress={() => setShowAreaPickerModal(true)}
+                accessible={true}
+                accessibilityRole="button"
+                accessibilityLabel="Choose another area"
+                style={[styles.bannerChooseBtn, { backgroundColor: palette.btn }]}
+              >
+                <Text style={[styles.bannerChooseBtnText, { color: palette.btnInk }]}>
+                  {t('choose_another_area', 'Choose another area')}
+                </Text>
+              </Pressable>
+              <Pressable
+                onPress={() => router.push('/(tabs)/emergency')}
+                accessible={true}
+                accessibilityRole="button"
+                accessibilityLabel="Emergency contacts"
+                style={[
+                  styles.bannerEmergencyBtn,
+                  { backgroundColor: palette.surface, borderColor: palette.line },
+                ]}
+              >
+                <PhoneIcon size={12} color={palette.red} />
+                <Text style={[styles.bannerEmergencyBtnText, { color: palette.ink }]}>
+                  {t('emergency_link', 'Emergency contacts')} →
+                </Text>
+              </Pressable>
             </View>
           </View>
         )}
@@ -803,7 +833,9 @@ export default function SearchScreen() {
                       </View>
                     ) : (
                       <Text style={[styles.recordHoldText, { color: palette.ink2 }]}>
-                        {pharmacyItems.length} participating pharmacies hold a record
+                        {isOutsideCoverage
+                          ? t('unsupported_region_title', 'No pharmacy data for this area yet')
+                          : `${pharmacyItems.length} participating pharmacies hold a record`}
                       </Text>
                     )}
                   </View>
@@ -830,8 +862,59 @@ export default function SearchScreen() {
               </View>
             </View>
 
-            {/* Results Title Banner */}
-            <View
+            {isOutsideCoverage ? (
+              <View
+                style={[
+                  styles.outOfRegionResultCard,
+                  {
+                    backgroundColor: palette.surface,
+                    borderColor: palette.line,
+                  },
+                ]}
+              >
+                <MapPinIcon size={24} color={palette.ink2} />
+                <Text style={[styles.outOfRegionResultTitle, { color: palette.ink }]}>
+                  {t('unsupported_region_title', 'No pharmacy data for this area yet')}
+                </Text>
+                <Text style={[styles.outOfRegionResultSub, { color: palette.ink2 }]}>
+                  {t(
+                    'unsupported_region_notice',
+                    "MedFind doesn't have pharmacy data for this area yet."
+                  )}
+                </Text>
+                <View style={styles.outOfRegionActionRow}>
+                  <Pressable
+                    onPress={() => setShowAreaPickerModal(true)}
+                    accessible={true}
+                    accessibilityRole="button"
+                    accessibilityLabel="Choose another area"
+                    style={[styles.outOfRegionChooseBtn, { backgroundColor: palette.btn }]}
+                  >
+                    <Text style={[styles.outOfRegionChooseBtnText, { color: palette.btnInk }]}>
+                      {t('choose_another_area', 'Choose another area')}
+                    </Text>
+                  </Pressable>
+                  <Pressable
+                    onPress={() => router.push('/(tabs)/emergency')}
+                    accessible={true}
+                    accessibilityRole="button"
+                    accessibilityLabel="Emergency contacts"
+                    style={[
+                      styles.outOfRegionEmergencyBtn,
+                      { backgroundColor: palette.surface2, borderColor: palette.line },
+                    ]}
+                  >
+                    <PhoneIcon size={14} color={palette.red} />
+                    <Text style={[styles.outOfRegionEmergencyText, { color: palette.ink }]}>
+                      {t('emergency_link', 'Emergency contacts')} →
+                    </Text>
+                  </Pressable>
+                </View>
+              </View>
+            ) : (
+              <>
+                {/* Results Title Banner */}
+                <View
               style={[
                 styles.noticeBanner,
                 {
@@ -975,6 +1058,8 @@ export default function SearchScreen() {
             <Text style={[styles.endOfListText, { color: palette.ink2 }]}>
               End of participating pharmacies for this medicine. Missing data is shown as Unknown, never as Available.
             </Text>
+              </>
+            )}
           </View>
         )}
       </ScrollView>
@@ -1533,5 +1618,93 @@ const styles = StyleSheet.create({
     fontFamily: fonts.sansSemi,
     fontSize: 14,
     fontWeight: '600',
+  },
+  bannerActionsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 8,
+    flexWrap: 'wrap',
+  },
+  bannerChooseBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: radii.pill,
+    minHeight: 32,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  bannerChooseBtnText: {
+    fontFamily: fonts.sansBold,
+    fontSize: 12,
+  },
+  bannerEmergencyBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: radii.pill,
+    borderWidth: 1,
+    minHeight: 32,
+  },
+  bannerEmergencyBtnText: {
+    fontFamily: fonts.sansBold,
+    fontSize: 12,
+  },
+  outOfRegionResultCard: {
+    padding: 20,
+    borderRadius: radii.card,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    marginVertical: 12,
+  },
+  outOfRegionResultTitle: {
+    fontFamily: fonts.sansBold,
+    fontSize: 16,
+    textAlign: 'center',
+  },
+  outOfRegionResultSub: {
+    fontFamily: fonts.sans,
+    fontSize: 13,
+    lineHeight: 18,
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  outOfRegionActionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+  },
+  outOfRegionChooseBtn: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: radii.pill,
+    minHeight: 38,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  outOfRegionChooseBtnText: {
+    fontFamily: fonts.sansBold,
+    fontSize: 13,
+  },
+  outOfRegionEmergencyBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: radii.pill,
+    borderWidth: 1,
+    minHeight: 38,
+    justifyContent: 'center',
+  },
+  outOfRegionEmergencyText: {
+    fontFamily: fonts.sansBold,
+    fontSize: 13,
   },
 });

@@ -288,13 +288,13 @@ export default function HomeScreen() {
               <View style={styles.coverageTitleRow}>
                 <MapPinIcon size={16} color={palette.ink2} />
                 <Text style={[styles.coverageBannerTitle, { color: palette.ink }]}>
-                  {t('unsupported_region_title', 'No pharmacy stock reports here yet')}
+                  {t('unsupported_region_title', 'No pharmacy data for this area yet')}
                 </Text>
               </View>
               <Text style={[styles.coverageBannerSub, { color: palette.ink2 }]}>
                 {t(
                   'unsupported_region_notice',
-                  "Pharmacy stock reports aren't available here yet. We'll show nearby places when you search."
+                  "MedFind doesn't have pharmacy data for this area yet."
                 )}
               </Text>
             </View>
