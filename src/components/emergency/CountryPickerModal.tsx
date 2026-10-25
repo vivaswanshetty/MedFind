@@ -10,10 +10,17 @@ import {
   Platform,
   KeyboardAvoidingView,
 } from 'react-native';
+import { useRouter } from 'expo-router';
 import { useTheme } from '../../theme/ThemeContext';
 import { fonts, radii, MIN_TARGET } from '../../constants/theme';
-import { CloseIcon, SearchIcon, CheckmarkIcon } from '../icons/AppIcons';
-import { getAllCountries, searchCountries, CountryEmergencyData } from '../../data/emergencyNumbers';
+import { CloseIcon, SearchIcon, CheckmarkIcon, GlobeIcon } from '../icons/AppIcons';
+import {
+  getAllCountries,
+  searchCountries,
+  getCallingCode,
+  getFlagEmoji,
+  CountryEmergencyData,
+} from '../../data/emergencyNumbers';
 
 export interface CountryPickerModalProps {
   visible: boolean;
@@ -30,6 +37,7 @@ export function CountryPickerModal({
   onResetToAutoDetect,
   onClose,
 }: CountryPickerModalProps) {
+  const router = useRouter();
   const { scheme, palette } = useTheme();
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -135,9 +143,9 @@ export function CountryPickerModal({
               </View>
             </View>
 
-            {/* Reset option if user previously overrode */}
-            {onResetToAutoDetect && (
-              <View style={styles.resetContainer}>
+            {/* Action Bar: Reset & Full Directory Link */}
+            <View style={styles.actionLinksRow}>
+              {onResetToAutoDetect && (
                 <Pressable
                   onPress={handleReset}
                   style={[
@@ -152,11 +160,33 @@ export function CountryPickerModal({
                   accessibilityLabel="Reset to automatically detected country"
                 >
                   <Text style={[styles.resetBtnText, { color: palette.ink }]}>
-                    Reset to detected country
+                    Reset to auto-detected
                   </Text>
                 </Pressable>
-              </View>
-            )}
+              )}
+
+              <Pressable
+                onPress={() => {
+                  onClose();
+                  router.push('/emergency-directory');
+                }}
+                style={[
+                  styles.directoryBtn,
+                  {
+                    backgroundColor: palette.surface2,
+                    borderColor: palette.line,
+                  },
+                ]}
+                accessible={true}
+                accessibilityRole="button"
+                accessibilityLabel="Browse full directory for all 87 countries"
+              >
+                <GlobeIcon size={13} color={palette.btn} />
+                <Text style={[styles.directoryBtnText, { color: palette.btn }]}>
+                  All 87 countries reference →
+                </Text>
+              </Pressable>
+            </View>
 
             {/* Country list */}
             <ScrollView
@@ -189,6 +219,8 @@ export function CountryPickerModal({
                 filteredCountries.map((item) => {
                   const isSelected =
                     selectedCountryCode?.toUpperCase() === item.isoCode.toUpperCase();
+                  const flag = getFlagEmoji(item.isoCode);
+                  const callingCode = getCallingCode(item.isoCode);
                   return (
                     <Pressable
                       key={item.isoCode}
@@ -210,6 +242,7 @@ export function CountryPickerModal({
                       accessibilityLabel={`${item.name}, code ${item.isoCode}`}
                     >
                       <View style={styles.countryInfo}>
+                        <Text style={styles.countryFlagEmoji}>{flag}</Text>
                         <Text
                           style={[
                             styles.countryName,
@@ -218,12 +251,20 @@ export function CountryPickerModal({
                               fontFamily: isSelected ? fonts.sansBold : fonts.sansMedium,
                             },
                           ]}
+                          numberOfLines={1}
                         >
                           {item.name}
                         </Text>
-                        <Text style={[styles.countryCodeTag, { color: palette.ink2 }]}>
-                          {item.isoCode}
-                        </Text>
+                        <View style={[styles.codeBadge, { backgroundColor: palette.surface2, borderColor: palette.line }]}>
+                          <Text style={[styles.countryCodeTag, { color: palette.ink2 }]}>
+                            {item.isoCode}
+                          </Text>
+                        </View>
+                        {callingCode && (
+                          <Text style={[styles.callingCodeTag, { color: palette.btn }]}>
+                            {callingCode}
+                          </Text>
+                        )}
                       </View>
                       {isSelected && (
                         <View style={[styles.checkCircle, { backgroundColor: palette.okInk }]}>
@@ -328,6 +369,29 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingBottom: 8,
   },
+  actionLinksRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingBottom: 8,
+    flexWrap: 'wrap',
+  },
+  directoryBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: radii.chip,
+    borderWidth: 1,
+    minHeight: MIN_TARGET,
+  },
+  directoryBtnText: {
+    fontFamily: fonts.sansMedium,
+    fontSize: 12,
+    fontWeight: '600',
+  },
   resetBtn: {
     paddingVertical: 8,
     paddingHorizontal: 12,
@@ -362,16 +426,31 @@ const styles = StyleSheet.create({
   countryInfo: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: 8,
     flex: 1,
+  },
+  countryFlagEmoji: {
+    fontSize: 20,
   },
   countryName: {
     fontSize: 15,
+    flexShrink: 1,
+  },
+  codeBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    borderWidth: StyleSheet.hairlineWidth,
   },
   countryCodeTag: {
     fontFamily: fonts.sans,
-    fontSize: 12,
+    fontSize: 11,
     letterSpacing: 0.5,
+  },
+  callingCodeTag: {
+    fontFamily: fonts.sansBold,
+    fontSize: 12,
+    fontWeight: '600',
   },
   checkCircle: {
     width: 20,

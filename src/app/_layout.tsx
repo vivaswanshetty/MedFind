@@ -152,6 +152,12 @@ function RootNavigation() {
             headerShown: false,
           }}
         />
+        <Stack.Screen
+          name="emergency-directory"
+          options={{
+            headerShown: false,
+          }}
+        />
       </Stack>
       {/* Prevent Home page from flashing through during splash or onboarding transitions */}
       {needsOnboarding && (

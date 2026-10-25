@@ -44,6 +44,7 @@ import {
   CloseIcon,
   PencilIcon,
   UserIcon,
+  GlobeIcon,
 } from '../components/icons/AppIcons';
 
 interface WhoChipOption {
@@ -935,7 +936,68 @@ export default function ProfileScreen() {
             )}
           </View>
 
-          {/* Section 5: Clear Everything (Full Reset) */}
+          {/* Section 5: Emergency & Safety References */}
+          <View
+            style={[
+              styles.card,
+              {
+                backgroundColor: palette.surface,
+                borderColor: palette.line,
+                shadowColor: palette.shadow,
+              },
+            ]}
+          >
+            <Text style={[styles.sectionHeading, { color: palette.ink }]}>
+              Emergency & Country References
+            </Text>
+            <Text style={[styles.sectionCaption, { color: palette.ink2 }]}>
+              Worldwide emergency lines and dialing codes directory
+            </Text>
+
+            <Pressable
+              onPress={() => router.push('/emergency-directory')}
+              accessible={true}
+              accessibilityRole="button"
+              accessibilityLabel="Open worldwide emergency directory for 87 countries"
+              style={[styles.storageRow, { borderBottomWidth: 0 }]}
+            >
+              <View
+                style={[
+                  styles.storageIconBox,
+                  {
+                    backgroundColor:
+                      scheme === 'light'
+                        ? 'rgba(37, 99, 235, 0.12)'
+                        : 'rgba(56, 189, 248, 0.18)',
+                    borderColor:
+                      scheme === 'light'
+                        ? 'rgba(37, 99, 235, 0.25)'
+                        : 'rgba(56, 189, 248, 0.35)',
+                  },
+                ]}
+              >
+                <GlobeIcon
+                  size={18}
+                  color={scheme === 'light' ? '#1D4ED8' : '#38BDF8'}
+                />
+              </View>
+
+              <View style={styles.storageItemInfo}>
+                <Text style={[styles.storageItemTitle, { color: palette.ink }]}>
+                  Worldwide Emergency Directory
+                </Text>
+                <Text style={[styles.storageItemSubtitle, { color: palette.ink2 }]}>
+                  87 countries • Calling codes • Police, ambulance & fire numbers
+                </Text>
+              </View>
+
+              <View style={styles.rowActions}>
+                <ChevronRightIcon size={18} color={palette.ink2} />
+              </View>
+            </Pressable>
+          </View>
+
+          {/* Section 6: Clear Everything (Full Reset) */}
           <View
             style={[
               styles.dangerCard,

@@ -1607,38 +1607,195 @@ export const COUNTRY_ALIASES: Record<string, string[]> = {
   CH: ['switzerland', 'swiss', 'che'],
 };
 
+// Official ITU-T E.164 International Country Calling Codes
+export const COUNTRY_CALLING_CODES: Record<string, string> = {
+  DZ: '+213',
+  AR: '+54',
+  AU: '+61',
+  AT: '+43',
+  BD: '+880',
+  BE: '+32',
+  BR: '+55',
+  BG: '+359',
+  KH: '+855',
+  CA: '+1',
+  CL: '+56',
+  CN: '+86',
+  CO: '+57',
+  CR: '+506',
+  HR: '+385',
+  CY: '+357',
+  CZ: '+420',
+  DK: '+45',
+  EC: '+593',
+  EG: '+20',
+  EE: '+372',
+  ET: '+251',
+  FI: '+358',
+  FR: '+33',
+  DE: '+49',
+  GH: '+233',
+  GR: '+30',
+  HK: '+852',
+  HU: '+36',
+  IS: '+354',
+  IN: '+91',
+  ID: '+62',
+  IR: '+98',
+  IQ: '+964',
+  IE: '+353',
+  IL: '+972',
+  IT: '+39',
+  JP: '+81',
+  JO: '+962',
+  KZ: '+7',
+  KE: '+254',
+  KW: '+965',
+  LV: '+371',
+  LT: '+370',
+  LU: '+352',
+  MY: '+60',
+  MT: '+356',
+  MX: '+52',
+  MA: '+212',
+  MM: '+95',
+  NP: '+977',
+  NL: '+31',
+  NZ: '+64',
+  NG: '+234',
+  NO: '+47',
+  PK: '+92',
+  PA: '+507',
+  PE: '+51',
+  PH: '+63',
+  PL: '+48',
+  PT: '+351',
+  QA: '+974',
+  RO: '+40',
+  RU: '+7',
+  SA: '+966',
+  SG: '+65',
+  SK: '+421',
+  SI: '+386',
+  ZA: '+27',
+  KR: '+82',
+  ES: '+34',
+  LK: '+94',
+  SE: '+46',
+  CH: '+41',
+  TW: '+886',
+  TZ: '+255',
+  TH: '+66',
+  TN: '+216',
+  TR: '+90',
+  UG: '+256',
+  UA: '+380',
+  AE: '+971',
+  GB: '+44',
+  US: '+1',
+  UY: '+598',
+  VE: '+58',
+  VN: '+84',
+};
+
+export type CountryRegion = 'Europe' | 'Asia' | 'Americas' | 'Africa' | 'Oceania';
+
+// Regional breakdown for directory classification & filtering
+export const COUNTRY_REGIONS: Record<string, CountryRegion> = {
+  // Europe (33)
+  AT: 'Europe', BE: 'Europe', BG: 'Europe', HR: 'Europe', CY: 'Europe',
+  CZ: 'Europe', DK: 'Europe', EE: 'Europe', FI: 'Europe', FR: 'Europe',
+  DE: 'Europe', GR: 'Europe', HU: 'Europe', IS: 'Europe', IE: 'Europe',
+  IT: 'Europe', LV: 'Europe', LT: 'Europe', LU: 'Europe', MT: 'Europe',
+  NL: 'Europe', NO: 'Europe', PL: 'Europe', PT: 'Europe', RO: 'Europe',
+  RU: 'Europe', SK: 'Europe', SI: 'Europe', ES: 'Europe', SE: 'Europe',
+  CH: 'Europe', UA: 'Europe', GB: 'Europe',
+  // Asia (28)
+  BD: 'Asia', KH: 'Asia', CN: 'Asia', HK: 'Asia', IN: 'Asia',
+  ID: 'Asia', IR: 'Asia', IQ: 'Asia', IL: 'Asia', JP: 'Asia',
+  JO: 'Asia', KZ: 'Asia', KW: 'Asia', MY: 'Asia', MM: 'Asia',
+  NP: 'Asia', PK: 'Asia', PH: 'Asia', QA: 'Asia', SA: 'Asia',
+  SG: 'Asia', KR: 'Asia', LK: 'Asia', TW: 'Asia', TH: 'Asia',
+  TR: 'Asia', AE: 'Asia', VN: 'Asia',
+  // Americas (13)
+  AR: 'Americas', BR: 'Americas', CA: 'Americas', CL: 'Americas', CO: 'Americas',
+  CR: 'Americas', EC: 'Americas', MX: 'Americas', PA: 'Americas', PE: 'Americas',
+  US: 'Americas', UY: 'Americas', VE: 'Americas',
+  // Africa (11)
+  DZ: 'Africa', EG: 'Africa', ET: 'Africa', GH: 'Africa', KE: 'Africa',
+  MA: 'Africa', NG: 'Africa', ZA: 'Africa', TZ: 'Africa', TN: 'Africa',
+  UG: 'Africa',
+  // Oceania (2)
+  AU: 'Oceania', NZ: 'Oceania',
+};
+
 /**
- * Filters and ranks countries based on search query (by name, 2-letter ISO code, or alias).
+ * Returns the native unicode regional indicator flag emoji for a 2-letter ISO code.
+ */
+export function getFlagEmoji(countryCode: string): string {
+  if (!countryCode || countryCode.length !== 2) return '🌐';
+  const codePoints = countryCode
+    .toUpperCase()
+    .split('')
+    .map((char) => 127397 + char.charCodeAt(0));
+  return String.fromCodePoint(...codePoints);
+}
+
+/**
+ * Returns the international calling code (e.g. "+1", "+91") for a country code.
+ */
+export function getCallingCode(countryCode: string): string | undefined {
+  if (!countryCode) return undefined;
+  return COUNTRY_CALLING_CODES[countryCode.toUpperCase()];
+}
+
+/**
+ * Returns the geographical region for a country code.
+ */
+export function getCountryRegion(countryCode: string): CountryRegion | undefined {
+  if (!countryCode) return undefined;
+  return COUNTRY_REGIONS[countryCode.toUpperCase()];
+}
+
+/**
+ * Filters and ranks countries based on search query (by name, 2-letter ISO code, calling code, or alias).
  * Yields smart dynamic suggestions as the user types.
  */
 export function searchCountries(query: string): CountryEmergencyData[] {
   const all = getAllCountries();
-  const q = query.trim().toLowerCase();
-  if (!q) return all;
+  const rawQ = query.trim().toLowerCase();
+  if (!rawQ) return all;
+  const digitsOnly = rawQ.replace(/[^0-9]/g, '');
 
   const matches = all.filter((c) => {
     const name = c.name.toLowerCase();
     const code = c.isoCode.toLowerCase();
-    if (name.includes(q) || code === q) return true;
+    if (name.includes(rawQ) || code === rawQ) return true;
     const aliases = COUNTRY_ALIASES[c.isoCode];
-    if (aliases && aliases.some((a) => a.includes(q) || q.includes(a))) return true;
+    if (aliases && aliases.some((a) => a.includes(rawQ) || rawQ.includes(a))) return true;
+    const calling = COUNTRY_CALLING_CODES[c.isoCode];
+    if (calling) {
+      if (calling.toLowerCase() === rawQ) return true;
+      if (digitsOnly && calling.replace(/[^0-9]/g, '') === digitsOnly) return true;
+    }
     return false;
   });
 
   return matches.sort((a, b) => {
     const aName = a.name.toLowerCase();
     const bName = b.name.toLowerCase();
-    const aStarts = aName.startsWith(q);
-    const bStarts = bName.startsWith(q);
+    const aStarts = aName.startsWith(rawQ);
+    const bStarts = bName.startsWith(rawQ);
     if (aStarts && !bStarts) return -1;
     if (!aStarts && bStarts) return 1;
 
     const aCode = a.isoCode.toLowerCase();
     const bCode = b.isoCode.toLowerCase();
-    if (aCode === q && bCode !== q) return -1;
-    if (aCode !== q && bCode === q) return 1;
+    if (aCode === rawQ && bCode !== rawQ) return -1;
+    if (aCode !== rawQ && bCode === rawQ) return 1;
 
     return aName.localeCompare(bName);
   });
 }
+
 

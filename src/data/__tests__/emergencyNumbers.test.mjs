@@ -13,6 +13,9 @@ import {
   resolveEmergencyCountry,
   setMockDeviceRegion,
   getDeviceRegion,
+  getCallingCode,
+  getCountryRegion,
+  getFlagEmoji,
 } from '../emergencyNumbers.ts';
 import { getRegionForCoordinates } from '../../config/regions.ts';
 
@@ -317,5 +320,45 @@ test('Emergency Numbers & Country Resolution Tests', async (t) => {
 
     const koreaByAlias = searchCountries('korea');
     assert.ok(koreaByAlias.some((c) => c.isoCode === 'KR'), 'Should find South Korea when searching "korea"');
+
+    // By international calling code
+    const indiaByCalling = searchCountries('+91');
+    assert.ok(indiaByCalling.some((c) => c.isoCode === 'IN'), 'Should find India when searching "+91"');
+
+    const ukByCalling = searchCountries('44');
+    assert.ok(ukByCalling.some((c) => c.isoCode === 'GB'), 'Should find UK when searching "44"');
+
+    const usByCalling = searchCountries('+1');
+    assert.ok(usByCalling.some((c) => c.isoCode === 'US' || c.isoCode === 'CA'), 'Should find US/CA when searching "+1"');
+  });
+
+  await t.test('10. Country Directory metadata: calling codes, regions, and flag emojis', () => {
+    const all = getAllCountries();
+    assert.equal(all.length, 87, 'Must have exactly 87 countries');
+
+    for (const country of all) {
+      const calling = getCallingCode(country.isoCode);
+      assert.ok(calling && calling.startsWith('+'), `Country ${country.isoCode} must have valid + calling code`);
+
+      const region = getCountryRegion(country.isoCode);
+      assert.ok(['Europe', 'Asia', 'Americas', 'Africa', 'Oceania'].includes(region), `Country ${country.isoCode} must have valid region`);
+
+      const flag = getFlagEmoji(country.isoCode);
+      assert.ok(flag.length > 0 && flag !== '🌐', `Country ${country.isoCode} must have valid flag emoji`);
+    }
+
+    // Specific spot checks
+    assert.equal(getCallingCode('IN'), '+91');
+    assert.equal(getCallingCode('US'), '+1');
+    assert.equal(getCallingCode('GB'), '+44');
+    assert.equal(getCallingCode('DE'), '+49');
+    assert.equal(getCountryRegion('FR'), 'Europe');
+    assert.equal(getCountryRegion('JP'), 'Asia');
+    assert.equal(getCountryRegion('BR'), 'Americas');
+    assert.equal(getCountryRegion('ZA'), 'Africa');
+    assert.equal(getCountryRegion('AU'), 'Oceania');
+    assert.equal(getFlagEmoji('US'), '🇺🇸');
+    assert.equal(getFlagEmoji('IN'), '🇮🇳');
   });
 });
+

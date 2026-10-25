@@ -26,6 +26,7 @@ import {
   PhoneIcon,
   ChevronRightIcon,
   ShieldCheckIcon,
+  GlobeIcon,
 } from '../../components/icons/AppIcons';
 import {
   resolveEmergencyCountry,
@@ -244,6 +245,46 @@ export default function EmergencyScreen() {
               </Text>
             </Pressable>
           </View>
+
+          {/* WORLDWIDE DIRECTORY ENTRY LINK */}
+          <Pressable
+            onPress={() => router.push('/emergency-directory')}
+            style={[
+              styles.directoryLinkCard,
+              {
+                backgroundColor: palette.surface,
+                borderColor: palette.line,
+              },
+            ]}
+            accessible={true}
+            accessibilityRole="button"
+            accessibilityLabel="Browse Worldwide Emergency Directory with all 87 countries and codes"
+          >
+            <View style={styles.directoryLinkLeft}>
+              <View
+                style={[
+                  styles.directoryIconBox,
+                  {
+                    backgroundColor:
+                      scheme === 'light'
+                        ? 'rgba(37, 99, 235, 0.08)'
+                        : 'rgba(56, 189, 248, 0.12)',
+                  },
+                ]}
+              >
+                <GlobeIcon size={16} color={palette.btn} />
+              </View>
+              <View style={styles.directoryTextGroup}>
+                <Text style={[styles.directoryLinkTitle, { color: palette.ink }]}>
+                  Worldwide Emergency Directory
+                </Text>
+                <Text style={[styles.directoryLinkSubtitle, { color: palette.ink2 }]}>
+                  All 87 country codes, police, ambulance & fire numbers
+                </Text>
+              </View>
+            </View>
+            <ChevronRightIcon size={16} color={palette.ink2} />
+          </Pressable>
 
           {/* CASE 1: VERIFIED COUNTRY NUMBERS */}
           {isVerifiedCountry && activeCountry ? (
@@ -882,6 +923,42 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '700',
     textDecorationLine: 'underline',
+  },
+  directoryLinkCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: radii.tab,
+    borderWidth: 1,
+    gap: 12,
+  },
+  directoryLinkLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    flex: 1,
+  },
+  directoryIconBox: {
+    width: 32,
+    height: 32,
+    borderRadius: radii.pill,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  directoryTextGroup: {
+    flex: 1,
+  },
+  directoryLinkTitle: {
+    fontFamily: fonts.sansBold,
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  directoryLinkSubtitle: {
+    fontFamily: fonts.sans,
+    fontSize: 11,
+    marginTop: 1,
   },
 
   // PRIMARY HERO BUTTON
