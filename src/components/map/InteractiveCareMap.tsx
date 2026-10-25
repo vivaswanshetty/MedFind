@@ -17,7 +17,7 @@ import {
   CompressIcon,
   FitBoundsIcon,
 } from '../icons/AppIcons';
-import { Coordinates, isWithinCoverageArea } from '../../services/locationService';
+import { Coordinates, getRegionForCoordinates } from '../../services/locationService';
 import { LocationSource } from '../../context/LocationContext';
 
 export interface MapMarkerItem {
@@ -63,7 +63,8 @@ export function InteractiveCareMap({
   const [isExpanded, setIsExpanded] = useState(false);
   const [showHint, setShowHint] = useState(true);
 
-  const inCoverage = isWithinCoverageArea(userLocation);
+  const userRegion = getRegionForCoordinates(userLocation);
+  const inCoverage = userRegion !== null && userRegion.hasPharmacyData;
   const isOutsideCoverage = userLocation !== null && !inCoverage;
   const defaultLat = inCoverage && userLocation ? userLocation.latitude : 12.9416; // Basavanagudi centroid fallback
   const defaultLng = inCoverage && userLocation ? userLocation.longitude : 77.5738;

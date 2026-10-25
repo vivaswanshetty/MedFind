@@ -71,12 +71,8 @@ export function LocationStep({ onDone }: LocationStepProps) {
         // Permission denied, position failed, or network offline
         setStatusNotice('No problem, you can pick your area instead');
         setShowAreaPicker(true);
-      } else if (result.isOutsideCoverage) {
-        // Location is outside Bengaluru
-        setStatusNotice('MedFind currently covers Bengaluru');
-        setShowAreaPicker(true);
       } else {
-        // Successfully located within Bengaluru
+        // GPS location successfully obtained (accepted worldwide)
         try {
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         } catch {

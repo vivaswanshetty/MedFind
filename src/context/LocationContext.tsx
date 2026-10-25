@@ -39,7 +39,7 @@ const LocationContext = createContext<LocationContextValue | undefined>(undefine
 export function LocationProvider({ children }: { children: ReactNode }) {
   // Session-only in-memory coordinates. NEVER stored to disk or uploaded.
   const [userLocation, setUserLocation] = useState<Coordinates | null>(null);
-  const [areaName, setAreaName] = useState<string>('All Bengaluru');
+  const [areaName, setAreaName] = useState<string>('No area set');
   const [locationSource, setLocationSource] = useState<LocationSource>('none');
   const [isLocating, setIsLocating] = useState<boolean>(false);
   const [hasLocationPermission, setHasLocationPermission] = useState<boolean>(false);
@@ -163,7 +163,7 @@ export function LocationProvider({ children }: { children: ReactNode }) {
    */
   const clearLocation = async () => {
     setUserLocation(null);
-    setAreaName('All Bengaluru');
+    setAreaName('No area set');
     setLocationSource('none');
     await AsyncStorage.removeItem(LOCATION_SOURCE_KEY);
     await AsyncStorage.removeItem(SELECTED_AREA_NAME_KEY);

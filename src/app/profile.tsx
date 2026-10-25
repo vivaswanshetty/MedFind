@@ -247,7 +247,7 @@ export default function ProfileScreen() {
   const handleClearLocation = () => {
     Alert.alert(
       'Clear Location Preference?',
-      'This will reset your locality filter back to All Bengaluru and clear any saved area selection.',
+      'This will reset your location to "No area set" and clear any saved area selection.',
       [
         { text: 'Cancel', style: 'cancel' },
         {

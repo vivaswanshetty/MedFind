@@ -28,7 +28,7 @@ import { useMedicineBox } from '../../store/medicineBox';
 import { onboardingAssets } from '../../../assets/onboarding';
 import { getRecommendations, getHomeGreeting } from '../../lib/recommendations';
 import { RecommendationCard } from '../../components/home/RecommendationCard';
-import { cleanLocalityName, isInvalidLocality, isWithinCoverageArea } from '../../services/locationService';
+import { cleanLocalityName, isInvalidLocality, getRegionForCoordinates } from '../../services/locationService';
 import { sendDevTestReminder } from '../../lib/reminders';
 import {
   PlusIcon,
@@ -76,10 +76,8 @@ export default function HomeScreen() {
     setShowAreaPickerModal,
   } = useLocation();
 
-  const isOutsideCoverage =
-    locationSource === 'gps' &&
-    userLocation !== null &&
-    !isWithinCoverageArea(userLocation);
+  const userRegion = getRegionForCoordinates(userLocation);
+  const isOutsideCoverage = userLocation !== null && userRegion === null;
 
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [showPolicyModal, setShowPolicyModal] = useState(false);
@@ -275,45 +273,31 @@ export default function HomeScreen() {
           ) : null}
         </Pressable>
 
-        {/* OUTSIDE BENGALURU COVERAGE BANNER */}
+        {/* UNSUPPORTED REGION NEUTRAL BANNER */}
         {isOutsideCoverage && (
           <View
             style={[
               styles.coverageBanner,
               {
-                backgroundColor: palette.amberTint,
-                borderColor: palette.amberLine,
+                backgroundColor: palette.surface2,
+                borderColor: palette.line,
               },
             ]}
           >
             <View style={styles.coverageTextGroup}>
               <View style={styles.coverageTitleRow}>
-                <MapPinIcon size={16} color={palette.amberInk} />
-                <Text style={[styles.coverageBannerTitle, { color: palette.amberInk }]}>
-                  MedFind currently covers Bengaluru
+                <MapPinIcon size={16} color={palette.ink2} />
+                <Text style={[styles.coverageBannerTitle, { color: palette.ink }]}>
+                  {t('unsupported_region_title', 'No pharmacy stock reports here yet')}
                 </Text>
               </View>
               <Text style={[styles.coverageBannerSub, { color: palette.ink2 }]}>
-                Your GPS location is outside our coverage area. Choose an area in Bengaluru to see available medicine stock.
+                {t(
+                  'unsupported_region_notice',
+                  "Pharmacy stock reports aren't available here yet. We'll show nearby places when you search."
+                )}
               </Text>
             </View>
-            <Pressable
-              onPress={() => setShowAreaPickerModal(true)}
-              accessible={true}
-              accessibilityRole="button"
-              accessibilityLabel="Choose an area in Bengaluru"
-              style={[
-                styles.coveragePickerBtn,
-                {
-                  backgroundColor: palette.btn,
-                  borderColor: palette.btnBorder,
-                },
-              ]}
-            >
-              <Text style={[styles.coveragePickerBtnText, { color: palette.btnInk }]}>
-                Choose area
-              </Text>
-            </Pressable>
           </View>
         )}
 

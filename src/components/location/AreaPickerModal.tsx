@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -12,7 +12,13 @@ import {
 import { useTheme } from '../../theme/ThemeContext';
 import { fonts, radii, MIN_TARGET } from '../../constants/theme';
 import { useLocation } from '../../context/LocationContext';
-import { PREDEFINED_AREAS, KnownArea } from '../../services/locationService';
+import {
+  PREDEFINED_AREAS,
+  KnownArea,
+  searchPlacesWorldwide,
+  PlaceSearchResult,
+  getRegionForCoordinates,
+} from '../../services/locationService';
 import {
   MapPinIcon,
   CrosshairTargetIcon,
@@ -30,6 +36,7 @@ interface AreaPickerModalProps {
 export function AreaPickerModal({ visible, onClose, onAreaSelected }: AreaPickerModalProps) {
   const { scheme, palette } = useTheme();
   const {
+    userLocation,
     areaName,
     locationSource,
     isLocating,
@@ -39,6 +46,53 @@ export function AreaPickerModal({ visible, onClose, onAreaSelected }: AreaPicker
   } = useLocation();
 
   const [filterText, setFilterText] = useState('');
+  const [placeResults, setPlaceResults] = useState<PlaceSearchResult[]>([]);
+  const [isSearchingPlaces, setIsSearchingPlaces] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(null);
+
+  const userRegion = getRegionForCoordinates(userLocation);
+  const isInBengaluru = userRegion?.id === 'bengaluru';
+
+  // Debounced place search worldwide using expo-location
+  useEffect(() => {
+    const trimmed = filterText.trim();
+    if (trimmed.length < 2) {
+      setPlaceResults([]);
+      setIsSearchingPlaces(false);
+      setSearchError(null);
+      return;
+    }
+
+    let isCancelled = false;
+    setIsSearchingPlaces(true);
+    setSearchError(null);
+
+    const timer = setTimeout(async () => {
+      try {
+        const results = await searchPlacesWorldwide(trimmed, 5);
+        if (!isCancelled) {
+          setPlaceResults(results);
+          if (results.length === 0) {
+            setSearchError(`No places found for "${trimmed}". You can select it directly below.`);
+          }
+        }
+      } catch {
+        if (!isCancelled) {
+          setPlaceResults([]);
+          setSearchError(`Place search unavailable. You can select "${trimmed}" directly below.`);
+        }
+      } finally {
+        if (!isCancelled) {
+          setIsSearchingPlaces(false);
+        }
+      }
+    }, 350);
+
+    return () => {
+      isCancelled = true;
+      clearTimeout(timer);
+    };
+  }, [filterText]);
 
   const handleUseGps = async () => {
     const res = await requestGpsLocation();
@@ -54,10 +108,21 @@ export function AreaPickerModal({ visible, onClose, onAreaSelected }: AreaPicker
     onClose();
   };
 
+  const handleSelectPlaceResult = async (place: PlaceSearchResult) => {
+    await selectManualArea({
+      name: place.name,
+      latitude: place.latitude,
+      longitude: place.longitude,
+    });
+    setFilterText('');
+    onAreaSelected?.();
+    onClose();
+  };
+
   const handleCustomAreaSubmit = async () => {
     const trimmed = filterText.trim();
     if (!trimmed) return;
-    await selectManualArea({ name: `${trimmed}, Bengaluru` });
+    await selectManualArea({ name: trimmed });
     setFilterText('');
     onAreaSelected?.();
     onClose();
@@ -68,7 +133,7 @@ export function AreaPickerModal({ visible, onClose, onAreaSelected }: AreaPicker
     onClose();
   };
 
-  const matchingAreas = PREDEFINED_AREAS.filter(
+  const matchingPredefined = PREDEFINED_AREAS.filter(
     (a) =>
       filterText.trim() === '' ||
       a.name.toLowerCase().includes(filterText.toLowerCase()) ||
@@ -160,7 +225,7 @@ export function AreaPickerModal({ visible, onClose, onAreaSelected }: AreaPicker
             )}
           </Pressable>
 
-          {/* Search Input for Neighborhoods */}
+          {/* Search Input for Worldwide Places */}
           <View
             style={[
               styles.searchBar,
@@ -173,86 +238,171 @@ export function AreaPickerModal({ visible, onClose, onAreaSelected }: AreaPicker
             <SearchIcon size={16} color={palette.ink2} />
             <TextInput
               style={[styles.searchInput, { color: palette.ink }]}
-              placeholder="Search or enter area name..."
+              placeholder="Search city, neighborhood or place..."
               placeholderTextColor={palette.ink2}
               value={filterText}
               onChangeText={setFilterText}
               onSubmitEditing={handleCustomAreaSubmit}
               returnKeyType="done"
             />
+            {isSearchingPlaces && (
+              <ActivityIndicator size="small" color={palette.accent} />
+            )}
           </View>
 
-          {/* Predefined Areas List */}
-          <Text style={[styles.sectionSubtitle, { color: palette.ink2 }]}>
-            Bengaluru Neighborhoods
-          </Text>
-
+          {/* Predefined or Geocoded Results List */}
           <ScrollView style={styles.areasList} showsVerticalScrollIndicator={false}>
-            {matchingAreas.map((item) => {
-              const isSelected = areaName.toLowerCase().includes(item.locality.toLowerCase());
-              return (
+            {filterText.trim().length >= 2 ? (
+              <>
+                <Text style={[styles.sectionSubtitle, { color: palette.ink2 }]}>
+                  Matching Places
+                </Text>
+
+                {placeResults.map((item, idx) => {
+                  const isSelected = areaName.toLowerCase() === item.name.toLowerCase();
+                  return (
+                    <Pressable
+                      key={`${item.name}-${idx}`}
+                      onPress={() => handleSelectPlaceResult(item)}
+                      style={[
+                        styles.areaRow,
+                        {
+                          borderBottomColor: palette.line,
+                          backgroundColor: isSelected
+                            ? scheme === 'dark'
+                              ? 'rgba(0,229,255,0.08)'
+                              : 'rgba(135,169,107,0.12)'
+                            : 'transparent',
+                        },
+                      ]}
+                      accessible={true}
+                      accessibilityRole="button"
+                      accessibilityState={{ selected: isSelected }}
+                    >
+                      <View style={styles.areaRowLeft}>
+                        <View style={styles.areaTitleRow}>
+                          <MapPinIcon size={14} color="#FF4757" />
+                          <Text
+                            style={[
+                              styles.areaNameText,
+                              {
+                                color: palette.ink,
+                                fontFamily: isSelected ? fonts.sansBold : fonts.sansMedium,
+                              },
+                            ]}
+                          >
+                            {item.name}
+                          </Text>
+                        </View>
+                      </View>
+                      {isSelected && (
+                        <View style={[styles.checkCircle, { backgroundColor: palette.okInk }]}>
+                          <CheckmarkIcon size={12} color={palette.surface} />
+                        </View>
+                      )}
+                    </Pressable>
+                  );
+                })}
+
+                {searchError && (
+                  <Text style={[styles.searchErrorText, { color: palette.ink2 }]}>
+                    {searchError}
+                  </Text>
+                )}
+
                 <Pressable
-                  key={item.id}
-                  onPress={() => handleSelectArea(item)}
+                  onPress={handleCustomAreaSubmit}
                   style={[
-                    styles.areaRow,
+                    styles.customSubmitBtn,
                     {
-                      borderBottomColor: palette.line,
-                      backgroundColor: isSelected ? (scheme === 'dark' ? 'rgba(0,229,255,0.08)' : 'rgba(135,169,107,0.12)') : 'transparent',
+                      backgroundColor: palette.surface2,
+                      borderColor: palette.line,
                     },
                   ]}
-                  accessible={true}
-                  accessibilityRole="button"
-                  accessibilityState={{ selected: isSelected }}
                 >
-                  <View style={styles.areaRowLeft}>
-                    <View style={styles.areaTitleRow}>
-                      <MapPinIcon size={14} color="#FF4757" />
-                      <Text style={[styles.areaNameText, { color: palette.ink, fontFamily: isSelected ? fonts.sansBold : fonts.sansMedium }]}>
-                        {item.name}
-                      </Text>
-                    </View>
-                    <Text style={[styles.areaPincodeText, { color: palette.ink2 }]}>
-                      Pincode: {item.pincode}
-                    </Text>
-                  </View>
-                  {isSelected && (
-                    <View style={[styles.checkCircle, { backgroundColor: palette.okInk }]}>
-                      <CheckmarkIcon size={12} color={palette.surface} />
-                    </View>
-                  )}
+                  <Text style={[styles.customSubmitText, { color: palette.ink }]}>
+                    Select "{filterText.trim()}"
+                  </Text>
                 </Pressable>
-              );
-            })}
-
-            {filterText.trim().length > 0 && matchingAreas.length === 0 && (
-              <Pressable
-                onPress={handleCustomAreaSubmit}
-                style={[
-                  styles.customSubmitBtn,
-                  {
-                    backgroundColor: palette.surface2,
-                    borderColor: palette.line,
-                  },
-                ]}
-              >
-                <Text style={[styles.customSubmitText, { color: palette.ink }]}>
-                  Select "{filterText.trim()}"
+              </>
+            ) : isInBengaluru ? (
+              <>
+                <Text style={[styles.sectionSubtitle, { color: palette.ink2 }]}>
+                  Bengaluru Quick Suggestions
                 </Text>
-              </Pressable>
+
+                {matchingPredefined.map((item) => {
+                  const isSelected = areaName.toLowerCase().includes(item.locality.toLowerCase());
+                  return (
+                    <Pressable
+                      key={item.id}
+                      onPress={() => handleSelectArea(item)}
+                      style={[
+                        styles.areaRow,
+                        {
+                          borderBottomColor: palette.line,
+                          backgroundColor: isSelected
+                            ? scheme === 'dark'
+                              ? 'rgba(0,229,255,0.08)'
+                              : 'rgba(135,169,107,0.12)'
+                            : 'transparent',
+                        },
+                      ]}
+                      accessible={true}
+                      accessibilityRole="button"
+                      accessibilityState={{ selected: isSelected }}
+                    >
+                      <View style={styles.areaRowLeft}>
+                        <View style={styles.areaTitleRow}>
+                          <MapPinIcon size={14} color="#FF4757" />
+                          <Text
+                            style={[
+                              styles.areaNameText,
+                              {
+                                color: palette.ink,
+                                fontFamily: isSelected ? fonts.sansBold : fonts.sansMedium,
+                              },
+                            ]}
+                          >
+                            {item.name}
+                          </Text>
+                        </View>
+                        <Text style={[styles.areaPincodeText, { color: palette.ink2 }]}>
+                          Pincode: {item.pincode}
+                        </Text>
+                      </View>
+                      {isSelected && (
+                        <View style={[styles.checkCircle, { backgroundColor: palette.okInk }]}>
+                          <CheckmarkIcon size={12} color={palette.surface} />
+                        </View>
+                      )}
+                    </Pressable>
+                  );
+                })}
+              </>
+            ) : (
+              <View style={styles.emptyPromptBox}>
+                <MapPinIcon size={24} color={palette.ink2} />
+                <Text style={[styles.emptyPromptTitle, { color: palette.ink }]}>
+                  Worldwide Place Search
+                </Text>
+                <Text style={[styles.emptyPromptSub, { color: palette.ink2 }]}>
+                  Type any city, town, or neighborhood above to set your location area.
+                </Text>
+              </View>
             )}
           </ScrollView>
 
-          {/* Reset / All Bengaluru */}
+          {/* Reset / Clear Location */}
           <Pressable
             onPress={handleResetLocation}
             style={styles.resetButton}
             accessible={true}
             accessibilityRole="button"
-            accessibilityLabel="Clear location and search all Bengaluru"
+            accessibilityLabel="Clear location filter"
           >
             <Text style={[styles.resetButtonText, { color: palette.ink2 }]}>
-              Clear location & search all areas
+              Clear location
             </Text>
           </Pressable>
         </Pressable>
@@ -421,5 +571,29 @@ const styles = StyleSheet.create({
   resetButtonText: {
     fontFamily: fonts.sansMedium,
     fontSize: 13,
+  },
+  searchErrorText: {
+    fontFamily: fonts.sans,
+    fontSize: 13,
+    paddingVertical: 8,
+    paddingHorizontal: 4,
+    textAlign: 'center',
+  },
+  emptyPromptBox: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 28,
+    paddingHorizontal: 16,
+    gap: 8,
+  },
+  emptyPromptTitle: {
+    fontFamily: fonts.sansBold,
+    fontSize: 15,
+  },
+  emptyPromptSub: {
+    fontFamily: fonts.sans,
+    fontSize: 13,
+    textAlign: 'center',
+    lineHeight: 18,
   },
 });

@@ -11,6 +11,11 @@
 
 // Lazy-load expo-location to keep distance utilities pure and testable across all runtimes
 let expoLocationModule: typeof import('expo-location') | null = null;
+
+export function setMockLocationModule(mock: any): void {
+  expoLocationModule = mock;
+}
+
 async function getLocationModule() {
   if (!expoLocationModule) {
     expoLocationModule = await import('expo-location');
@@ -316,28 +321,16 @@ export interface LocationRequestResult {
   isOutsideCoverage?: boolean;
 }
 
-export const BENGALURU_CENTROID: Coordinates = {
-  latitude: 12.9716,
-  longitude: 77.5946,
-};
+import { getRegionForCoordinates, Region } from '../config/regions';
+export { getRegionForCoordinates, Region } from '../config/regions';
 
-export const BENGALURU_COVERAGE_RADIUS_KM = 45;
-
-/**
- * Checks if the given coordinates are within the Bengaluru coverage area (approx. 45km from city centroid).
- */
-export function isWithinCoverageArea(coords: Coordinates | null | undefined): boolean {
-  if (!coords || typeof coords.latitude !== 'number' || typeof coords.longitude !== 'number' || isNaN(coords.latitude) || isNaN(coords.longitude)) {
-    return false;
-  }
-  const dist = calculateDistanceKm(
-    coords.latitude,
-    coords.longitude,
-    BENGALURU_CENTROID.latitude,
-    BENGALURU_CENTROID.longitude
-  );
-  return dist !== null && dist <= BENGALURU_COVERAGE_RADIUS_KM;
+export interface PlaceSearchResult {
+  name: string;
+  locality: string;
+  latitude: number;
+  longitude: number;
 }
+
 
 /**
  * Detects whether a reverse-geocoded candidate is a door number, house number,
@@ -353,8 +346,8 @@ export function isInvalidLocality(str?: string | null): boolean {
   if (/^\d{5,6}$/.test(s)) return true;
   // Door/flat/house/plot numbers (e.g. "No. 520", "#520", "Plot 12", "520/A", "520-B")
   if (/^(no\.?|plot|flat|door|site|shop|#|building)?\s*\d+([a-z\/\-0-9]*)$/i.test(s)) return true;
-  // Generic city or region names
-  if (/^(Bangalore|Bengaluru|Current Location|Unnamed Road|Karnataka|India)$/i.test(s)) return true;
+  // Generic placeholders
+  if (/^(Current Location|Current area|Unnamed Road)$/i.test(s)) return true;
   return false;
 }
 
@@ -367,6 +360,76 @@ export function cleanLocalityName(raw?: string | null): string {
   clean = clean.replace(/\s*(Division|District|Sub-District)\b/gi, '').trim();
   if (/^Bangalore$/i.test(clean)) return 'Bengaluru';
   return clean;
+}
+
+/**
+ * Searches places worldwide using expo-location geocodeAsync.
+ * Does not require external API keys. Handles geocoding errors gracefully.
+ */
+export async function searchPlacesWorldwide(
+  query: string,
+  maxResults: number = 5
+): Promise<PlaceSearchResult[]> {
+  const trimmed = query.trim();
+  if (trimmed.length < 2) return [];
+
+  try {
+    const Location = await getLocationModule();
+    const geocoded = await Location.geocodeAsync(trimmed);
+    if (!geocoded || geocoded.length === 0) {
+      return [];
+    }
+
+    const capped = geocoded.slice(0, maxResults);
+    const results: PlaceSearchResult[] = [];
+
+    for (const item of capped) {
+      let displayName = trimmed;
+      let locality = trimmed;
+
+      try {
+        const places = await Location.reverseGeocodeAsync({
+          latitude: item.latitude,
+          longitude: item.longitude,
+        });
+
+        if (places && places.length > 0) {
+          const p = places[0];
+          const name = cleanLocalityName(p.name);
+          const street = cleanLocalityName(p.street);
+          const sub = cleanLocalityName(p.subregion);
+          const dist = cleanLocalityName(p.district);
+          const city = cleanLocalityName(p.city);
+          const region = cleanLocalityName(p.region);
+          const country = p.country || '';
+
+          const candidate = [name, sub, dist, street, city].find(
+            (c) => c && !isInvalidLocality(c)
+          );
+          locality = candidate || city || region || trimmed;
+
+          const contextParts = [city, region, country].filter(
+            (cp) => cp && cp.toLowerCase() !== locality.toLowerCase()
+          );
+          const uniqueContext = Array.from(new Set(contextParts));
+          displayName = uniqueContext.length > 0 ? `${locality}, ${uniqueContext.join(', ')}` : locality;
+        }
+      } catch {
+        // Fallback gracefully to query name
+      }
+
+      results.push({
+        name: displayName,
+        locality,
+        latitude: item.latitude,
+        longitude: item.longitude,
+      });
+    }
+
+    return results;
+  } catch {
+    return [];
+  }
 }
 
 /**
@@ -396,7 +459,7 @@ export async function requestDeviceLocation(): Promise<LocationRequestResult> {
     };
 
     // Attempt to reverse geocode to a friendly locality name
-    let areaName = 'Current Location';
+    let areaName = 'Current area';
     try {
       const places = await Location.reverseGeocodeAsync(coords);
       if (places && places.length > 0) {
@@ -406,44 +469,27 @@ export async function requestDeviceLocation(): Promise<LocationRequestResult> {
         const sub = cleanLocalityName(p.subregion);
         const dist = cleanLocalityName(p.district);
         const city = cleanLocalityName(p.city);
+        const region = cleanLocalityName(p.region);
+        const country = p.country || '';
 
-        // Subregion (neighborhood) and district are much more reliable than street/door number.
-        // Filter out house numbers (like "520"), postal codes, and administrative noise.
         const candidates = [sub, dist, street, name].filter(
           (c) => c && !isInvalidLocality(c)
         );
-        let locality = candidates[0] || '';
+        let locality = candidates[0] || city || region || 'Current area';
 
-        // If no valid neighborhood was found, or locality is generic, match closest known neighborhood
-        if (!locality || /^(Bengaluru|Bangalore|Current Location)$/i.test(locality)) {
-          let nearestArea = PREDEFINED_AREAS[0];
-          let minDistance = Infinity;
-          for (const area of PREDEFINED_AREAS) {
-            const d = calculateDistanceKm(coords.latitude, coords.longitude, area.latitude, area.longitude);
-            if (d !== null && d < minDistance) {
-              minDistance = d;
-              nearestArea = area;
-            }
-          }
-          if (minDistance < 15) {
-            locality = nearestArea.locality;
-          } else {
-            locality = 'Bengaluru';
-          }
-        }
-
-        const region = city || cleanLocalityName(p.region) || 'Bengaluru';
-        areaName = locality && region && locality !== region ? `${locality}, ${region}` : locality;
+        const broader = city && city !== locality ? city : region && region !== locality ? region : country;
+        areaName = broader && locality !== broader ? `${locality}, ${broader}` : locality;
       }
     } catch {
-      // Reverse geocode is best-effort; keep "Current Location" fallback
+      // Reverse geocode is best-effort; keep "Current area" fallback
     }
 
+    const currentRegion = getRegionForCoordinates(coords);
     return {
       granted: true,
       coords,
       areaName,
-      isOutsideCoverage: !isWithinCoverageArea(coords),
+      isOutsideCoverage: currentRegion === null,
     };
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);

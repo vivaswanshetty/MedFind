@@ -23,7 +23,7 @@ import {
   CategoryFilter,
 } from '../../services/providerService';
 import { ProviderListing } from '../../types/models';
-import { sortListingsByDistance, formatDistanceOrNull, isWithinCoverageArea } from '../../services/locationService';
+import { sortListingsByDistance, formatDistanceOrNull, getRegionForCoordinates } from '../../services/locationService';
 import { demoPharmacies } from '../../data/demoData';
 import {
   InfoIcon,
@@ -41,9 +41,8 @@ export default function CareNearbyScreen() {
   const { userLocation, areaName, locationSource, requestGpsLocation } = useLocation();
   const { t } = useLanguage();
 
-  const isOutsideCoverage =
-    userLocation !== null &&
-    !isWithinCoverageArea(userLocation);
+  const userRegion = getRegionForCoordinates(userLocation);
+  const isOutsideCoverage = userLocation !== null && userRegion === null;
 
   const [showAreaPickerModal, setShowAreaPickerModal] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
@@ -283,6 +282,7 @@ export default function CareNearbyScreen() {
           onInteractionChange={setIsMapInteracting}
           onRequestLocation={requestGpsLocation}
           onPressArea={() => setShowAreaPickerModal(true)}
+          region={userRegion?.name || 'Bengaluru'}
         />
 
         {/* INTERACTIVE PIN SELECTION CALLOUT */}
