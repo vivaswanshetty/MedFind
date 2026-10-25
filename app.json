@@ -19,7 +19,7 @@
       }
     },
     "android": {
-      "package": "com.bmsce.medfind",
+      "package": "com.medfind",
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "backgroundColor": "#FCF8ED"
