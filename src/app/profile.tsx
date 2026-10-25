@@ -25,7 +25,6 @@ import { useProfile, ProfileAnswers } from '../store/profile';
 import { useMedicineBox } from '../store/medicineBox';
 import { useLocation } from '../context/LocationContext';
 import { storageService } from '../services/storageService';
-import { pharmacyPortalService, StorePartnerAuth } from '../services/pharmacyPortalService';
 import { clearAllUserData } from '../services/clearDataService';
 import { cancelAllItemReminders } from '../lib/reminders';
 import { getBuddy } from '../lib/buddy';
@@ -38,7 +37,7 @@ import {
   BookmarkIcon,
   SearchIcon,
   MapPinIcon,
-  StaffBadgeIcon,
+  RefreshIcon,
   TrashIcon,
   CheckCircleIcon,
   ChevronRightIcon,
@@ -114,7 +113,6 @@ export default function ProfileScreen() {
   // Local storage counts
   const [favoritesCount, setFavoritesCount] = useState<number>(0);
   const [recentSearchesCount, setRecentSearchesCount] = useState<number>(0);
-  const [partnerAuth, setPartnerAuth] = useState<StorePartnerAuth | null>(null);
 
   // Edit Name Modal State
   const [showEditNameModal, setShowEditNameModal] = useState<boolean>(false);
@@ -127,9 +125,6 @@ export default function ProfileScreen() {
 
       const recents = await storageService.getRecentSearches();
       setRecentSearchesCount(recents.length);
-
-      const auth = await pharmacyPortalService.getStorePartnerAuth();
-      setPartnerAuth(auth && auth.isAuthorized ? auth : null);
     } catch {
       // Fallback
     }
@@ -264,18 +259,18 @@ export default function ProfileScreen() {
     );
   };
 
-  const handleSignOutPortal = () => {
+  const handleChangeRole = () => {
     Alert.alert(
-      'Sign Out of Pharmacy Portal?',
-      'This will remove store partner authorization from this phone. You will need your PIN to sign in again.',
+      t('change_role', 'Change role?'),
+      t('change_role_confirm_msg', 'This takes you back to the start.'),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('cancel', 'Cancel'), style: 'cancel' },
         {
-          text: 'Sign Out',
+          text: t('change_role', 'Change role'),
           style: 'destructive',
           onPress: async () => {
-            await pharmacyPortalService.clearStorePartnerAuth();
-            setPartnerAuth(null);
+            await updateProfile({ role: null });
+            router.replace('/');
           },
         },
       ]
@@ -286,7 +281,7 @@ export default function ProfileScreen() {
   const handleClearEverything = () => {
     Alert.alert(
       'Clear everything?',
-      'This will delete your profile, medicine box items, favorites, search history, location preference, and pharmacy portal sign-in, and cancel all scheduled reminders.\n\nTheme and language settings will be kept.',
+      'This will delete your profile, medicine box items, favorites, search history, and location preference, and cancel all scheduled reminders.\n\nTheme and language settings will be kept.',
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -304,7 +299,6 @@ export default function ProfileScreen() {
             // 3. Reset local counts
             setFavoritesCount(0);
             setRecentSearchesCount(0);
-            setPartnerAuth(null);
 
             // 4. Return to root which restarts onboarding cleanly
             router.replace('/');
@@ -833,7 +827,7 @@ export default function ProfileScreen() {
             <View
               style={[
                 styles.storageRow,
-                partnerAuth ? { borderBottomColor: palette.line } : { borderBottomWidth: 0 },
+                { borderBottomWidth: 0 },
               ]}
             >
               <View
@@ -886,56 +880,6 @@ export default function ProfileScreen() {
                 )}
               </View>
             </View>
-
-            {/* Row 5: Pharmacy Portal Sign-In (Rendered ONLY when signed in. NEVER display PIN!) */}
-            {partnerAuth && (
-              <View style={[styles.storageRow, { borderBottomWidth: 0 }]}>
-                <View
-                  style={[
-                    styles.storageIconBox,
-                    {
-                      backgroundColor:
-                        scheme === 'light'
-                          ? 'rgba(168, 85, 247, 0.14)'
-                          : 'rgba(192, 132, 252, 0.2)',
-                      borderColor:
-                        scheme === 'light'
-                          ? 'rgba(168, 85, 247, 0.3)'
-                          : 'rgba(192, 132, 252, 0.4)',
-                    },
-                  ]}
-                >
-                  <StaffBadgeIcon
-                    size={18}
-                    color={scheme === 'light' ? '#9333EA' : '#C084FC'}
-                  />
-                </View>
-
-                <View style={styles.storageItemInfo}>
-                  <Text style={[styles.storageItemTitle, { color: palette.ink }]}>
-                    {t('pharmacy_portal_title', 'Pharmacy Portal')}
-                  </Text>
-                  <Text style={[styles.storageItemSubtitle, { color: palette.ink2 }]}>
-                    {partnerAuth.pharmacyName}
-                  </Text>
-                </View>
-
-                <View style={styles.rowActions}>
-                  <Pressable
-                    onPress={handleSignOutPortal}
-                    hitSlop={8}
-                    accessible={true}
-                    accessibilityRole="button"
-                    accessibilityLabel="Sign out of pharmacy portal"
-                    style={[styles.clearBtn, { borderColor: palette.line }]}
-                  >
-                    <Text style={[styles.clearBtnText, { color: theme.urgentAccent }]}>
-                      {t('sign_out', 'Sign out')}
-                    </Text>
-                  </Pressable>
-                </View>
-              </View>
-            )}
           </View>
 
           {/* Section 5: Emergency & Safety References */}
@@ -999,7 +943,61 @@ export default function ProfileScreen() {
             </Pressable>
           </View>
 
-          {/* Section 6: Clear Everything (Full Reset) */}
+          {/* Section 6: Change Role */}
+          <View
+            style={[
+              styles.card,
+              {
+                backgroundColor: palette.surface,
+                borderColor: palette.line,
+              },
+            ]}
+          >
+            <Pressable
+              testID="profile-change-role-btn"
+              onPress={handleChangeRole}
+              accessible={true}
+              accessibilityRole="button"
+              accessibilityLabel="Change role"
+              style={[styles.storageRow, { borderBottomWidth: 0 }]}
+            >
+              <View
+                style={[
+                  styles.storageIconBox,
+                  {
+                    backgroundColor:
+                      scheme === 'light'
+                        ? 'rgba(13, 148, 136, 0.14)'
+                        : 'rgba(45, 212, 191, 0.18)',
+                    borderColor:
+                      scheme === 'light'
+                        ? 'rgba(13, 148, 136, 0.3)'
+                        : 'rgba(45, 212, 191, 0.35)',
+                  },
+                ]}
+              >
+                <RefreshIcon
+                  size={18}
+                  color={scheme === 'light' ? '#0D9488' : '#2DD4BF'}
+                />
+              </View>
+
+              <View style={styles.storageItemInfo}>
+                <Text style={[styles.storageItemTitle, { color: palette.ink }]}>
+                  {t('change_role', 'Change role')}
+                </Text>
+                <Text style={[styles.storageItemSubtitle, { color: palette.ink2 }]}>
+                  {t('change_role_sub', 'Switch between customer and pharmacy staff')}
+                </Text>
+              </View>
+
+              <View style={styles.rowActions}>
+                <ChevronRightIcon size={18} color={palette.ink2} />
+              </View>
+            </Pressable>
+          </View>
+
+          {/* Section 7: Clear Everything (Full Reset) */}
           <View
             style={[
               styles.dangerCard,
@@ -1024,7 +1022,7 @@ export default function ProfileScreen() {
                   {t('clear_everything', 'Clear everything')}
                 </Text>
                 <Text style={[styles.dangerSubtitle, { color: theme.emergencyText }]}>
-                  {t('clear_everything_sub', 'Deletes all profile data, medicine box items, searches, and portal sign-in. Theme and language settings will be kept.')}
+                  {t('clear_everything_sub', 'Deletes all profile data, medicine box items, and searches. Theme and language settings will be kept.')}
                 </Text>
               </View>
             </View>

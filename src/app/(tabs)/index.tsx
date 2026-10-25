@@ -653,27 +653,6 @@ export default function HomeScreen() {
             </Text>
           </View>
         </View>
-
-        {/* PHARMACY STAFF PORTAL QUICK LINK */}
-        <Pressable
-          onPress={() => router.push('/portal')}
-          accessible={true}
-          accessibilityRole="button"
-          accessibilityLabel="Pharmacy Staff Portal: 1-tap stock update"
-          style={({ pressed }) => [
-            styles.staffPortalLink,
-            {
-              backgroundColor: palette.surface,
-              borderColor: palette.line,
-              opacity: pressed ? 0.85 : 1.0,
-            },
-          ]}
-        >
-          <StaffBadgeIcon size={16} color={palette.ink2} />
-          <Text style={[styles.staffPortalLinkText, { color: palette.ink2 }]}>
-            {t('pharmacy_portal_prompt', 'Pharmacy Operator? Update stock in Staff Portal →')}
-          </Text>
-        </Pressable>
       </ScrollView>
       </AnimatedScreenTransition>
 
@@ -1115,15 +1094,30 @@ export default function HomeScreen() {
                 <ChevronRightIcon size={18} color={palette.ink2} />
               </Pressable>
 
-              {/* Item: Pharmacy Staff Portal */}
+              {/* Item: Change role */}
               <Pressable
+                testID="settings-change-role-btn"
                 onPress={() => {
                   setShowSettingsModal(false);
-                  router.push('/portal');
+                  Alert.alert(
+                    t('change_role', 'Change role?'),
+                    t('change_role_confirm_msg', 'This takes you back to the start.'),
+                    [
+                      { text: t('cancel', 'Cancel'), style: 'cancel' },
+                      {
+                        text: t('change_role', 'Change role'),
+                        style: 'destructive',
+                        onPress: async () => {
+                          await updateProfile({ role: null });
+                          router.replace('/');
+                        },
+                      },
+                    ]
+                  );
                 }}
                 accessible={true}
                 accessibilityRole="button"
-                accessibilityLabel="Pharmacy Staff Portal"
+                accessibilityLabel="Change role"
                 style={[
                   styles.settingsRowItem,
                   { borderBottomColor: palette.line },
@@ -1135,26 +1129,26 @@ export default function HomeScreen() {
                     {
                       backgroundColor:
                         scheme === 'light'
-                          ? 'rgba(168, 85, 247, 0.16)'
-                          : 'rgba(192, 132, 252, 0.2)',
+                          ? 'rgba(13, 148, 136, 0.14)'
+                          : 'rgba(45, 212, 191, 0.18)',
                       borderColor:
                         scheme === 'light'
-                          ? 'rgba(168, 85, 247, 0.35)'
-                          : 'rgba(192, 132, 252, 0.4)',
+                          ? 'rgba(13, 148, 136, 0.3)'
+                          : 'rgba(45, 212, 191, 0.35)',
                     },
                   ]}
                 >
-                  <StaffBadgeIcon
+                  <RefreshIcon
                     size={18}
-                    color={scheme === 'light' ? '#9333EA' : '#C084FC'}
+                    color={scheme === 'light' ? '#0D9488' : '#2DD4BF'}
                   />
                 </View>
                 <View style={styles.settingsItemInfo}>
                   <Text style={[styles.settingsItemTitle, { color: palette.ink }]}>
-                    {t('staff_portal', 'Pharmacy Staff Portal')}
+                    {t('change_role', 'Change role')}
                   </Text>
                   <Text style={[styles.settingsItemSubtitle, { color: palette.ink2 }]}>
-                    {t('staff_portal_subtitle', 'Submit quick stock updates')}
+                    {t('change_role_sub', 'Switch between customer and pharmacy staff')}
                   </Text>
                 </View>
                 <ChevronRightIcon size={18} color={palette.ink2} />
@@ -2021,24 +2015,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 17,
     flex: 1,
-  },
-
-  staffPortalLink: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-    borderRadius: radii.chip,
-    borderWidth: 1,
-    borderStyle: 'dashed',
-    marginTop: 4,
-  },
-  staffPortalLinkText: {
-    fontFamily: fonts.sansMedium,
-    fontSize: 13,
-    fontWeight: '500',
   },
 
   // MODALS

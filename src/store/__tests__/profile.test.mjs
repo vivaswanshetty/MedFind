@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { mapSwipeAnswers, DEFAULT_PROFILE } from '../profile.ts';
 
 test('Profile Store - DEFAULT_PROFILE integrity', () => {
+  assert.equal(DEFAULT_PROFILE.role, null);
   assert.equal(DEFAULT_PROFILE.onboardingComplete, false);
   assert.equal(DEFAULT_PROFILE.onboardingSkippedAt, null);
   assert.equal(DEFAULT_PROFILE.dismissedSetupCard, false);

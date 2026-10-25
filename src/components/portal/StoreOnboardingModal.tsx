@@ -29,12 +29,14 @@ interface StoreOnboardingModalProps {
   pharmacies: Pharmacy[];
   onComplete: (auth: StorePartnerAuth) => void;
   onCancel?: () => void;
+  cancelLabel?: string;
 }
 
 export function StoreOnboardingModal({
   pharmacies,
   onComplete,
   onCancel,
+  cancelLabel,
 }: StoreOnboardingModalProps) {
   const insets = useSafeAreaInsets();
   const { palette } = useTheme();
@@ -125,12 +127,14 @@ export function StoreOnboardingModal({
       <View style={[styles.headerBar, { paddingTop }]}>
         {onCancel ? (
           <Pressable
+            testID="store-onboarding-cancel-btn"
             onPress={onCancel}
             accessible={true}
             accessibilityRole="button"
-            accessibilityLabel="Close onboarding and exit"
+            accessibilityLabel={cancelLabel || 'Close onboarding and exit'}
             style={({ pressed }) => [
               styles.navIconButton,
+              cancelLabel ? styles.cancelLabelButton : null,
               {
                 backgroundColor: palette.surface,
                 borderColor: palette.line,
@@ -138,7 +142,21 @@ export function StoreOnboardingModal({
               },
             ]}
           >
-            <CloseIcon size={18} color={palette.ink} />
+            {cancelLabel ? (
+              <>
+                <BackArrowIcon size={16} color={palette.ink} />
+                <Text
+                  style={[
+                    styles.cancelLabelText,
+                    { color: palette.ink, fontFamily: fonts.sansBold },
+                  ]}
+                >
+                  {cancelLabel}
+                </Text>
+              </>
+            ) : (
+              <CloseIcon size={18} color={palette.ink} />
+            )}
           </Pressable>
         ) : (
           <View style={styles.navIconButtonPlaceholder} />
@@ -704,6 +722,15 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  cancelLabelButton: {
+    width: 'auto',
+    flexDirection: 'row',
+    paddingHorizontal: 12,
+    gap: 6,
+  },
+  cancelLabelText: {
+    fontSize: 13,
   },
   navIconButtonPlaceholder: {
     width: 44,

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, StyleSheet } from 'react-native';
-import { Stack, useRouter } from 'expo-router';
+import { Stack, useRouter, usePathname } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -20,6 +20,7 @@ import { ThemeProvider, useTheme } from '../theme/ThemeContext';
 import { LocationProvider } from '../context/LocationContext';
 import { LanguageProvider } from '../context/LanguageContext';
 import { SplashIntro } from '../components/onboarding/SplashIntro';
+import { RolePicker, UserRoleChoice } from '../components/onboarding/RolePicker';
 import { WhoPicker, WhoOption } from '../components/onboarding/WhoPicker';
 import { AgePicker, AgeGroup } from '../components/onboarding/AgePicker';
 import { SwipeCards } from '../components/onboarding/SwipeCards';
@@ -29,16 +30,25 @@ import { LocationStep } from '../components/onboarding/LocationStep';
 import { AllDone } from '../components/onboarding/AllDone';
 import { EmergencySkip } from '../components/onboarding/EmergencySkip';
 import { BuddyProfile } from '../lib/buddy';
-import { ProfileProvider, useProfile, mapSwipeAnswers } from '../store/profile';
+import { ProfileProvider, useProfile, mapSwipeAnswers, UserRole } from '../store/profile';
 import { MedicineBoxProvider } from '../store/medicineBox';
 import { fonts } from '../constants/theme';
 
+import { resolveRouteAccess } from '../lib/routeGuard';
+export { resolveRouteAccess };
+
 function RootNavigation() {
   const router = useRouter();
+  const pathname = usePathname();
   const { scheme, palette } = useTheme();
   const { profile, isLoading, saveProfile, updateProfile } = useProfile();
-  const needsOnboarding = !profile.onboardingComplete && !profile.onboardingSkippedAt;
+
+  const needsOnboarding =
+    profile.role === null ||
+    (profile.role === 'customer' && !profile.onboardingComplete && !profile.onboardingSkippedAt);
+
   const [showSplash, setShowSplash] = useState(true);
+  const [showRolePicker, setShowRolePicker] = useState(false);
   const [showWhoPicker, setShowWhoPicker] = useState(false);
   const [showAgePicker, setShowAgePicker] = useState(false);
   const [showSwipeCards, setShowSwipeCards] = useState(false);
@@ -52,23 +62,74 @@ function RootNavigation() {
   const [selectedBuddy, setSelectedBuddy] = useState<BuddyProfile | null>(null);
   const [displayName, setDisplayName] = useState<string | null>(null);
 
-  // Re-launch onboarding flow if resetProfile is triggered (e.g. from dev settings) or restart onboarding
+  // Re-launch role selection / onboarding if role becomes null or answers reset
   React.useEffect(() => {
-    if (!isLoading && !profile.onboardingComplete && !profile.onboardingSkippedAt && !showSplash) {
-      if (!showWhoPicker && !showAgePicker && !showSwipeCards && !showBuddyReveal && !showNamePicker && !showLocationStep && !showAllDone) {
-        setSelectedWho(null);
-        setSelectedAge(null);
-        setQuickAnswers(null);
-        setSelectedBuddy(null);
-        setDisplayName(null);
+    if (!isLoading && !showSplash) {
+      if (profile.role === null) {
+        if (!showRolePicker) {
+          setShowWhoPicker(false);
+          setShowAgePicker(false);
+          setShowSwipeCards(false);
+          setShowBuddyReveal(false);
+          setShowNamePicker(false);
+          setShowLocationStep(false);
+          setShowAllDone(false);
+          setShowRolePicker(true);
+        }
+      } else if (
+        profile.role === 'customer' &&
+        !profile.onboardingComplete &&
+        !profile.onboardingSkippedAt &&
+        !showRolePicker &&
+        !showWhoPicker &&
+        !showAgePicker &&
+        !showSwipeCards &&
+        !showBuddyReveal &&
+        !showNamePicker &&
+        !showLocationStep &&
+        !showAllDone
+      ) {
         setShowWhoPicker(true);
       }
     }
-  }, [profile.onboardingComplete, profile.onboardingSkippedAt, isLoading, showSplash, showWhoPicker, showAgePicker, showSwipeCards, showBuddyReveal, showNamePicker, showLocationStep, showAllDone]);
+  }, [
+    profile.role,
+    profile.onboardingComplete,
+    profile.onboardingSkippedAt,
+    isLoading,
+    showSplash,
+    showRolePicker,
+    showWhoPicker,
+    showAgePicker,
+    showSwipeCards,
+    showBuddyReveal,
+    showNamePicker,
+    showLocationStep,
+    showAllDone,
+  ]);
+
+  // Route access guard effect
+  React.useEffect(() => {
+    if (isLoading) return;
+    const redirectTarget = resolveRouteAccess(profile.role, pathname);
+    if (redirectTarget && redirectTarget !== pathname) {
+      router.replace(redirectTarget as any);
+    }
+  }, [profile.role, pathname, isLoading, router]);
+
+  const handleSelectRole = async (role: UserRoleChoice) => {
+    await updateProfile({ role });
+    setShowRolePicker(false);
+    if (role === 'customer') {
+      setShowWhoPicker(true);
+    } else {
+      router.replace('/(pharmacy)');
+    }
+  };
 
   const handleEmergencySkip = async () => {
-    // 1. Dismiss splash and all onboarding steps immediately
     setShowSplash(false);
+    setShowRolePicker(false);
     setShowWhoPicker(false);
     setShowAgePicker(false);
     setShowSwipeCards(false);
@@ -77,24 +138,23 @@ function RootNavigation() {
     setShowLocationStep(false);
     setShowAllDone(false);
 
-    // 2. Discard partial in-progress answers
     setSelectedWho(null);
     setSelectedAge(null);
     setQuickAnswers(null);
     setSelectedBuddy(null);
     setDisplayName(null);
 
-    // 3. Mark onboarding as skipped with ISO timestamp without completing onboarding
     await updateProfile({
+      role: 'customer',
       onboardingSkippedAt: new Date().toISOString(),
     });
 
-    // 4. Navigate straight to the Emergency tab (not Home)
     router.replace('/(tabs)/emergency');
   };
 
   const isOnboardingActive =
     showSplash ||
+    showRolePicker ||
     showWhoPicker ||
     showAgePicker ||
     showSwipeCards ||
@@ -118,6 +178,12 @@ function RootNavigation() {
       >
         <Stack.Screen
           name="(tabs)"
+          options={{
+            headerShown: false,
+          }}
+        />
+        <Stack.Screen
+          name="(pharmacy)"
           options={{
             headerShown: false,
           }}
@@ -159,7 +225,7 @@ function RootNavigation() {
           }}
         />
       </Stack>
-      {/* Prevent Home page from flashing through during splash or onboarding transitions */}
+      {/* Prevent underlying screens from flashing through during splash or onboarding transitions */}
       {needsOnboarding && (
         <View
           style={[
@@ -174,11 +240,18 @@ function RootNavigation() {
           fadeOut={!needsOnboarding}
           onDone={() => {
             setShowSplash(false);
-            if (needsOnboarding) {
+            if (profile.role === null) {
+              setShowRolePicker(true);
+            } else if (profile.role === 'customer' && needsOnboarding) {
               setShowWhoPicker(true);
+            } else if (profile.role === 'pharmacist') {
+              router.replace('/(pharmacy)');
             }
           }}
         />
+      )}
+      {showRolePicker && (
+        <RolePicker onSelect={handleSelectRole} />
       )}
       {showWhoPicker && (
         <WhoPicker
@@ -242,6 +315,7 @@ function RootNavigation() {
           onDone={async () => {
             const answersObj = quickAnswers ? mapSwipeAnswers(quickAnswers) : null;
             await saveProfile({
+              role: 'customer',
               who: selectedWho,
               ageGroup: selectedAge,
               answers: answersObj,
