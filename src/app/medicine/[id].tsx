@@ -14,6 +14,7 @@ import {
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../theme/ThemeContext';
+import { useLanguage } from '../../context/LanguageContext';
 import { fonts, radii, MIN_TARGET } from '../../constants/theme';
 import { AtmosphereBackground } from '../../components/AtmosphereBackground';
 import { AnimatedScreenTransition } from '../../components/AnimatedScreenTransition';
@@ -44,6 +45,7 @@ export default function MedicineDetailScreen() {
   const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { scheme, palette } = useTheme();
+  const { t } = useLanguage();
 
   const [item, setItem] = useState<MedicineSearchResultItem | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -174,9 +176,10 @@ export default function MedicineDetailScreen() {
   }
 
   const isReported = item.isReported === true;
+  const isSampleData = item.isSampleData ?? true;
 
   // Format availability badge
-  let availabilityLabel = 'Availability unrecorded';
+  let availabilityLabel = t('unreported', 'Call store to verify');
   let availabilityBg = palette.naTint;
   let availabilityColor = palette.naInk;
   let availabilityIcon = <CircleHelpIcon size={16} color={palette.naInk} />;
@@ -394,7 +397,7 @@ export default function MedicineDetailScreen() {
             >
               <ShieldCheckIcon size={14} color={palette.okInk} />
               <Text style={[styles.sourceAttributionText, { color: palette.ink2 }]}>
-                Verified listing • {item.sourceName} • {item.verifiedDate || 'Oct 2026'}
+                {isSampleData ? t('sample_data_badge', 'Sample data') : 'Verified listing'} • {item.sourceName} • {item.verifiedDate || 'Oct 2026'}
               </Text>
             </View>
           )}
@@ -466,11 +469,11 @@ export default function MedicineDetailScreen() {
           <View style={styles.noticeHeaderRow}>
             <ShieldCheckIcon size={16} color={palette.okInk} />
             <Text style={[styles.noticeTitle, { color: palette.ink }]}>
-              Verified Pharmacy Stock
+              {isSampleData ? t('sample_data_badge', 'Sample data') : t('verified_stock_title', 'Verified Pharmacy Stock')}
             </Text>
           </View>
           <Text style={[styles.noticeBody, { color: palette.ink2 }]}>
-            Stock is confirmed directly by pharmacy staff. Real-time availability for Bengaluru.
+            {isSampleData ? t('sample_data_notice', 'Sample data for demonstration. Call the pharmacy to confirm stock.') : t('verified_stock_desc', 'Stock is confirmed directly by pharmacy staff.')}
           </Text>
         </View>
       </ScrollView>

@@ -26,7 +26,7 @@ import {
   searchMedicineStock,
   MedicineSearchResultItem,
 } from '../../services/medicineSearch';
-import { sortListingsByDistance, formatDistance, isWithinCoverageArea } from '../../services/locationService';
+import { sortListingsByDistance, formatDistanceOrNull, isWithinCoverageArea } from '../../services/locationService';
 import { storageService } from '../../services/storageService';
 import {
   BackArrowIcon,
@@ -74,6 +74,7 @@ export default function SearchScreen() {
   const [selectedDosageForm, setSelectedDosageForm] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
   const [searchResults, setSearchResults] = useState<MedicineSearchResultItem[]>([]);
+  const [isSampleData, setIsSampleData] = useState<boolean>(true);
   const [selectedRecordId, setSelectedRecordId] = useState<string | null>(null);
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
 
@@ -142,6 +143,7 @@ export default function SearchScreen() {
         const response = await searchMedicineStock(query, selectedDosageForm || 'All');
         if (!isCancelled) {
           setSearchResults(response.results);
+          setIsSampleData(response.isSampleData ?? true);
           if (response.results.length > 0) {
             setSelectedRecordId((prev) => {
               const stillExists = response.results.some((r) => r.medicineId === prev);
@@ -206,8 +208,26 @@ export default function SearchScreen() {
     ? groups.find((g) => g.medicineId === selectedRecordId) || groups[0] || null
     : null;
 
+  const activeRecordResult = searchResults.find((r) => r.medicineId === activeRecord?.medicineId);
+  const currentIsSample = activeRecordResult ? activeRecordResult.isSampleData : isSampleData;
+
   // Participating stores with verified coordinates around Basavanagudi
-  const baseStores = [
+  const baseStores: Array<{
+    id: string;
+    pharmacyName: string;
+    pharmacyAddress: string;
+    pharmacyPhone: string;
+    latitude: number;
+    longitude: number;
+    distanceKm?: number;
+    verifiedDate: string;
+    toneStatus: 'available' | 'low_stock' | 'stale' | 'na';
+    freshnessTone: 'ok' | 'warn' | 'stale' | 'na';
+    freshnessLabel: string;
+    statusLabel: string;
+    verifyTimeText: string;
+    callButtonLabel: string;
+  }> = [
     {
       id: `${activeRecord?.medicineId || 'med'}-pharm-002`,
       pharmacyName: 'Lalbagh Road Pharmacy',
@@ -215,10 +235,9 @@ export default function SearchScreen() {
       pharmacyPhone: '080-26702200',
       latitude: 12.9510,
       longitude: 77.5850,
-      distanceKm: 0.6,
       verifiedDate: '14 Oct',
-      toneStatus: 'available' as const,
-      freshnessTone: 'ok' as const,
+      toneStatus: 'available',
+      freshnessTone: 'ok',
       freshnessLabel: 'Recent',
       statusLabel: 'Available',
       verifyTimeText: 'Verified by pharmacy 12 min ago • 10:42 AM',
@@ -231,10 +250,9 @@ export default function SearchScreen() {
       pharmacyPhone: '080-26613300',
       latitude: 12.9430,
       longitude: 77.5710,
-      distanceKm: 1.1,
       verifiedDate: '14 Oct',
-      toneStatus: 'low_stock' as const,
-      freshnessTone: 'warn' as const,
+      toneStatus: 'low_stock',
+      freshnessTone: 'warn',
       freshnessLabel: 'Aging',
       statusLabel: 'Low stock',
       verifyTimeText: 'Verified by pharmacy 1 h 14 min ago • 9:40 AM',
@@ -247,10 +265,9 @@ export default function SearchScreen() {
       pharmacyPhone: '080-26624400',
       latitude: 12.9400,
       longitude: 77.5680,
-      distanceKm: 1.8,
       verifiedDate: '14 Oct',
-      toneStatus: 'stale' as const,
-      freshnessTone: 'stale' as const,
+      toneStatus: 'stale',
+      freshnessTone: 'stale',
       freshnessLabel: 'Stale',
       statusLabel: 'Available',
       verifyTimeText: 'Update is 3 h old, call first • 7:54 AM',
@@ -263,10 +280,9 @@ export default function SearchScreen() {
       pharmacyPhone: '080-26601100',
       latitude: 12.9380,
       longitude: 77.5760,
-      distanceKm: 2.4,
       verifiedDate: '14 Oct',
-      toneStatus: 'na' as const,
-      freshnessTone: 'na' as const,
+      toneStatus: 'na',
+      freshnessTone: 'na',
       freshnessLabel: 'No current record',
       statusLabel: 'Unknown',
       verifyTimeText: 'No valid stock update on file. Confirm with the pharmacy.',
@@ -595,10 +611,10 @@ export default function SearchScreen() {
               <ShieldCheckIcon size={20} color={palette.okInk} />
               <View style={styles.guideCardTextGroup}>
                 <Text style={[styles.guideCardTitle, { color: palette.ink }]}>
-                  {t('verified_network', 'Verified Bengaluru Network')}
+                  {currentIsSample ? t('sample_data_badge', 'Sample data') : t('verified_network', 'Verified Network')}
                 </Text>
                 <Text style={[styles.guideCardBody, { color: palette.ink2 }]}>
-                  {t('verified_network_desc', 'Stock verified directly with participating pharmacies across Bengaluru.')}
+                  {currentIsSample ? t('sample_data_notice', 'Sample data for demonstration. Call the pharmacy to confirm stock.') : t('verified_network_desc', 'Stock reported directly by participating pharmacies.')}
                 </Text>
               </View>
             </View>
@@ -843,10 +859,10 @@ export default function SearchScreen() {
               <ShieldCheckIcon size={16} color={palette.okInk} />
               <View style={styles.noticeBannerTextGroup}>
                 <Text style={[styles.noticeBannerTitle, { color: palette.ink }]}>
-                  {t('verified_network', 'Verified Bengaluru Network')}
+                  {currentIsSample ? t('sample_data_badge', 'Sample data') : t('verified_network', 'Verified Network')}
                 </Text>
                 <Text style={[styles.noticeBannerBody, { color: palette.ink2 }]}>
-                  {t('verified_network_desc', 'Stock verified directly with participating pharmacies across Bengaluru.')}
+                  {currentIsSample ? t('sample_data_notice', 'Sample data for demonstration. Call the pharmacy to confirm stock.') : t('verified_network_desc', 'Stock reported directly by participating pharmacies.')}
                 </Text>
               </View>
             </View>
@@ -856,14 +872,16 @@ export default function SearchScreen() {
               <Text style={[styles.resultsCountHeading, { color: palette.ink }]}>
                 {pharmacyItems.length} {pharmacyItems.length === 1 ? 'store found' : 'stores found'}
               </Text>
-              <Text style={[styles.resultsSortSubtext, { color: palette.ink2 }]}>
-                Sorted by nearest first
-              </Text>
+              {userLocation && !isOutsideCoverage ? (
+                <Text style={[styles.resultsSortSubtext, { color: palette.ink2 }]}>
+                  Sorted by nearest first
+                </Text>
+              ) : null}
             </View>
 
             {/* Pharmacy Cards List */}
             {pharmacyItems.map((item, idx) => {
-              const distanceString = formatDistance(item.distanceKm) || `${(0.6 + idx * 0.5).toFixed(1)} km`;
+              const distanceString = formatDistanceOrNull(item.distanceKm);
               const toneStatus = item.toneStatus;
               const statusLabel = item.statusLabel;
               const freshnessTone = item.freshnessTone;
@@ -887,9 +905,11 @@ export default function SearchScreen() {
                     <Text style={[styles.pharmacyName, { color: palette.ink }]}>
                       {item.pharmacyName}
                     </Text>
-                    <Text style={[styles.pharmacyDistance, { color: palette.ink }]}>
-                      {distanceString}
-                    </Text>
+                    {distanceString ? (
+                      <Text style={[styles.pharmacyDistance, { color: palette.ink }]}>
+                        {distanceString}
+                      </Text>
+                    ) : null}
                   </View>
 
                   {/* Verification Tag */}

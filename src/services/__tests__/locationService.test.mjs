@@ -8,6 +8,7 @@ import assert from 'node:assert/strict';
 import {
   calculateDistanceKm,
   formatDistance,
+  formatDistanceOrNull,
   sortListingsByDistance,
   PREDEFINED_AREAS,
   cleanLocalityName,
@@ -58,13 +59,32 @@ test('Location Service & Distance Calculation Tests', async (t) => {
     assert.equal(calculateDistanceKm(NaN, 77.5738, 12.9416, 77.5738), null);
   });
 
-  await t.test('Formats distances clearly according to threshold rules', () => {
-    assert.equal(formatDistance(null), null);
-    assert.equal(formatDistance(undefined), null);
-    assert.equal(formatDistance(0.05), 'Nearby (< 100m)');
-    assert.equal(formatDistance(0.4), '400m away');
-    assert.equal(formatDistance(1.4), '1.4 km away');
-    assert.equal(formatDistance(12.8), '12.8 km away');
+  await t.test('formatDistanceOrNull handles under 100 m, under 1 km, normal, over 100 km, and null coordinates', () => {
+    // Under 100 m
+    assert.equal(formatDistanceOrNull(0.05), 'Nearby (< 100m)');
+    assert.equal(formatDistanceOrNull(0.099), 'Nearby (< 100m)');
+
+    // Under 1 km
+    assert.equal(formatDistanceOrNull(0.1), '100m away');
+    assert.equal(formatDistanceOrNull(0.4), '400m away');
+    assert.equal(formatDistanceOrNull(0.99), '990m away');
+
+    // Normal (1 km to 100 km)
+    assert.equal(formatDistanceOrNull(1.0), '1.0 km away');
+    assert.equal(formatDistanceOrNull(1.4), '1.4 km away');
+    assert.equal(formatDistanceOrNull(12.8), '12.8 km away');
+    assert.equal(formatDistanceOrNull(100.0), '100.0 km away');
+
+    // Over 100 km (do not show a distance at all)
+    assert.equal(formatDistanceOrNull(100.1), null);
+    assert.equal(formatDistanceOrNull(150), null);
+    assert.equal(formatDistanceOrNull(8024), null);
+
+    // Null, undefined, NaN, and negative coordinates
+    assert.equal(formatDistanceOrNull(null), null);
+    assert.equal(formatDistanceOrNull(undefined), null);
+    assert.equal(formatDistanceOrNull(NaN), null);
+    assert.equal(formatDistanceOrNull(-1), null);
   });
 
   await t.test('Predefined areas list has valid real Bengaluru coordinates', () => {

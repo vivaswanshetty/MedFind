@@ -269,11 +269,23 @@ export function calculateDistanceKm(
   return Math.round(d * 10) / 10; // Rounded to 1 decimal place, e.g. 1.4 km
 }
 
+export const MAX_DISPLAY_DISTANCE_KM = 100;
+
 /**
- * Format distance in a user-friendly string
+ * Returns a user-friendly distance string (e.g. "Nearby (< 100m)", "450m away", "2.4 km away"),
+ * or null if:
+ * - distance is null, undefined, or NaN
+ * - distance is negative
+ * - distance is farther than 100 km (avoids misleading long-distance claims)
  */
-export function formatDistance(distanceKm?: number | null): string | null {
-  if (distanceKm === undefined || distanceKm === null || isNaN(distanceKm)) {
+export function formatDistanceOrNull(distanceKm?: number | null): string | null {
+  if (
+    distanceKm === undefined ||
+    distanceKm === null ||
+    isNaN(distanceKm) ||
+    distanceKm < 0 ||
+    distanceKm > MAX_DISPLAY_DISTANCE_KM
+  ) {
     return null;
   }
 
@@ -287,6 +299,13 @@ export function formatDistance(distanceKm?: number | null): string | null {
   }
 
   return `${distanceKm.toFixed(1)} km away`;
+}
+
+/**
+ * Format distance in a user-friendly string (suppresses distances > 100 km)
+ */
+export function formatDistance(distanceKm?: number | null): string | null {
+  return formatDistanceOrNull(distanceKm);
 }
 
 export interface LocationRequestResult {

@@ -8,6 +8,7 @@ import {
 } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { useTheme } from '../../theme/ThemeContext';
+import { useLanguage } from '../../context/LanguageContext';
 import { fonts, radii } from '../../constants/theme';
 import {
   CrosshairTargetIcon,
@@ -40,6 +41,7 @@ interface InteractiveCareMapProps {
   onInteractionChange?: (isInteracting: boolean) => void;
   onRequestLocation?: () => void;
   onPressArea?: () => void;
+  region?: string;
 }
 
 export function InteractiveCareMap({
@@ -53,8 +55,10 @@ export function InteractiveCareMap({
   onInteractionChange,
   onRequestLocation,
   onPressArea,
+  region = 'Bengaluru',
 }: InteractiveCareMapProps) {
   const { scheme, palette } = useTheme();
+  const { t } = useLanguage();
   const webViewRef = useRef<WebView>(null);
   const [isExpanded, setIsExpanded] = useState(false);
   const [showHint, setShowHint] = useState(true);
@@ -84,12 +88,12 @@ export function InteractiveCareMap({
     if (!webViewRef.current || !userLocation) return;
     const script = `
       if (window.updateUserLocation) {
-        window.updateUserLocation(${userLocation.latitude}, ${userLocation.longitude});
+        window.updateUserLocation(${userLocation.latitude}, ${userLocation.longitude}, ${inCoverage});
       }
       true;
     `;
     webViewRef.current.injectJavaScript(script);
-  }, [userLocation]);
+  }, [userLocation, inCoverage]);
 
   // Dynamically update markers without re-rendering WebView
   useEffect(() => {
@@ -121,8 +125,8 @@ export function InteractiveCareMap({
   const handleRecenter = () => {
     onRequestLocation?.();
     if (!webViewRef.current) return;
-    const targetLat = userLocation?.latitude ?? defaultLat;
-    const targetLng = userLocation?.longitude ?? defaultLng;
+    const targetLat = inCoverage && userLocation ? userLocation.latitude : defaultLat;
+    const targetLng = inCoverage && userLocation ? userLocation.longitude : defaultLng;
     const script = `
       if (window.recenterMap) {
         window.recenterMap(${targetLat}, ${targetLng});
@@ -341,7 +345,7 @@ export function InteractiveCareMap({
             renderMarkers(newList);
           };
 
-          window.updateUserLocation = function(lat, lng) {
+          window.updateUserLocation = function(lat, lng, shouldFly) {
             if (!userMarker) {
               userMarker = L.marker([lat, lng], { icon: userIcon, zIndexOffset: 250 }).addTo(map);
             } else {
@@ -359,7 +363,9 @@ export function InteractiveCareMap({
             } else {
               userAccuracyCircle.setLatLng([lat, lng]);
             }
-            map.flyTo([lat, lng], 15.5, { animate: true, duration: 0.8 });
+            if (shouldFly !== false) {
+              map.flyTo([lat, lng], 15.5, { animate: true, duration: 0.8 });
+            }
           };
 
           window.focusMarker = function(id, lat, lng) {
@@ -476,7 +482,7 @@ export function InteractiveCareMap({
           if (userLocation && webViewRef.current) {
             const script = `
               if (window.updateUserLocation) {
-                window.updateUserLocation(${userLocation.latitude}, ${userLocation.longitude});
+                window.updateUserLocation(${userLocation.latitude}, ${userLocation.longitude}, ${inCoverage});
               }
               true;
             `;
@@ -568,8 +574,23 @@ export function InteractiveCareMap({
         </View>
       </View>
 
-      {/* Gesture Hint Overlay Badge (Auto-fades on interaction) */}
-      {showHint && (
+      {/* Showing region note or gesture hint */}
+      {isOutsideCoverage ? (
+        <View
+          style={[
+            styles.regionNotePill,
+            {
+              backgroundColor: palette.surface,
+              borderColor: palette.line,
+            },
+          ]}
+          pointerEvents="none"
+        >
+          <Text style={[styles.regionNoteText, { color: palette.ink2 }]}>
+            {t('showing_region', 'Showing {region}').replace('{region}', region)}
+          </Text>
+        </View>
+      ) : showHint ? (
         <View
           style={[
             styles.gestureHintPill,
@@ -584,7 +605,7 @@ export function InteractiveCareMap({
             ✌️ Pinch to zoom • Drag to explore
           </Text>
         </View>
-      )}
+      ) : null}
 
       {/* Floating Bottom Right Controls (Fit All, Recenter, Zoom In, Zoom Out) */}
       <View style={styles.floatingControlsGroup}>
@@ -775,6 +796,25 @@ const styles = StyleSheet.create({
     zIndex: 9,
   },
   gestureHintText: {
+    fontFamily: fonts.sansMedium,
+    fontSize: 11,
+  },
+  regionNotePill: {
+    position: 'absolute',
+    bottom: 12,
+    left: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: radii.pill,
+    borderWidth: 1,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
+    zIndex: 9,
+  },
+  regionNoteText: {
     fontFamily: fonts.sansMedium,
     fontSize: 11,
   },

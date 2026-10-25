@@ -45,6 +45,7 @@ export interface MedicineSearchResultItem {
   updatedAt: string;
   isDemo: boolean;
   isReported: boolean;
+  isSampleData: boolean;
   sourceType: DirectorySourceType | 'unreported';
   sourceName?: string;
   sourceUrl?: string;
@@ -54,6 +55,7 @@ export interface MedicineSearchResultItem {
 
 export interface MedicineSearchResponse {
   dataSource: DataSource;
+  isSampleData: boolean;
   results: MedicineSearchResultItem[];
   totalPublishedInDb: number;
   errorMessage?: string;
@@ -82,6 +84,7 @@ export async function searchMedicineStock(
   if (!isSupabaseConfigured || !supabase) {
     return {
       dataSource: 'demo',
+      isSampleData: true,
       results: getFilteredDemoResults(normalizedQuery, filterDosage),
       totalPublishedInDb: 0,
     };
@@ -98,6 +101,7 @@ export async function searchMedicineStock(
       // Fallback cleanly to verified local catalog
       return {
         dataSource: 'demo',
+        isSampleData: true,
         results: getFilteredDemoResults(normalizedQuery, filterDosage),
         totalPublishedInDb: 0,
         errorMessage: 'Showing verified essential medicine catalog.',
@@ -108,6 +112,7 @@ export async function searchMedicineStock(
     if (!totalDbRecords || totalDbRecords === 0) {
       return {
         dataSource: 'demo',
+        isSampleData: true,
         results: getFilteredDemoResults(normalizedQuery, filterDosage),
         totalPublishedInDb: 0,
       };
@@ -136,6 +141,7 @@ export async function searchMedicineStock(
       console.warn('Supabase search query failed:', queryError.message);
       return {
         dataSource: 'demo',
+        isSampleData: true,
         results: getFilteredDemoResults(normalizedQuery, filterDosage),
         totalPublishedInDb: totalDbRecords,
         errorMessage: 'Showing verified essential medicine catalog.',
@@ -143,34 +149,40 @@ export async function searchMedicineStock(
     }
 
     // Map database records into uniform view model
-    const results: MedicineSearchResultItem[] = (dbData || []).map((row) => ({
-      id: `${row.medicine_id}-${row.pharmacy_id}`,
-      medicineId: row.medicine_id,
-      genericName: row.generic_name,
-      brandName: row.brand_name,
-      strength: row.strength,
-      dosageForm: row.dosage_form,
-      pharmacyId: row.pharmacy_id,
-      pharmacyName: row.pharmacy_name,
-      pharmacyAddress: row.pharmacy_address,
-      pharmacyPhone: row.pharmacy_phone,
-      latitude: row.pharmacy_latitude ?? row.latitude ?? null,
-      longitude: row.pharmacy_longitude ?? row.longitude ?? null,
-      openingHours: row.opening_hours,
-      verifiedAt: row.verified_at,
-      state: row.state as StockState,
-      updatedAt: row.updated_at,
-      isDemo: Boolean(row.is_demo),
-      isReported: Boolean(row.state && row.state !== 'unknown'),
-      sourceType: (row.source_type as DirectorySourceType) || 'provider_confirmed',
-      sourceName: row.source_name || 'Participating Pharmacy Report',
-      sourceUrl: row.source_url,
-      verifiedDate: row.verified_date,
-      freshness: calculateFreshness(row.updated_at, new Date(), Boolean(row.is_demo)),
-    }));
+    const results: MedicineSearchResultItem[] = (dbData || []).map((row) => {
+      const hasReportedTimestamp = Boolean(row.updated_at && row.state && row.state !== 'unknown');
+      const itemIsSample = Boolean(row.is_demo || !hasReportedTimestamp);
+      return {
+        id: `${row.medicine_id}-${row.pharmacy_id}`,
+        medicineId: row.medicine_id,
+        genericName: row.generic_name,
+        brandName: row.brand_name,
+        strength: row.strength,
+        dosageForm: row.dosage_form,
+        pharmacyId: row.pharmacy_id,
+        pharmacyName: row.pharmacy_name,
+        pharmacyAddress: row.pharmacy_address,
+        pharmacyPhone: row.pharmacy_phone,
+        latitude: row.pharmacy_latitude ?? row.latitude ?? null,
+        longitude: row.pharmacy_longitude ?? row.longitude ?? null,
+        openingHours: row.opening_hours,
+        verifiedAt: row.verified_at,
+        state: row.state as StockState,
+        updatedAt: row.updated_at,
+        isDemo: Boolean(row.is_demo),
+        isReported: Boolean(row.state && row.state !== 'unknown'),
+        isSampleData: itemIsSample,
+        sourceType: (row.source_type as DirectorySourceType) || 'provider_confirmed',
+        sourceName: row.source_name || 'Participating Pharmacy Report',
+        sourceUrl: row.source_url,
+        verifiedDate: row.verified_date,
+        freshness: calculateFreshness(row.updated_at, new Date(), Boolean(row.is_demo)),
+      };
+    });
 
     return {
       dataSource: 'database',
+      isSampleData: results.length === 0 ? false : results.every((r) => r.isSampleData),
       results,
       totalPublishedInDb: totalDbRecords,
     };
@@ -179,6 +191,7 @@ export async function searchMedicineStock(
     console.warn('Unexpected error in searchMedicineStock:', errorMsg);
     return {
       dataSource: 'demo',
+      isSampleData: true,
       results: getFilteredDemoResults(normalizedQuery, filterDosage),
       totalPublishedInDb: 0,
       errorMessage: 'Showing verified local healthcare catalog.',
@@ -234,13 +247,14 @@ function getFilteredDemoResults(
           verifiedAt: pharmacy?.verified_at || null,
           state: snap.state,
           updatedAt: snap.updated_at,
-          isDemo: false,
+          isDemo: true,
           isReported: true,
+          isSampleData: true,
           sourceType: 'provider_confirmed',
-          sourceName: 'Participating Pharmacy Staff Report',
+          sourceName: 'Sample Demonstration Report',
           sourceUrl: pharmacy?.source_url || 'https://medfind.local/pilot',
           verifiedDate: '2026-10-22',
-          freshness: calculateFreshness(snap.updated_at, new Date(), false),
+          freshness: calculateFreshness(snap.updated_at, new Date(), true),
         });
       });
     } else {
@@ -255,7 +269,7 @@ function getFilteredDemoResults(
         dosageForm: med.dosage_form,
         pharmacyId: '',
         pharmacyName: 'Participating store report pending',
-        pharmacyAddress: 'Verified against National List of Essential Medicines (NLEM India 2022)',
+        pharmacyAddress: 'Essential Medicine Catalog',
         pharmacyPhone: '',
         latitude: null,
         longitude: null,
@@ -265,8 +279,9 @@ function getFilteredDemoResults(
         updatedAt: '',
         isDemo: false,
         isReported: false,
+        isSampleData: true,
         sourceType: 'unreported',
-        sourceName: 'National List of Essential Medicines (NLEM India 2022)',
+        sourceName: 'Essential Medicine Catalog',
         sourceUrl: 'https://cdsco.gov.in',
         verifiedDate: '2022-09-13',
         freshness: calculateFreshness(null, new Date(), false),

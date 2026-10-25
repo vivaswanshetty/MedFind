@@ -23,7 +23,7 @@ import {
   CategoryFilter,
 } from '../../services/providerService';
 import { ProviderListing } from '../../types/models';
-import { sortListingsByDistance, formatDistance } from '../../services/locationService';
+import { sortListingsByDistance, formatDistanceOrNull, isWithinCoverageArea } from '../../services/locationService';
 import { demoPharmacies } from '../../data/demoData';
 import {
   InfoIcon,
@@ -40,6 +40,10 @@ export default function CareNearbyScreen() {
   const { scheme, palette } = useTheme();
   const { userLocation, areaName, locationSource, requestGpsLocation } = useLocation();
   const { t } = useLanguage();
+
+  const isOutsideCoverage =
+    userLocation !== null &&
+    !isWithinCoverageArea(userLocation);
 
   const [showAreaPickerModal, setShowAreaPickerModal] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
@@ -123,8 +127,8 @@ export default function CareNearbyScreen() {
     };
   }, [selectedCategory]);
 
-  // Sort listings by user location
-  const displayedListings = userLocation
+  // Sort listings by user location within coverage
+  const displayedListings = userLocation && !isOutsideCoverage
     ? sortListingsByDistance(listings, userLocation)
     : listings;
 
@@ -257,7 +261,7 @@ export default function CareNearbyScreen() {
           <ShieldCheckIcon size={18} color={palette.okInk} />
           <View style={styles.disclaimerTextGroup}>
             <Text style={[styles.disclaimerTitle, { color: palette.ink }]}>
-              {t('verified_network', 'Verified Bengaluru Healthcare Network')}
+              {t('sample_care_network', 'Sample healthcare directory for demonstration')}
             </Text>
             <Text style={[styles.disclaimerBody, { color: palette.ink2 }]}>
               Direct phone numbers for hospitals, clinics, ambulance services & pharmacies.
@@ -314,7 +318,7 @@ export default function CareNearbyScreen() {
                 </Pressable>
               </View>
               <Text style={[styles.pinCalloutMeta, { color: palette.ink2 }]}>
-                {selectedListing.distanceKm ? `${formatDistance(selectedListing.distanceKm)} • ` : ''}
+                {formatDistanceOrNull(selectedListing.distanceKm) ? `${formatDistanceOrNull(selectedListing.distanceKm)} • ` : ''}
                 {selectedListing.address}
               </Text>
             </View>
@@ -417,7 +421,7 @@ export default function CareNearbyScreen() {
 
               const distanceText = isAmbulance
                 ? 'Area'
-                : formatDistance(item.distanceKm) || (idx === 0 ? '1.2 km' : '1.9 km');
+                : formatDistanceOrNull(item.distanceKm);
 
               return (
                 <Pressable
@@ -457,9 +461,11 @@ export default function CareNearbyScreen() {
                       </Text>
                     </View>
 
-                    <Text style={[styles.providerDistance, { color: palette.ink }]}>
-                      {distanceText}
-                    </Text>
+                    {distanceText ? (
+                      <Text style={[styles.providerDistance, { color: palette.ink }]}>
+                        {distanceText}
+                      </Text>
+                    ) : null}
                   </View>
 
                   {/* Service Tags Row */}
