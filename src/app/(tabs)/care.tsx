@@ -68,7 +68,7 @@ export default function CareNearbyScreen() {
     { id: 'hospital', label: t('hospitals', 'Hospitals') },
     { id: 'clinic', label: t('clinics', 'Clinics') },
     { id: 'ambulance', label: t('ambulances', 'Ambulance') },
-    { id: 'pharmacy', label: 'Pharmacies' },
+    { id: 'pharmacy', label: t('pharmacies', 'Pharmacies') },
   ];
 
   const statusBarHeight = Platform.OS === 'android' ? (StatusBar.currentHeight ?? 24) : 0;
@@ -339,10 +339,10 @@ export default function CareNearbyScreen() {
             <ShieldCheckIcon size={18} color={palette.accent} />
             <View style={styles.disclaimerTextGroup}>
               <Text style={[styles.disclaimerTitle, { color: palette.ink }]}>
-                Nearby healthcare from OpenStreetMap
+                {t('osm_care_title', 'Nearby healthcare from OpenStreetMap')}
               </Text>
               <Text style={[styles.disclaimerBody, { color: palette.ink2 }]}>
-                Real hospitals, clinics, and pharmacies. Call ahead to confirm hours, emergency availability, or stock.
+                {t('osm_care_body', 'Real hospitals, clinics, and pharmacies. Call ahead to confirm hours, emergency availability, or stock.')}
               </Text>
             </View>
           </View>
@@ -362,7 +362,7 @@ export default function CareNearbyScreen() {
                 {t('sample_care_network', 'Sample healthcare directory for demonstration')}
               </Text>
               <Text style={[styles.disclaimerBody, { color: palette.ink2 }]}>
-                Direct phone numbers for hospitals, clinics, ambulance services & pharmacies.
+                {t('direct_phone_numbers', 'Direct phone numbers for hospitals, clinics, ambulance services & pharmacies.')}
               </Text>
             </View>
           </View>

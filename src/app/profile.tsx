@@ -16,6 +16,7 @@ import {
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../theme/ThemeContext';
+import { useLanguage } from '../context/LanguageContext';
 import { fonts, radii, MIN_TARGET } from '../constants/theme';
 import { AtmosphereBackground } from '../components/AtmosphereBackground';
 import { AnimatedScreenTransition } from '../components/AnimatedScreenTransition';
@@ -104,6 +105,7 @@ export default function ProfileScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { scheme, palette, theme } = useTheme();
+  const { t } = useLanguage();
 
   const { profile, updateProfile, resetProfile } = useProfile();
   const { items: medicineBoxItems, clearAll: clearMedicineBox } = useMedicineBox();
@@ -352,10 +354,10 @@ export default function ProfileScreen() {
 
             <View style={styles.navTitleContainer}>
               <Text style={[styles.screenTitle, { color: palette.ink }]}>
-                Profile & Local Data
+                {t('profile_screen_title', 'Profile & Local Data')}
               </Text>
               <Text style={[styles.screenSubtitle, { color: palette.ink2 }]}>
-                Saved only on this phone
+                {t('saved_only_on_phone', 'Saved only on this phone')}
               </Text>
             </View>
           </View>
@@ -484,10 +486,10 @@ export default function ProfileScreen() {
             ]}
           >
             <Text style={[styles.sectionHeading, { color: palette.ink }]}>
-              Who I'm finding medicine for
+              {t('who_finding_for', "Who I'm finding medicine for")}
             </Text>
             <Text style={[styles.sectionCaption, { color: palette.ink2 }]}>
-              Tailors search results and recommendations
+              {t('tailors_recommendations', 'Tailors search results and recommendations')}
             </Text>
 
             {/* Who Chips */}
@@ -536,10 +538,10 @@ export default function ProfileScreen() {
             <View style={[styles.divider, { backgroundColor: palette.line }]} />
 
             <Text style={[styles.sectionHeading, { color: palette.ink }]}>
-              Age group
+              {t('age_group_title', 'Age group')}
             </Text>
             <Text style={[styles.sectionCaption, { color: palette.ink2 }]}>
-              Used to suggest age-appropriate formulations
+              {t('age_group_sub', 'Used to suggest age-appropriate formulations')}
             </Text>
 
             {/* Age Chips */}
@@ -598,10 +600,10 @@ export default function ProfileScreen() {
             ]}
           >
             <Text style={[styles.sectionHeading, { color: palette.ink }]}>
-              My answers
+              {t('my_answers', 'My answers')}
             </Text>
             <Text style={[styles.sectionCaption, { color: palette.ink2 }]}>
-              Adjust your preferences anytime. Recommendations update immediately.
+              {t('my_answers_sub', 'Adjust your preferences anytime. Recommendations update immediately.')}
             </Text>
 
             <View style={styles.togglesList}>
@@ -649,10 +651,10 @@ export default function ProfileScreen() {
             ]}
           >
             <Text style={[styles.sectionHeading, { color: palette.ink }]}>
-              Saved on this phone
+              {t('saved_on_phone', 'Saved on this phone')}
             </Text>
             <Text style={[styles.sectionCaption, { color: palette.ink2 }]}>
-              Local device storage counts and management
+              {t('saved_on_phone_sub', 'Local device storage counts and management')}
             </Text>
 
             {/* Row 1: Medicine Box */}
@@ -686,7 +688,7 @@ export default function ProfileScreen() {
 
               <View style={styles.storageItemInfo}>
                 <Text style={[styles.storageItemTitle, { color: palette.ink }]}>
-                  Medicine Box
+                  {t('my_medicine_box', 'Medicine Box')}
                 </Text>
                 <Text style={[styles.storageItemSubtitle, { color: palette.ink2 }]}>
                   {medicineBoxItems.length} saved item{medicineBoxItems.length === 1 ? '' : 's'}
@@ -744,7 +746,7 @@ export default function ProfileScreen() {
 
               <View style={styles.storageItemInfo}>
                 <Text style={[styles.storageItemTitle, { color: palette.ink }]}>
-                  Saved Medicines
+                  {t('saved_medicines_title', 'Saved Medicines')}
                 </Text>
                 <Text style={[styles.storageItemSubtitle, { color: palette.ink2 }]}>
                   {favoritesCount} saved item{favoritesCount === 1 ? '' : 's'}
@@ -801,7 +803,7 @@ export default function ProfileScreen() {
 
               <View style={styles.storageItemInfo}>
                 <Text style={[styles.storageItemTitle, { color: palette.ink }]}>
-                  Recent Searches
+                  {t('recent_searches_title', 'Recent Searches')}
                 </Text>
                 <Text style={[styles.storageItemSubtitle, { color: palette.ink2 }]}>
                   {recentSearchesCount} search term{recentSearchesCount === 1 ? '' : 's'}
@@ -819,7 +821,7 @@ export default function ProfileScreen() {
                     style={[styles.clearBtn, { borderColor: palette.line }]}
                   >
                     <Text style={[styles.clearBtnText, { color: theme.urgentAccent }]}>
-                      Clear
+                      {t('clear', 'Clear')}
                     </Text>
                   </Pressable>
                 )}
@@ -857,13 +859,13 @@ export default function ProfileScreen() {
 
               <View style={styles.storageItemInfo}>
                 <Text style={[styles.storageItemTitle, { color: palette.ink }]}>
-                  Location Preference
+                  {t('location_preference_title', 'Location Preference')}
                 </Text>
                 <Text style={[styles.storageItemSubtitle, { color: palette.ink2 }]}>
                   {areaName} • {locationSource === 'gps' ? 'Device GPS' : locationSource === 'manual_area' ? 'Manual area' : 'Default'}
                 </Text>
                 <Text style={[styles.osmPrivacyNotice, { color: palette.ink2 }]}>
-                  Nearby places are looked up with your approximate location using OpenStreetMap servers.
+                  {t('osm_privacy_notice', 'Nearby places are looked up with your approximate location using OpenStreetMap servers.')}
                 </Text>
               </View>
 
@@ -878,7 +880,7 @@ export default function ProfileScreen() {
                     style={[styles.clearBtn, { borderColor: palette.line }]}
                   >
                     <Text style={[styles.clearBtnText, { color: theme.urgentAccent }]}>
-                      Clear
+                      {t('clear', 'Clear')}
                     </Text>
                   </Pressable>
                 )}
@@ -911,7 +913,7 @@ export default function ProfileScreen() {
 
                 <View style={styles.storageItemInfo}>
                   <Text style={[styles.storageItemTitle, { color: palette.ink }]}>
-                    Pharmacy Portal
+                    {t('pharmacy_portal_title', 'Pharmacy Portal')}
                   </Text>
                   <Text style={[styles.storageItemSubtitle, { color: palette.ink2 }]}>
                     {partnerAuth.pharmacyName}
@@ -928,7 +930,7 @@ export default function ProfileScreen() {
                     style={[styles.clearBtn, { borderColor: palette.line }]}
                   >
                     <Text style={[styles.clearBtnText, { color: theme.urgentAccent }]}>
-                      Sign out
+                      {t('sign_out', 'Sign out')}
                     </Text>
                   </Pressable>
                 </View>
@@ -948,10 +950,10 @@ export default function ProfileScreen() {
             ]}
           >
             <Text style={[styles.sectionHeading, { color: palette.ink }]}>
-              Emergency & Country References
+              {t('emergency_country_ref_title', 'Emergency & Country References')}
             </Text>
             <Text style={[styles.sectionCaption, { color: palette.ink2 }]}>
-              Worldwide emergency lines and dialing codes directory
+              {t('emergency_country_ref_sub', 'Worldwide emergency lines and dialing codes directory')}
             </Text>
 
             <Pressable
@@ -984,10 +986,10 @@ export default function ProfileScreen() {
 
               <View style={styles.storageItemInfo}>
                 <Text style={[styles.storageItemTitle, { color: palette.ink }]}>
-                  Worldwide Emergency Directory
+                  {t('worldwide_directory', 'Worldwide Emergency Directory')}
                 </Text>
                 <Text style={[styles.storageItemSubtitle, { color: palette.ink2 }]}>
-                  87 countries • Calling codes • Police, ambulance & fire numbers
+                  {t('worldwide_directory_sub', '87 countries • Calling codes • Police, ambulance & fire numbers')}
                 </Text>
               </View>
 
@@ -1019,10 +1021,10 @@ export default function ProfileScreen() {
 
               <View style={styles.dangerTextGroup}>
                 <Text style={[styles.dangerTitle, { color: theme.emergencyText }]}>
-                  Clear everything
+                  {t('clear_everything', 'Clear everything')}
                 </Text>
                 <Text style={[styles.dangerSubtitle, { color: theme.emergencyText }]}>
-                  Deletes all profile data, medicine box items, searches, and portal sign-in. Theme and language settings will be kept.
+                  {t('clear_everything_sub', 'Deletes all profile data, medicine box items, searches, and portal sign-in. Theme and language settings will be kept.')}
                 </Text>
               </View>
             </View>
@@ -1041,7 +1043,7 @@ export default function ProfileScreen() {
               ]}
             >
               <TrashIcon size={16} color="#FFFFFF" />
-              <Text style={styles.dangerButtonText}>Delete Everything</Text>
+              <Text style={styles.dangerButtonText}>{t('delete_everything_btn', 'Delete Everything')}</Text>
             </Pressable>
           </View>
 
@@ -1049,10 +1051,10 @@ export default function ProfileScreen() {
           <View style={styles.privacyFooter}>
             <ShieldCheckIcon size={16} color={palette.ink2} />
             <Text style={[styles.privacyFooterText, { color: palette.ink2 }]}>
-              Everything here is saved only on this phone.
+              {t('saved_only_on_phone', 'Everything here is saved only on this phone.')}
             </Text>
             <Text style={[styles.privacySubText, { color: palette.ink2 }]}>
-              No tracking: MedFind never records which medicines you view or places you visit.
+              {t('no_tracking_sub', 'No tracking: MedFind never records which medicines you view or places you visit.')}
             </Text>
           </View>
         </ScrollView>

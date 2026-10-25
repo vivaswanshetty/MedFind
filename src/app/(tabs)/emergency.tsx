@@ -291,10 +291,10 @@ export default function EmergencyScreen() {
               </View>
               <View style={styles.directoryTextGroup}>
                 <Text style={[styles.directoryLinkTitle, { color: palette.ink }]}>
-                  Worldwide Emergency Directory
+                  {t('worldwide_directory', 'Worldwide Emergency Directory')}
                 </Text>
                 <Text style={[styles.directoryLinkSubtitle, { color: palette.ink2 }]}>
-                  All 87 country codes, police, ambulance & fire numbers
+                  {t('worldwide_directory_sub', 'All 87 country codes, police, ambulance & fire numbers')}
                 </Text>
               </View>
             </View>
@@ -343,7 +343,7 @@ export default function EmergencyScreen() {
                         {t('call_112', 'Call emergency service')}
                       </Text>
                       <Text style={styles.heroEmergencySubtitle}>
-                        Dial {activeCountry.numbers.general}
+                        {t('dial_prefix', 'Dial')} {activeCountry.numbers.general}
                       </Text>
                     </View>
                   </Pressable>
@@ -352,14 +352,14 @@ export default function EmergencyScreen() {
 
               <Text style={[styles.heroEmergencyCaption, { color: palette.ink2 }]}>
                 {activeCountry.numbers.general
-                  ? `Tapping opens your dialer with ${activeCountry.numbers.general} ready. MedFind does not dispatch help or estimate arrival.`
-                  : 'Tap any service below to open your dialer. MedFind does not dispatch help.'}
+                  ? t('emergency_direct_call_note', 'Tapping opens your dialer with {number} ready. MedFind does not dispatch help or estimate arrival.').replace('{number}', activeCountry.numbers.general)
+                  : t('emergency_direct_tap_note', 'Tap any service below to open your dialer. MedFind does not dispatch help.')}
               </Text>
 
               {/* SPECIFIC SERVICES (POLICE / AMBULANCE / FIRE) */}
               <View style={styles.contactsSection}>
                 <Text style={[styles.contactsSectionHeader, { color: palette.ink2 }]}>
-                  DIRECT SERVICES
+                  {t('direct_services', 'DIRECT SERVICES')}
                 </Text>
 
                 {/* Police */}
@@ -386,10 +386,10 @@ export default function EmergencyScreen() {
 
                     <View style={styles.contactDetails}>
                       <Text style={[styles.contactTitle, { color: palette.ink }]}>
-                        Police
+                        {t('police', 'Police')}
                       </Text>
                       <Text style={[styles.contactMeta, { color: palette.ink2 }]}>
-                        Dial {activeCountry.numbers.police} • Emergency Law Enforcement
+                        {t('dial_prefix', 'Dial')} {activeCountry.numbers.police} • {t('police_sub', 'Emergency Law Enforcement')}
                       </Text>
                     </View>
 
@@ -439,10 +439,10 @@ export default function EmergencyScreen() {
 
                     <View style={styles.contactDetails}>
                       <Text style={[styles.contactTitle, { color: palette.ink }]}>
-                        Ambulance / Medical Emergency
+                        {t('ambulance_medical', 'Ambulance / Medical Emergency')}
                       </Text>
                       <Text style={[styles.contactMeta, { color: palette.ink2 }]}>
-                        Dial {activeCountry.numbers.ambulance} • Urgent Medical Care
+                        {t('dial_prefix', 'Dial')} {activeCountry.numbers.ambulance} • {t('ambulance_sub', 'Urgent Medical Care')}
                       </Text>
                     </View>
 
@@ -492,10 +492,10 @@ export default function EmergencyScreen() {
 
                     <View style={styles.contactDetails}>
                       <Text style={[styles.contactTitle, { color: palette.ink }]}>
-                        Fire & Rescue Service
+                        {t('fire_rescue', 'Fire & Rescue Service')}
                       </Text>
                       <Text style={[styles.contactMeta, { color: palette.ink2 }]}>
-                        Dial {activeCountry.numbers.fire} • Fire & Disaster Rescue
+                        {t('dial_prefix', 'Dial')} {activeCountry.numbers.fire} • {t('fire_sub', 'Fire & Disaster Rescue')}
                       </Text>
                     </View>
 
@@ -642,7 +642,7 @@ export default function EmergencyScreen() {
                   onPress={() => router.push('/(tabs)/care')}
                   accessible={true}
                   accessibilityRole="button"
-                  accessibilityLabel="See all care nearby"
+                  accessibilityLabel={t('see_all_care_nearby', 'See all care nearby')}
                   style={[
                     styles.seeAllCareButton,
                     {
@@ -652,7 +652,7 @@ export default function EmergencyScreen() {
                   ]}
                 >
                   <Text style={[styles.seeAllCareText, { color: palette.ink }]}>
-                    See all care nearby
+                    {t('see_all_care_nearby', 'See all care nearby')}
                   </Text>
                   <ChevronRightIcon size={18} color={palette.ink2} />
                 </Pressable>

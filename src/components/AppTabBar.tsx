@@ -303,7 +303,7 @@ export function AppTabBar({
         };
 
         // Tab Content Configuration
-        let label = t('tab_map', 'Map');
+        let label = t('tab_home', 'Home');
         let icon = (
           <HomeTabIcon
             size={22}

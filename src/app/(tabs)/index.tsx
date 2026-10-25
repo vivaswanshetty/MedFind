@@ -190,7 +190,7 @@ export default function HomeScreen() {
                 numberOfLines={1}
                 ellipsizeMode="tail"
               >
-                {locationSource === 'none' || isOutsideCoverage ? 'Set your area' : formatHeaderArea(areaName)}
+                {locationSource === 'none' || isOutsideCoverage ? t('set_your_area', 'Set your area') : formatHeaderArea(areaName)}
               </Text>
             </Pressable>
 
@@ -306,7 +306,7 @@ export default function HomeScreen() {
         <View style={styles.heroSection}>
           <View style={styles.headlineContainer}>
             <Text style={[styles.headlineLine1, { color: palette.ink }]}>
-              Find your medicine
+              {t('hero_headline_1', 'Find your medicine')}
             </Text>
             <View style={styles.headlineLine2Row}>
               <View style={styles.highlightWrapper}>
@@ -317,17 +317,17 @@ export default function HomeScreen() {
                   ]}
                 />
                 <Text style={[styles.headlineHighlightText, { color: palette.ink }]}>
-                  before
+                  {t('hero_highlight', 'before')}
                 </Text>
               </View>
               <Text style={[styles.headlineLine2Rest, { color: palette.ink }]}>
-                {' '}you visit.
+                {' '}{t('hero_headline_2', 'you visit.')}
               </Text>
             </View>
           </View>
 
           <Text style={[styles.heroParagraph, { color: palette.ink2 }]}>
-            See which nearby pharmacy last confirmed it, and exactly how long ago.
+            {t('hero_subtext', 'See which nearby pharmacy last confirmed it, and exactly how long ago.')}
           </Text>
         </View>
 
@@ -336,7 +336,7 @@ export default function HomeScreen() {
           onPress={() => router.push('/(tabs)/search')}
           accessible={true}
           accessibilityRole="button"
-          accessibilityLabel="Search medicine name"
+          accessibilityLabel={t('search_medicine_name', 'Search medicine name')}
           style={({ pressed }) => [
             styles.searchLinkCard,
             {
@@ -350,7 +350,7 @@ export default function HomeScreen() {
         >
           <SearchIcon size={22} color={palette.ink} />
           <Text style={[styles.searchPlaceholder, { color: palette.ink2 }]}>
-            Search medicine name
+            {t('search_medicine_name', 'Search medicine name')}
           </Text>
         </Pressable>
 
@@ -364,10 +364,10 @@ export default function HomeScreen() {
                   { color: palette.ink, fontFamily: typography.fontFamilyBold },
                 ]}
               >
-                For you
+                {t('for_you', 'For you')}
               </Text>
               <Text style={[styles.forYouSubtitle, { color: palette.ink2 }]}>
-                Tailored based on your onboarding preferences
+                {t('for_you_subtitle', 'Tailored based on your onboarding preferences')}
               </Text>
             </View>
             {recommendations.map((rec, index) => (
@@ -425,10 +425,10 @@ export default function HomeScreen() {
 
           <View style={styles.actionCardMiddle}>
             <Text style={[styles.actionCardTitle, { color: palette.ink }]}>
-              Care nearby
+              {t('care_nearby_title', 'Care nearby')}
             </Text>
             <Text style={[styles.actionCardSubtitle, { color: palette.ink2 }]}>
-              Hospitals, clinics and ambulance contacts
+              {t('care_nearby_subtitle', 'Hospitals, clinics and ambulance contacts')}
             </Text>
           </View>
 
@@ -440,7 +440,7 @@ export default function HomeScreen() {
           onPress={() => router.push('/(tabs)/emergency')}
           accessible={true}
           accessibilityRole="button"
-          accessibilityLabel="Emergency help: Call 112 or view emergency contacts"
+          accessibilityLabel={`${t('emergency_help_title', 'Emergency help')}: ${t('emergency_help_subtitle', 'Call 112 or view emergency contacts')}`}
           style={({ pressed }) => [
             styles.emergencyCard,
             {
@@ -461,10 +461,10 @@ export default function HomeScreen() {
 
           <View style={styles.actionCardMiddle}>
             <Text style={[styles.actionCardTitle, { color: palette.ink }]}>
-              Emergency help
+              {t('emergency_help_title', 'Emergency help')}
             </Text>
             <Text style={[styles.actionCardSubtitle, { color: palette.ink2 }]}>
-              Call 112 or view emergency contacts
+              {t('emergency_help_subtitle', 'Call 112 or view emergency contacts')}
             </Text>
           </View>
 
@@ -496,16 +496,16 @@ export default function HomeScreen() {
               >
                 <ShieldCheckIcon size={13} color={palette.okInk} />
                 <Text style={[styles.verifiedBadgeText, { color: palette.okInk }]}>
-                  STOCK STATUS GUIDE
+                  {t('stock_status_guide', 'STOCK STATUS GUIDE')}
                 </Text>
               </View>
             </View>
 
             <Text style={[styles.legendMainTitle, { color: palette.ink }]}>
-              How to check medicine availability
+              {t('how_to_check_stock', 'How to check medicine availability')}
             </Text>
             <Text style={[styles.legendSubTitle, { color: palette.ink2 }]}>
-              Check when the pharmacy last confirmed their stock so you can visit directly or call first.
+              {t('check_stock_sub', 'Check when the pharmacy last confirmed their stock so you can visit directly or call first.')}
             </Text>
           </View>
 
@@ -519,10 +519,10 @@ export default function HomeScreen() {
             </View>
             <View style={styles.spectrumLabelsRow}>
               <Text style={[styles.spectrumLabelStart, { color: palette.okInk }]}>
-                Just updated • Ready to visit
+                {t('just_updated_ready', 'Just updated • Ready to visit')}
               </Text>
               <Text style={[styles.spectrumLabelEnd, { color: palette.ink2 }]}>
-                Call store first
+                {t('call_store_first', 'Call store first')}
               </Text>
             </View>
           </View>
@@ -543,18 +543,18 @@ export default function HomeScreen() {
                 <View style={styles.tierBadgeGroup}>
                   <CheckCircleIcon size={16} color={palette.okInk} />
                   <Text style={[styles.tierTitle, { color: palette.okInk }]}>
-                    Updated Just Now
+                    {t('tier_recent_title', 'Updated Just Now')}
                   </Text>
                 </View>
                 <View style={[styles.tierTimeChip, { backgroundColor: palette.surface }]}>
                   <ClockIcon size={12} color={palette.okInk} />
                   <Text style={[styles.tierTimeText, { color: palette.okInk }]}>
-                    Within 30 mins
+                    {t('tier_recent_time', 'Within 30 mins')}
                   </Text>
                 </View>
               </View>
               <Text style={[styles.tierGuidance, { color: palette.okInk }]}>
-                Directly confirmed by the pharmacy staff. You can visit the store with full confidence.
+                {t('tier_recent_desc', 'Directly confirmed by the pharmacy staff. You can visit the store with full confidence.')}
               </Text>
             </View>
 
@@ -572,18 +572,18 @@ export default function HomeScreen() {
                 <View style={styles.tierBadgeGroup}>
                   <ClockIcon size={16} color={palette.amberInk} />
                   <Text style={[styles.tierTitle, { color: palette.amberInk }]}>
-                    Updated Earlier Today
+                    {t('tier_aging_title', 'Updated Earlier Today')}
                   </Text>
                 </View>
                 <View style={[styles.tierTimeChip, { backgroundColor: palette.surface }]}>
                   <ClockIcon size={12} color={palette.amberInk} />
                   <Text style={[styles.tierTimeText, { color: palette.amberInk }]}>
-                    30 min – 2 hrs
+                    {t('tier_aging_time', '30 min – 2 hrs')}
                   </Text>
                 </View>
               </View>
               <Text style={[styles.tierGuidance, { color: palette.amberInk }]}>
-                Confirmed earlier today. Stock is likely available, but fast-moving items can run out.
+                {t('tier_aging_desc', 'Confirmed earlier today. Stock is likely available, but fast-moving items can run out.')}
               </Text>
             </View>
 
@@ -601,18 +601,18 @@ export default function HomeScreen() {
                 <View style={styles.tierBadgeGroup}>
                   <TriangleAlertIcon size={16} color={palette.staleInk} />
                   <Text style={[styles.tierTitle, { color: palette.staleInk }]}>
-                    Updated Earlier
+                    {t('tier_stale_title', 'Updated Earlier')}
                   </Text>
                 </View>
                 <View style={[styles.tierTimeChip, { backgroundColor: palette.surface }]}>
                   <ClockIcon size={12} color={palette.staleInk} />
                   <Text style={[styles.tierTimeText, { color: palette.staleInk }]}>
-                    Over 2 hrs ago
+                    {t('tier_stale_time', 'Over 2 hrs ago')}
                   </Text>
                 </View>
               </View>
               <Text style={[styles.tierGuidance, { color: palette.staleInk }]}>
-                Update was a few hours ago. We recommend tapping Call to check before heading out.
+                {t('tier_stale_desc', 'Update was a few hours ago. We recommend tapping Call to check before heading out.')}
               </Text>
             </View>
 
@@ -630,17 +630,17 @@ export default function HomeScreen() {
                 <View style={styles.tierBadgeGroup}>
                   <CircleHelpIcon size={16} color={palette.naInk} />
                   <Text style={[styles.tierTitle, { color: palette.ink }]}>
-                    Call Store Directly
+                    {t('tier_unreported_title', 'Call Store Directly')}
                   </Text>
                 </View>
                 <View style={[styles.tierTimeChip, { backgroundColor: palette.surface }]}>
                   <Text style={[styles.tierTimeText, { color: palette.ink2 }]}>
-                    No report today
+                    {t('tier_unreported_time', 'No report today')}
                   </Text>
                 </View>
               </View>
               <Text style={[styles.tierGuidance, { color: palette.ink2 }]}>
-                Pharmacy is open, but has not sent a stock update today. Tap Call to check with the pharmacist.
+                {t('tier_unreported_desc', 'Pharmacy is open, but has not sent a stock update today. Tap Call to check with the pharmacist.')}
               </Text>
             </View>
           </View>
@@ -649,7 +649,7 @@ export default function HomeScreen() {
           <View style={styles.legendTrustFooter}>
             <StaffBadgeIcon size={16} color={palette.ink2} />
             <Text style={[styles.legendTrustText, { color: palette.ink2 }]}>
-              Genuine pharmacy updates only. MedFind never guesses or invents stock availability.
+              {t('genuine_updates_notice', 'Genuine pharmacy updates only. MedFind never guesses or invents stock availability.')}
             </Text>
           </View>
         </View>
@@ -671,7 +671,7 @@ export default function HomeScreen() {
         >
           <StaffBadgeIcon size={16} color={palette.ink2} />
           <Text style={[styles.staffPortalLinkText, { color: palette.ink2 }]}>
-            Pharmacy Operator? Update stock in Staff Portal →
+            {t('pharmacy_portal_prompt', 'Pharmacy Operator? Update stock in Staff Portal →')}
           </Text>
         </Pressable>
       </ScrollView>
@@ -710,7 +710,7 @@ export default function HomeScreen() {
               <View style={styles.settingsModalTitleRow}>
                 <SettingsIcon size={20} color={palette.ink} />
                 <Text style={[styles.settingsModalTitle, { color: palette.ink }]}>
-                  Settings
+                  {t('settings', 'Settings')}
                 </Text>
               </View>
               <Pressable
@@ -797,8 +797,8 @@ export default function HomeScreen() {
                   </View>
                   <Text style={[styles.settingsProfileSubtitle, { color: palette.ink2 }]} numberOfLines={1}>
                     {profile.buddy
-                      ? `${profile.buddy.archetype} • Tap to view profile`
-                      : 'Personal health preferences & answers'}
+                      ? `${profile.buddy.archetype} • ${t('tap_to_view_profile', 'Tap to view profile')}`
+                      : t('personal_health_prefs', 'Personal health preferences & answers')}
                   </Text>
                 </View>
 
@@ -812,7 +812,7 @@ export default function HomeScreen() {
                   { color: palette.ink2, marginTop: 10 },
                 ]}
               >
-                Healthcare & Tools
+                {t('healthcare_tools', 'Healthcare & Tools')}
               </Text>
 
               {/* Item: My Medicine Box */}
@@ -851,10 +851,10 @@ export default function HomeScreen() {
                 </View>
                 <View style={styles.settingsItemInfo}>
                   <Text style={[styles.settingsItemTitle, { color: palette.ink }]}>
-                    My Medicine Box
+                    {t('my_medicine_box', 'My Medicine Box')}
                   </Text>
                   <Text style={[styles.settingsItemSubtitle, { color: palette.ink2 }]}>
-                    Track saved medicines, expiry & refill dates
+                    {t('medicine_box_desc', 'Track saved medicines, expiry & refill dates')}
                   </Text>
                 </View>
                 <ChevronRightIcon size={18} color={palette.ink2} />
@@ -896,10 +896,10 @@ export default function HomeScreen() {
                 </View>
                 <View style={styles.settingsItemInfo}>
                   <Text style={[styles.settingsItemTitle, { color: palette.ink }]}>
-                    Emergency Directory
+                    {t('emergency_directory_title', 'Emergency Directory')}
                   </Text>
                   <Text style={[styles.settingsItemSubtitle, { color: palette.ink2 }]}>
-                    87 countries • Calling codes & verified helplines
+                    {t('emergency_directory_subtitle', '87 countries • Calling codes & verified helplines')}
                   </Text>
                 </View>
                 <ChevronRightIcon size={18} color={palette.ink2} />
@@ -912,7 +912,7 @@ export default function HomeScreen() {
                   { color: palette.ink2 },
                 ]}
               >
-                Preferences
+                {t('preferences', 'Preferences')}
               </Text>
 
               {/* Item: Theme Switcher */}
@@ -947,10 +947,10 @@ export default function HomeScreen() {
                 </View>
                 <View style={styles.settingsItemInfo}>
                   <Text style={[styles.settingsItemTitle, { color: palette.ink }]}>
-                    Appearance: {scheme === 'light' ? 'Light theme' : 'Dark theme'}
+                    {t('appearance', 'Appearance')}: {scheme === 'light' ? t('light_theme', 'Light theme') : t('dark_theme', 'Dark theme')}
                   </Text>
                   <Text style={[styles.settingsItemSubtitle, { color: palette.ink2 }]}>
-                    Tap to switch to {scheme === 'light' ? 'dark' : 'light'} theme
+                    {scheme === 'light' ? t('switch_to_dark', 'Tap to switch to dark theme') : t('switch_to_light', 'Tap to switch to light theme')}
                   </Text>
                 </View>
                 <View
@@ -1022,7 +1022,7 @@ export default function HomeScreen() {
                   { color: palette.ink2 },
                 ]}
               >
-                Services & Information
+                {t('services_info', 'Services & Information')}
               </Text>
 
               {/* Item: How Location Works */}
@@ -1061,10 +1061,10 @@ export default function HomeScreen() {
                 </View>
                 <View style={styles.settingsItemInfo}>
                   <Text style={[styles.settingsItemTitle, { color: palette.ink }]}>
-                    How Location Works
+                    {t('how_location_works', 'How Location Works')}
                   </Text>
                   <Text style={[styles.settingsItemSubtitle, { color: palette.ink2 }]}>
-                    GPS usage, distance calculation & privacy
+                    {t('how_location_subtitle', 'GPS usage, distance calculation & privacy')}
                   </Text>
                 </View>
                 <ChevronRightIcon size={18} color={palette.ink2} />
@@ -1151,10 +1151,10 @@ export default function HomeScreen() {
                 </View>
                 <View style={styles.settingsItemInfo}>
                   <Text style={[styles.settingsItemTitle, { color: palette.ink }]}>
-                    Pharmacy Staff Portal
+                    {t('staff_portal', 'Pharmacy Staff Portal')}
                   </Text>
                   <Text style={[styles.settingsItemSubtitle, { color: palette.ink2 }]}>
-                    Submit live stock updates
+                    {t('staff_portal_subtitle', 'Submit quick stock updates')}
                   </Text>
                 </View>
                 <ChevronRightIcon size={18} color={palette.ink2} />
@@ -1167,19 +1167,19 @@ export default function HomeScreen() {
                   { color: palette.ink2 },
                 ]}
               >
-                Data Management
+                {t('data_management', 'Data Management')}
               </Text>
 
               {/* User-accessible: Reset my answers */}
               <Pressable
                 onPress={() => {
                   Alert.alert(
-                    'Reset answers?',
-                    'This will reset your onboarding answers so you can retake the questions and update your buddy and recommendations.',
+                    t('reset_answers_confirm_title', 'Reset answers?'),
+                    t('reset_answers_confirm_msg', 'This will reset your onboarding answers so you can retake the questions and update your buddy and recommendations.'),
                     [
-                      { text: 'Cancel', style: 'cancel' },
+                      { text: t('cancel', 'Cancel'), style: 'cancel' },
                       {
-                        text: 'Reset',
+                        text: t('reset', 'Reset'),
                         style: 'destructive',
                         onPress: async () => {
                           setShowSettingsModal(false);
@@ -1224,10 +1224,10 @@ export default function HomeScreen() {
                       { color: scheme === 'light' ? '#DC2626' : '#F87171' },
                     ]}
                   >
-                    Reset my answers
+                    {t('reset_answers', 'Reset my answers')}
                   </Text>
                   <Text style={[styles.settingsItemSubtitle, { color: palette.ink2 }]}>
-                    Retake questions to update your buddy and recommendations
+                    {t('reset_answers_sub', 'Retake questions to update your buddy and recommendations')}
                   </Text>
                 </View>
               </Pressable>
@@ -1236,12 +1236,12 @@ export default function HomeScreen() {
               <Pressable
                 onPress={() => {
                   Alert.alert(
-                    'Delete all medicine box data?',
-                    'This will remove all saved medicines and cancel any scheduled reminders. This action cannot be undone.',
+                    t('delete_box_confirm_title', 'Delete all medicine box data?'),
+                    t('delete_box_confirm_msg', 'This will remove all saved medicines and cancel any scheduled reminders. This action cannot be undone.'),
                     [
-                      { text: 'Cancel', style: 'cancel' },
+                      { text: t('cancel', 'Cancel'), style: 'cancel' },
                       {
-                        text: 'Delete all',
+                        text: t('delete_all', 'Delete all'),
                         style: 'destructive',
                         onPress: async () => {
                           await clearMedicineBox();
@@ -1286,10 +1286,10 @@ export default function HomeScreen() {
                       { color: scheme === 'light' ? '#DC2626' : '#F87171' },
                     ]}
                   >
-                    Delete all medicine box data
+                    {t('delete_medicine_box', 'Delete all medicine box data')}
                   </Text>
                   <Text style={[styles.settingsItemSubtitle, { color: palette.ink2 }]}>
-                    Remove all saved medicines and cancel scheduled reminders
+                    {t('delete_medicine_box_sub', 'Remove all saved medicines and cancel scheduled reminders')}
                   </Text>
                 </View>
               </Pressable>

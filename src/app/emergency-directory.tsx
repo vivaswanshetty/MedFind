@@ -16,6 +16,7 @@ import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTheme } from '../theme/ThemeContext';
+import { useLanguage } from '../context/LanguageContext';
 import { fonts, radii, MIN_TARGET } from '../constants/theme';
 import { AtmosphereBackground } from '../components/AtmosphereBackground';
 import {
@@ -59,6 +60,7 @@ export default function EmergencyDirectoryScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { scheme, palette, theme } = useTheme();
+  const { t } = useLanguage();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFilter, setSelectedFilter] = useState<FilterRegion>('All');
@@ -278,7 +280,7 @@ export default function EmergencyDirectoryScreen() {
             {isCurrentActive ? (
               <View style={styles.currentActivePill}>
                 <CheckCircleIcon size={14} color="#16A34A" />
-                <Text style={styles.currentActiveText}>Active Emergency Country</Text>
+                <Text style={styles.currentActiveText}>{t('active_emergency_country', 'Active Emergency Country')}</Text>
               </View>
             ) : (
               <Pressable
@@ -290,12 +292,12 @@ export default function EmergencyDirectoryScreen() {
                 accessibilityLabel={`Set ${item.name} as active emergency country`}
               >
                 <Text style={[styles.setCountryBtnText, { color: palette.ink }]}>
-                  Set as my country
+                  {t('set_as_my_country', 'Set as my country')}
                 </Text>
               </Pressable>
             )}
             <Text style={[styles.verifiedDateText, { color: palette.ink2 }]}>
-              Verified {item.numbers.verifiedAt}
+              {t('verified', 'Verified')} {item.numbers.verifiedAt}
             </Text>
           </View>
 
@@ -316,7 +318,7 @@ export default function EmergencyDirectoryScreen() {
               >
                 <View style={styles.numberBtnHeader}>
                   <Text style={styles.serviceIcon}>🚨</Text>
-                  <Text style={[styles.serviceLabel, { color: palette.red }]}>General</Text>
+                  <Text style={[styles.serviceLabel, { color: palette.red }]}>{t('general_service', 'General')}</Text>
                 </View>
                 <Text style={[styles.serviceNumberBig, { color: palette.red }]}>
                   {item.numbers.general}
@@ -342,7 +344,7 @@ export default function EmergencyDirectoryScreen() {
               >
                 <View style={styles.numberBtnHeader}>
                   <Text style={styles.serviceIcon}>🚑</Text>
-                  <Text style={[styles.serviceLabel, { color: palette.ink }]}>Ambulance</Text>
+                  <Text style={[styles.serviceLabel, { color: palette.ink }]}>{t('ambulance_title', 'Ambulance')}</Text>
                 </View>
                 <Text style={[styles.serviceNumber, { color: palette.ink }]}>
                   {item.numbers.ambulance}
@@ -368,7 +370,7 @@ export default function EmergencyDirectoryScreen() {
               >
                 <View style={styles.numberBtnHeader}>
                   <Text style={styles.serviceIcon}>👮</Text>
-                  <Text style={[styles.serviceLabel, { color: palette.ink }]}>Police</Text>
+                  <Text style={[styles.serviceLabel, { color: palette.ink }]}>{t('police_title', 'Police')}</Text>
                 </View>
                 <Text style={[styles.serviceNumber, { color: palette.ink }]}>
                   {item.numbers.police}
@@ -394,7 +396,7 @@ export default function EmergencyDirectoryScreen() {
               >
                 <View style={styles.numberBtnHeader}>
                   <Text style={styles.serviceIcon}>🚒</Text>
-                  <Text style={[styles.serviceLabel, { color: palette.ink }]}>Fire</Text>
+                  <Text style={[styles.serviceLabel, { color: palette.ink }]}>{t('fire_title', 'Fire')}</Text>
                 </View>
                 <Text style={[styles.serviceNumber, { color: palette.ink }]}>
                   {item.numbers.fire}
@@ -429,7 +431,9 @@ export default function EmergencyDirectoryScreen() {
                 accessibilityLabel="Toggle official source citations"
               >
                 <Text style={[styles.sourcesToggleText, { color: palette.ink2 }]}>
-                  {areSourcesExpanded ? 'Hide official sources ▲' : `Official Government Citations (${item.numbers.sources.length}) ▼`}
+                  {areSourcesExpanded
+                    ? t('hide_sources', 'Hide official sources ▲')
+                    : t('official_citations_btn', 'Official Government Citations ({count}) ▼').replace('{count}', String(item.numbers.sources.length))}
                 </Text>
               </Pressable>
 
@@ -457,7 +461,7 @@ export default function EmergencyDirectoryScreen() {
         </View>
       );
     },
-    [palette, scheme, theme, activeCountryCode, expandedSources]
+    [palette, scheme, theme, activeCountryCode, expandedSources, t]
   );
 
   return (
@@ -479,10 +483,10 @@ export default function EmergencyDirectoryScreen() {
 
           <View style={styles.titleGroup}>
             <Text style={[styles.screenTitle, { color: palette.ink }]}>
-              Worldwide Directory
+              {t('worldwide_directory', 'Worldwide Directory')}
             </Text>
             <Text style={[styles.screenSubtitle, { color: palette.ink2 }]}>
-              87 countries with official numbers & calling codes
+              {t('worldwide_directory_sub', '87 countries with official numbers & calling codes')}
             </Text>
           </View>
         </View>
@@ -528,7 +532,7 @@ export default function EmergencyDirectoryScreen() {
             <TextInput
               value={searchQuery}
               onChangeText={setSearchQuery}
-              placeholder="Search by country, code (US, +44), or alias..."
+              placeholder={t('search_directory_placeholder', 'Search by country, code (+91) or number...')}
               placeholderTextColor={palette.ink2}
               style={[styles.searchInput, { color: palette.ink }]}
               returnKeyType="search"

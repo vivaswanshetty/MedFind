@@ -17,6 +17,7 @@ import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { useTheme } from '../theme/ThemeContext';
+import { useLanguage } from '../context/LanguageContext';
 import { fonts, radii, MIN_TARGET } from '../constants/theme';
 import { AtmosphereBackground } from '../components/AtmosphereBackground';
 import { AnimatedScreenTransition } from '../components/AnimatedScreenTransition';
@@ -52,6 +53,7 @@ export default function MedicineBoxScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { scheme, palette, theme } = useTheme();
+  const { t } = useLanguage();
   const { items, isLoading, addItem, updateItem, removeItem } = useMedicineBox();
 
   // Modal State for Add / Edit
@@ -248,10 +250,10 @@ export default function MedicineBoxScreen() {
 
           <View style={styles.headerTitleBox}>
             <Text style={[styles.headerTitle, { color: palette.ink }]}>
-              My Medicine Box
+              {t('my_medicine_box', 'My Medicine Box')}
             </Text>
             <Text style={[styles.headerCount, { color: palette.ink2 }]}>
-              {items.length}/{MAX_MEDICINE_BOX_ITEMS} medicines
+              {t('medicines_count', '{current}/{max} medicines').replace('{current}', String(items.length)).replace('{max}', String(MAX_MEDICINE_BOX_ITEMS))}
             </Text>
           </View>
 
@@ -271,7 +273,7 @@ export default function MedicineBoxScreen() {
           >
             <PlusIcon size={16} color={isFull ? palette.ink2 : '#FFFFFF'} />
             <Text style={[styles.headerAddBtnText, { color: isFull ? palette.ink2 : '#FFFFFF' }]}>
-              Add
+              {t('add', 'Add')}
             </Text>
           </Pressable>
         </View>
@@ -294,7 +296,7 @@ export default function MedicineBoxScreen() {
                 { color: scheme === 'light' ? '#92400E' : '#FEF3C7' },
               ]}
             >
-              Your medicine box is full ({MAX_MEDICINE_BOX_ITEMS} items)
+              {t('box_full_banner', 'Your medicine box is full ({count} items)').replace('{count}', String(MAX_MEDICINE_BOX_ITEMS))}
             </Text>
           </View>
         )}
@@ -316,10 +318,10 @@ export default function MedicineBoxScreen() {
                 resizeMode="contain"
               />
               <Text style={[styles.emptyTitle, { color: palette.ink }]}>
-                Your medicine box is empty
+                {t('empty_box_title', 'Your medicine box is empty')}
               </Text>
               <Text style={[styles.emptySubtitle, { color: palette.ink2 }]}>
-                Keep track of expiry dates and get refill reminders on this phone.
+                {t('empty_box_sub', 'Keep track of expiry dates and get refill reminders on this phone.')}
               </Text>
               <Pressable
                 onPress={openAddModal}
@@ -329,7 +331,7 @@ export default function MedicineBoxScreen() {
                 style={[styles.emptyAddBtn, { backgroundColor: theme.primaryAccent }]}
               >
                 <PlusIcon size={18} color="#FFFFFF" />
-                <Text style={styles.emptyAddBtnText}>Add a medicine</Text>
+                <Text style={styles.emptyAddBtnText}>{t('add_medicine_btn', 'Add a medicine')}</Text>
               </Pressable>
             </View>
           ) : (
@@ -509,7 +511,7 @@ export default function MedicineBoxScreen() {
           <View style={styles.privacyFooter}>
             <ShieldCheckIcon size={14} color={palette.ink2} />
             <Text style={[styles.privacyText, { color: palette.ink2 }]}>
-              Saved only on this phone. Never shared.
+              {t('saved_only_phone_never_shared', 'Saved only on this phone. Never shared.')}
             </Text>
           </View>
         </ScrollView>
@@ -543,7 +545,7 @@ export default function MedicineBoxScreen() {
             {/* Header */}
             <View style={styles.modalHeader}>
               <Text style={[styles.modalTitle, { color: palette.ink }]}>
-                {editingItem ? 'Edit Medicine' : 'Add Medicine'}
+                {editingItem ? t('edit_medicine', 'Edit Medicine') : t('add_medicine', 'Add Medicine')}
               </Text>
               <Pressable
                 onPress={() => setModalVisible(false)}
@@ -838,10 +840,10 @@ export default function MedicineBoxScreen() {
               >
                 <View style={styles.remindRowLeft}>
                   <Text style={[styles.remindTitle, { color: palette.ink }]}>
-                    Remind me
+                    {t('remind_me', 'Remind me')}
                   </Text>
                   <Text style={[styles.remindSubtitle, { color: palette.ink2 }]}>
-                    Get notified before expiry and on refill day
+                    {t('remind_sub', 'Get notified before expiry and on refill day')}
                   </Text>
                 </View>
                 <Switch
@@ -880,7 +882,7 @@ export default function MedicineBoxScreen() {
                   style={[styles.cancelBtn, { borderColor: palette.line }]}
                 >
                   <Text style={[styles.cancelBtnText, { color: palette.ink }]}>
-                    Cancel
+                    {t('cancel', 'Cancel')}
                   </Text>
                 </Pressable>
 
@@ -889,7 +891,7 @@ export default function MedicineBoxScreen() {
                   style={[styles.saveBtn, { backgroundColor: theme.primaryAccent }]}
                 >
                   <Text style={styles.saveBtnText}>
-                    {editingItem ? 'Save Changes' : 'Add to Box'}
+                    {editingItem ? t('save_changes', 'Save Changes') : t('add_to_box', 'Add to Box')}
                   </Text>
                 </Pressable>
               </View>

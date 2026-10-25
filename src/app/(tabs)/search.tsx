@@ -419,7 +419,7 @@ export default function SearchScreen() {
             </Pressable>
 
             <Text style={[styles.screenTitle, { color: palette.ink }]}>
-              Search medicine
+              {t('search_medicine_title', 'Search medicine')}
             </Text>
           </View>
 
@@ -464,7 +464,7 @@ export default function SearchScreen() {
               ellipsizeMode="tail"
             >
               {locationSource === 'none' || isOutsideCoverage
-                ? 'Set your area'
+                ? t('set_your_area', 'Set your area')
                 : (areaName.split(',')[0] || 'Bengaluru')}
             </Text>
           </Pressable>
@@ -805,23 +805,23 @@ export default function SearchScreen() {
           >
             <SearchIcon size={28} color={palette.ink2} />
             <Text style={[styles.emptyTitle, { color: palette.ink }]}>
-              No matching records
+              {t('no_matching_records', 'No matching records')}
             </Text>
             <Text style={[styles.emptySubtitle, { color: palette.ink2 }]}>
-              We couldn't find a record matching "{searchQuery}". Try checking the spelling or searching by generic formula.
+              {t('no_records_hint', "We couldn't find a record matching your search. Try checking the spelling or searching by generic formula.")}
             </Text>
             <Pressable
               onPress={() => setSearchQuery('')}
               accessible={true}
               accessibilityRole="button"
-              accessibilityLabel="Clear search input"
+              accessibilityLabel={t('clear_search', 'Clear search')}
               style={[
                 styles.emptyResetBtn,
                 { backgroundColor: palette.surface2, borderColor: palette.line },
               ]}
             >
               <Text style={[styles.emptyResetText, { color: palette.ink }]}>
-                Clear search
+                {t('clear_search', 'Clear search')}
               </Text>
             </Pressable>
           </View>
@@ -832,10 +832,10 @@ export default function SearchScreen() {
           <View style={styles.recordsSection}>
             <View style={styles.recordsHeaderRow}>
               <Text style={[styles.recordsSectionTitle, { color: palette.ink }]}>
-                Matching records
+                {t('matching_records', 'Matching records')}
               </Text>
               <Text style={[styles.recordsCountText, { color: palette.ink2 }]}>
-                {groups.length} exact description{groups.length === 1 ? '' : 's'}
+                {groups.length} {t('exact_descriptions', 'exact descriptions')}
               </Text>
             </View>
 
@@ -896,7 +896,7 @@ export default function SearchScreen() {
                         ]}
                       >
                         <Text style={[styles.diffFormText, { color: palette.ink2 }]}>
-                          Different formulation, not treated as equivalent
+                          {t('diff_form_notice', 'Different formulation, not treated as equivalent')}
                         </Text>
                       </View>
                     ) : (
