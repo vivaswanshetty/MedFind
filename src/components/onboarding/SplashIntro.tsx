@@ -16,6 +16,7 @@ import { SplashArt } from './SplashArt';
 
 interface SplashIntroProps {
   onDone: () => void;
+  fadeOut?: boolean;
 }
 
 const WORDMARK = ['M', 'e', 'd', 'F', 'i', 'n', 'd'];
@@ -62,7 +63,7 @@ function AnimatedLetter({ letter, index, color, fontFamily }: AnimatedLetterProp
   );
 }
 
-export function SplashIntro({ onDone }: SplashIntroProps) {
+export function SplashIntro({ onDone, fadeOut = true }: SplashIntroProps) {
   const { theme } = useTheme();
   const shouldReduceMotion = useReducedMotion();
 
@@ -85,20 +86,29 @@ export function SplashIntro({ onDone }: SplashIntroProps) {
     }
   }, [shouldReduceMotion, onDone]);
 
-  // Overlay fade out at 2600ms over 350ms, followed by onDone at 2950ms
+  // Overlay fade out at 2600ms over 350ms (when fadeOut is true), followed by onDone
   const overlayOpacity = useSharedValue(1);
   useEffect(() => {
     if (!shouldReduceMotion) {
-      overlayOpacity.value = withDelay(
-        2600,
-        withTiming(0, { duration: 350, easing: Easing.out(Easing.quad) })
-      );
-      const timer = setTimeout(() => {
-        onDone();
-      }, 2950);
-      return () => clearTimeout(timer);
+      if (fadeOut) {
+        overlayOpacity.value = withDelay(
+          2600,
+          withTiming(0, { duration: 350, easing: Easing.out(Easing.quad) })
+        );
+        const timer = setTimeout(() => {
+          onDone();
+        }, 2950);
+        return () => clearTimeout(timer);
+      } else {
+        // When onboarding is next, do not fade out the splash to reveal Home!
+        // Immediately transition into onboarding at 2600ms without flashing Home.
+        const timer = setTimeout(() => {
+          onDone();
+        }, 2600);
+        return () => clearTimeout(timer);
+      }
     }
-  }, [shouldReduceMotion, onDone, overlayOpacity]);
+  }, [shouldReduceMotion, onDone, overlayOpacity, fadeOut]);
 
   // Ring pulse outward animation: scale 0.6 -> 1.6, opacity 0.5 -> 0, 1400ms, starts at 200ms
   const ringScale = useSharedValue(0.6);

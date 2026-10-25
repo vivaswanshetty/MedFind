@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { View, StyleSheet } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -36,6 +37,7 @@ function RootNavigation() {
   const router = useRouter();
   const { scheme, palette } = useTheme();
   const { profile, isLoading, saveProfile, updateProfile } = useProfile();
+  const needsOnboarding = !profile.onboardingComplete && !profile.onboardingSkippedAt;
   const [showSplash, setShowSplash] = useState(true);
   const [showWhoPicker, setShowWhoPicker] = useState(false);
   const [showAgePicker, setShowAgePicker] = useState(false);
@@ -151,11 +153,22 @@ function RootNavigation() {
           }}
         />
       </Stack>
+      {/* Prevent Home page from flashing through during splash or onboarding transitions */}
+      {needsOnboarding && (
+        <View
+          style={[
+            StyleSheet.absoluteFill,
+            { backgroundColor: palette.bg },
+          ]}
+          pointerEvents="none"
+        />
+      )}
       {showSplash && (
         <SplashIntro
+          fadeOut={!needsOnboarding}
           onDone={() => {
             setShowSplash(false);
-            if (!profile.onboardingComplete && !profile.onboardingSkippedAt) {
+            if (needsOnboarding) {
               setShowWhoPicker(true);
             }
           }}
