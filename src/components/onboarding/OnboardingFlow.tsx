@@ -126,7 +126,7 @@ export function OnboardingFlow({ onDismiss }: OnboardingFlowProps) {
 
   const handleSelectAreaAndFinish = async () => {
     if (customAreaText.trim().length > 0) {
-      await selectManualArea({ name: `${customAreaText.trim()}, Bengaluru` });
+      await selectManualArea({ name: customAreaText.trim() });
     } else if (selectedArea) {
       await selectManualArea(selectedArea);
     }
@@ -576,7 +576,7 @@ export function OnboardingFlow({ onDismiss }: OnboardingFlowProps) {
                   ]}
                   accessible={true}
                   accessibilityRole="button"
-                  accessibilityLabel="Skip area choice and search all Bengaluru"
+                  accessibilityLabel="Skip area choice and search all"
                 >
                   <Text style={[styles.secondaryButtonText, { color: palette.ink2 }]}>
                     Skip for now — Search All
