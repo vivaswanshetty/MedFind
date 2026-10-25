@@ -861,6 +861,9 @@ export default function ProfileScreen() {
                 <Text style={[styles.storageItemSubtitle, { color: palette.ink2 }]}>
                   {areaName} • {locationSource === 'gps' ? 'Device GPS' : locationSource === 'manual_area' ? 'Manual area' : 'Default'}
                 </Text>
+                <Text style={[styles.osmPrivacyNotice, { color: palette.ink2 }]}>
+                  Nearby places are looked up with your approximate location using OpenStreetMap servers.
+                </Text>
               </View>
 
               <View style={styles.rowActions}>
@@ -1409,5 +1412,11 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 13,
     fontFamily: fonts.sansSemi,
+  },
+  osmPrivacyNotice: {
+    fontFamily: fonts.sans,
+    fontSize: 11,
+    lineHeight: 15,
+    marginTop: 4,
   },
 });

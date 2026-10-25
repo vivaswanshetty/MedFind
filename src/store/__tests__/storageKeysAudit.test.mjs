@@ -105,6 +105,8 @@ test('Storage Key Audit - Cleared keys include profile, medicine box, favorites,
   // Pharmacy Portal
   assert.ok(clearedSet.has('@medfind_store_partner_auth_v1'), 'Must clear store partner auth');
   assert.ok(clearedSet.has('@medfind_store_auth_v1'), 'Must clear legacy store auth');
+  // Nearby Places Cache
+  assert.ok(clearedSet.has('@medfind_nearby_places_cache_v1'), 'Must clear nearby places cache');
 });
 
 import { setMockNotificationClient } from '../../lib/reminders.js';

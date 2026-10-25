@@ -251,6 +251,11 @@ export function AreaPickerModal({ visible, onClose, onAreaSelected }: AreaPicker
             )}
           </View>
 
+          {/* Privacy Notice: OSM Approximate Lookup */}
+          <Text style={[styles.osmPrivacyNotice, { color: palette.ink2 }]}>
+            Nearby places are looked up with your approximate location using OpenStreetMap servers.
+          </Text>
+
           {/* Predefined or Geocoded Results List */}
           <ScrollView style={styles.areasList} showsVerticalScrollIndicator={false}>
             {filterText.trim().length >= 2 ? (
@@ -596,5 +601,12 @@ const styles = StyleSheet.create({
     fontSize: 13,
     textAlign: 'center',
     lineHeight: 18,
+  },
+  osmPrivacyNotice: {
+    fontFamily: fonts.sans,
+    fontSize: 11,
+    lineHeight: 15,
+    marginVertical: 6,
+    paddingHorizontal: 4,
   },
 });

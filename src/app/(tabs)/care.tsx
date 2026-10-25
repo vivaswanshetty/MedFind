@@ -27,6 +27,7 @@ import { ProviderListing } from '../../types/models';
 import { sortListingsByDistance, formatDistanceOrNull, getRegionForCoordinates } from '../../services/locationService';
 import { demoPharmacies } from '../../data/demoData';
 import {
+  ClockIcon,
   InfoIcon,
   PhoneIcon,
   ShieldCheckIcon,
@@ -35,6 +36,11 @@ import {
 } from '../../components/icons/AppIcons';
 import { InteractiveCareMap, MapMarkerItem } from '../../components/map/InteractiveCareMap';
 import { AreaPickerModal } from '../../components/location/AreaPickerModal';
+import {
+  getNearbyPlaces,
+  NearbyPlace,
+  OSM_ATTRIBUTION,
+} from '../../services/nearbyPlacesService';
 
 export default function CareNearbyScreen() {
   const insets = useSafeAreaInsets();
@@ -52,6 +58,10 @@ export default function CareNearbyScreen() {
   const [isLoading, setIsLoading] = useState(false);
   const [listings, setListings] = useState<ProviderListing[]>([]);
   const [isMapInteracting, setIsMapInteracting] = useState(false);
+  const [osmPlaces, setOsmPlaces] = useState<NearbyPlace[]>([]);
+  const [osmLoading, setOsmLoading] = useState(false);
+  const [osmError, setOsmError] = useState<string | null>(null);
+  const [osmRetryCount, setOsmRetryCount] = useState(0);
 
   const categories = [
     { id: 'all', label: t('all', 'All') },
@@ -128,6 +138,58 @@ export default function CareNearbyScreen() {
     };
   }, [selectedCategory]);
 
+  // Fetch real nearby healthcare facilities from OpenStreetMap when outside Bengaluru coverage
+  useEffect(() => {
+    if (!isOutsideCoverage || !userLocation) {
+      setOsmPlaces([]);
+      setOsmError(null);
+      return;
+    }
+
+    let isCancelled = false;
+    setOsmLoading(true);
+    setOsmError(null);
+
+    getNearbyPlaces(userLocation)
+      .then((places) => {
+        if (!isCancelled) {
+          setOsmPlaces(places);
+          setOsmLoading(false);
+        }
+      })
+      .catch((err) => {
+        if (!isCancelled) {
+          setOsmError(err?.message || 'Unable to load nearby places from OpenStreetMap.');
+          setOsmLoading(false);
+        }
+      });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [isOutsideCoverage, userLocation?.latitude, userLocation?.longitude, osmRetryCount]);
+
+  // Filter OSM places by selected category
+  const filteredOsmPlaces = selectedCategory === 'all'
+    ? osmPlaces
+    : selectedCategory === 'hospital'
+    ? osmPlaces.filter((p) => p.type === 'hospital')
+    : selectedCategory === 'clinic'
+    ? osmPlaces.filter((p) => p.type === 'clinic')
+    : selectedCategory === 'pharmacy'
+    ? osmPlaces.filter((p) => p.type === 'pharmacy')
+    : [];
+
+  const osmMapMarkers: MapMarkerItem[] = filteredOsmPlaces.map((item) => ({
+    id: item.id,
+    type: item.type,
+    name: item.name,
+    latitude: item.coordinates.latitude,
+    longitude: item.coordinates.longitude,
+    subtitle: item.address || undefined,
+    distanceKm: item.distanceKm ?? undefined,
+  }));
+
   // Sort listings by user location within coverage; outside coverage, do NOT list Bengaluru listings
   const displayedListings = isOutsideCoverage
     ? []
@@ -135,9 +197,9 @@ export default function CareNearbyScreen() {
     ? sortListingsByDistance(listings, userLocation)
     : listings;
 
-  // Build dynamic map markers (empty outside coverage)
+  // Build dynamic map markers (using OSM places outside coverage)
   const mapMarkers: MapMarkerItem[] = isOutsideCoverage
-    ? []
+    ? osmMapMarkers
     : displayedListings
         .filter((item) => typeof item.latitude === 'number' && typeof item.longitude === 'number')
         .map((item) => {
@@ -161,7 +223,12 @@ export default function CareNearbyScreen() {
       };
     });
 
-  const selectedListing = displayedListings.find((l) => l.id === selectedPin);
+  const selectedListing = !isOutsideCoverage
+    ? displayedListings.find((l) => l.id === selectedPin)
+    : null;
+  const selectedOsmPlace = isOutsideCoverage
+    ? filteredOsmPlaces.find((p) => p.id === selectedPin)
+    : null;
 
   const handleCallPress = async (phone: string, providerName: string) => {
     if (!phone) {
@@ -203,14 +270,19 @@ export default function CareNearbyScreen() {
     }
   };
 
-  const handleDirections = async (item: ProviderListing) => {
-    const query = encodeURIComponent(`${item.name}, ${item.address}`);
+  const handleDirections = async (
+    name: string,
+    address?: string | null,
+    lat?: number,
+    lng?: number
+  ) => {
+    const query = encodeURIComponent([name, address].filter(Boolean).join(', '));
     const url = Platform.select({
-      ios: item.latitude && item.longitude
-        ? `maps:0,0?daddr=${item.latitude},${item.longitude}`
+      ios: lat && lng
+        ? `maps:0,0?daddr=${lat},${lng}`
         : `maps:0,0?daddr=${query}`,
-      android: item.latitude && item.longitude
-        ? `google.navigation:q=${item.latitude},${item.longitude}`
+      android: lat && lng
+        ? `google.navigation:q=${lat},${lng}`
         : `geo:0,0?q=${query}`,
       default: `https://www.google.com/maps/dir/?api=1&destination=${query}`,
     });
@@ -254,7 +326,27 @@ export default function CareNearbyScreen() {
         </View>
 
         {/* VERIFIED HEALTHCARE DIRECTORY ASSURANCE */}
-        {!isOutsideCoverage && (
+        {isOutsideCoverage ? (
+          <View
+            style={[
+              styles.disclaimerCard,
+              {
+                backgroundColor: palette.surface,
+                borderColor: palette.line,
+              },
+            ]}
+          >
+            <ShieldCheckIcon size={18} color={palette.accent} />
+            <View style={styles.disclaimerTextGroup}>
+              <Text style={[styles.disclaimerTitle, { color: palette.ink }]}>
+                Nearby healthcare from OpenStreetMap
+              </Text>
+              <Text style={[styles.disclaimerBody, { color: palette.ink2 }]}>
+                Real hospitals, clinics, and pharmacies. Call ahead to confirm hours, emergency availability, or stock.
+              </Text>
+            </View>
+          </View>
+        ) : (
           <View
             style={[
               styles.disclaimerCard,
@@ -342,7 +434,14 @@ export default function CareNearbyScreen() {
                 <Text style={[styles.pinCalloutCallText, { color: palette.btnInk }]}>Call</Text>
               </Pressable>
               <Pressable
-                onPress={() => handleDirections(selectedListing)}
+                onPress={() =>
+                  handleDirections(
+                    selectedListing.name,
+                    selectedListing.address,
+                    selectedListing.latitude,
+                    selectedListing.longitude
+                  )
+                }
                 style={[styles.pinCalloutDirBtn, { backgroundColor: palette.surface2, borderColor: palette.line }]}
                 accessible={true}
                 accessibilityRole="button"
@@ -355,64 +454,99 @@ export default function CareNearbyScreen() {
           </View>
         )}
 
-        {isOutsideCoverage ? (
+        {selectedOsmPlace && (
           <View
             style={[
-              styles.outOfRegionCard,
+              styles.pinCalloutCard,
               {
                 backgroundColor: palette.surface,
-                borderColor: palette.line,
+                borderColor: palette.selBorder,
+                shadowColor: palette.shadow,
               },
             ]}
           >
-            <MapPinIcon size={28} color={palette.ink2} />
-            <Text style={[styles.outOfRegionTitle, { color: palette.ink }]}>
-              {t('unsupported_region_title', 'No pharmacy data for this area yet')}
-            </Text>
-            <Text style={[styles.outOfRegionNotice, { color: palette.ink2 }]}>
-              {t(
-                'unsupported_region_notice',
-                "MedFind doesn't have pharmacy data for this area yet."
+            <View style={styles.pinCalloutInfo}>
+              <View style={styles.pinTitleRow}>
+                <Text style={[styles.pinCalloutTitle, { color: palette.ink }]}>
+                  {selectedOsmPlace.type === 'pharmacy'
+                    ? '💊 '
+                    : selectedOsmPlace.type === 'hospital'
+                    ? '🏥 '
+                    : '🩺 '}
+                  {selectedOsmPlace.name}
+                </Text>
+                <Pressable
+                  onPress={() => setSelectedPin(null)}
+                  hitSlop={8}
+                  style={styles.closeCalloutBtn}
+                >
+                  <Text style={[styles.closeCalloutText, { color: palette.ink2 }]}>✕</Text>
+                </Pressable>
+              </View>
+              <Text style={[styles.pinCalloutMeta, { color: palette.ink2 }]}>
+                {formatDistanceOrNull(selectedOsmPlace.distanceKm) ? `${formatDistanceOrNull(selectedOsmPlace.distanceKm)} • ` : ''}
+                {selectedOsmPlace.address || 'Address not listed'}
+              </Text>
+              {selectedOsmPlace.hasEmergencyDepartment && (
+                <View style={[styles.emergencyBadge, { backgroundColor: palette.badTint, borderColor: palette.redLine }]}>
+                  <Text style={[styles.emergencyBadgeText, { color: palette.badInk }]}>
+                    🚨 Emergency Department
+                  </Text>
+                </View>
               )}
-            </Text>
-            <View style={styles.outOfRegionActions}>
-              <Pressable
-                onPress={() => setShowAreaPickerModal(true)}
-                accessible={true}
-                accessibilityRole="button"
-                accessibilityLabel="Choose another area"
-                style={[styles.chooseAreaBtn, { backgroundColor: palette.btn }]}
-              >
-                <Text style={[styles.chooseAreaBtnText, { color: palette.btnInk }]}>
-                  {t('choose_another_area', 'Choose another area')}
+              <View style={[styles.osmStockBox, { backgroundColor: palette.surface2, borderColor: palette.line }]}>
+                <Text style={[styles.osmStockText, { color: palette.ink2 }]}>
+                  Stock unknown. Call to check.
                 </Text>
-              </Pressable>
-
+              </View>
+            </View>
+            <View style={styles.pinCalloutButtons}>
+              {selectedOsmPlace.phone ? (
+                <Pressable
+                  onPress={() => handleCallPress(selectedOsmPlace.phone!, selectedOsmPlace.name)}
+                  style={[styles.pinCalloutCallBtn, { backgroundColor: palette.btn }]}
+                  accessible={true}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Call ${selectedOsmPlace.name}`}
+                >
+                  <PhoneIcon size={14} color={palette.btnInk} />
+                  <Text style={[styles.pinCalloutCallText, { color: palette.btnInk }]}>Call</Text>
+                </Pressable>
+              ) : null}
               <Pressable
-                onPress={() => router.push('/(tabs)/emergency')}
-                accessible={true}
-                accessibilityRole="button"
-                accessibilityLabel="Emergency contacts"
+                onPress={() =>
+                  handleDirections(
+                    selectedOsmPlace.name,
+                    selectedOsmPlace.address,
+                    selectedOsmPlace.coordinates.latitude,
+                    selectedOsmPlace.coordinates.longitude
+                  )
+                }
                 style={[
-                  styles.emergencyLinkBtn,
-                  { backgroundColor: palette.surface2, borderColor: palette.line },
+                  styles.pinCalloutDirBtn,
+                  {
+                    backgroundColor: palette.surface2,
+                    borderColor: palette.line,
+                    flex: selectedOsmPlace.phone ? undefined : 1,
+                  },
                 ]}
+                accessible={true}
+                accessibilityRole="button"
+                accessibilityLabel={`Get directions to ${selectedOsmPlace.name}`}
               >
-                <PhoneIcon size={14} color={palette.red} />
-                <Text style={[styles.emergencyLinkText, { color: palette.ink }]}>
-                  {t('emergency_link', 'Emergency contacts')} →
-                </Text>
+                <DirectionsIcon size={14} color={palette.ink} />
+                <Text style={[styles.pinCalloutDirText, { color: palette.ink }]}>Directions</Text>
               </Pressable>
             </View>
           </View>
-        ) : (
-          <>
-            {/* CATEGORY FILTER CHIPS */}
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.categoryChipsRow}
-            >
+        )}
+
+        {/* CATEGORY FILTER CHIPS */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.categoryChipsRow}
+        >
           {categories.map((cat) => {
             const isSelected = selectedCategory === cat.id;
 
@@ -450,167 +584,409 @@ export default function CareNearbyScreen() {
 
         {/* PROVIDER LISTINGS */}
         <View style={styles.listingsSection}>
-          {isLoading && (
-            <ActivityIndicator size="small" color={palette.accent} style={{ marginVertical: 20 }} />
-          )}
+          {isOutsideCoverage ? (
+            <>
+              {osmLoading && (
+                <View style={{ paddingVertical: 24, alignItems: 'center', gap: 8 }}>
+                  <ActivityIndicator size="small" color={palette.accent} />
+                  <Text style={{ fontFamily: fonts.sans, fontSize: 13, color: palette.ink2 }}>
+                    Finding nearby healthcare on OpenStreetMap...
+                  </Text>
+                </View>
+              )}
 
-          {!isLoading &&
-            displayedListings.map((item, idx) => {
-              const isSelected = selectedPin === item.id;
-              const isPharm = item.id.startsWith('pharm-');
-              const isHospital = item.type === 'hospital';
-              const isClinic = item.type === 'clinic' && !isPharm;
-              const isAmbulance = item.type === 'ambulance';
-
-              const initialLetter = isPharm ? 'P' : isHospital ? 'H' : isClinic ? 'C' : 'A';
-              const typeSubtitle = isPharm
-                ? 'Verified Pharmacy • Prescription Dispensing'
-                : isHospital
-                ? 'Hospital • Casualty & Emergency'
-                : isClinic
-                ? 'Clinic • Primary Health Consultation'
-                : 'Ambulance Contact • Emergency Medical Response';
-
-              const callLabel = isPharm
-                ? 'Call pharmacy'
-                : isHospital
-                ? 'Call hospital'
-                : isClinic
-                ? 'Call clinic'
-                : 'Call ambulance';
-
-              const distanceText = isAmbulance
-                ? 'Area'
-                : formatDistanceOrNull(item.distanceKm);
-
-              return (
-                <Pressable
-                  key={item.id}
-                  onPress={() => setSelectedPin(item.id)}
+              {!osmLoading && osmError && (
+                <View
                   style={[
-                    styles.providerCard,
+                    styles.outOfRegionCard,
                     {
                       backgroundColor: palette.surface,
-                      borderColor: isSelected ? palette.selBorder : palette.line,
-                      borderWidth: isSelected ? 1.5 : 1,
+                      borderColor: palette.line,
                     },
                   ]}
                 >
-                  {/* Top Row: Initial Badge, Facility Name & Distance */}
-                  <View style={styles.providerHeaderRow}>
-                    <View
+                  <MapPinIcon size={24} color={palette.ink2} />
+                  <Text style={[styles.outOfRegionTitle, { color: palette.ink }]}>
+                    Unable to load nearby places
+                  </Text>
+                  <Text style={[styles.outOfRegionNotice, { color: palette.ink2 }]}>
+                    {osmError}
+                  </Text>
+                  <Pressable
+                    onPress={() => setOsmRetryCount((c) => c + 1)}
+                    style={[styles.chooseAreaBtn, { backgroundColor: palette.btn }]}
+                    accessible={true}
+                    accessibilityRole="button"
+                    accessibilityLabel="Retry loading nearby places"
+                  >
+                    <Text style={[styles.chooseAreaBtnText, { color: palette.btnInk }]}>
+                      Retry
+                    </Text>
+                  </Pressable>
+                </View>
+              )}
+
+              {!osmLoading && !osmError && filteredOsmPlaces.length === 0 && (
+                <View
+                  style={[
+                    styles.outOfRegionCard,
+                    {
+                      backgroundColor: palette.surface,
+                      borderColor: palette.line,
+                    },
+                  ]}
+                >
+                  <MapPinIcon size={24} color={palette.ink2} />
+                  <Text style={[styles.outOfRegionTitle, { color: palette.ink }]}>
+                    No places found
+                  </Text>
+                  <Text style={[styles.outOfRegionNotice, { color: palette.ink2 }]}>
+                    No healthcare facilities found within 10 km on OpenStreetMap.
+                  </Text>
+                  <Pressable
+                    onPress={() => setShowAreaPickerModal(true)}
+                    style={[styles.chooseAreaBtn, { backgroundColor: palette.btn }]}
+                    accessible={true}
+                    accessibilityRole="button"
+                    accessibilityLabel="Choose another area"
+                  >
+                    <Text style={[styles.chooseAreaBtnText, { color: palette.btnInk }]}>
+                      {t('choose_another_area', 'Choose another area')}
+                    </Text>
+                  </Pressable>
+                </View>
+              )}
+
+              {!osmLoading &&
+                !osmError &&
+                filteredOsmPlaces.map((item) => {
+                  const isSelected = selectedPin === item.id;
+                  const isPharm = item.type === 'pharmacy';
+                  const isHospital = item.type === 'hospital';
+                  const initialLetter = isPharm ? 'P' : isHospital ? 'H' : 'C';
+                  const typeSubtitle = isPharm
+                    ? 'Pharmacy • OpenStreetMap'
+                    : isHospital
+                    ? 'Hospital • OpenStreetMap'
+                    : 'Clinic • OpenStreetMap';
+
+                  return (
+                    <Pressable
+                      key={item.id}
+                      onPress={() => setSelectedPin(item.id)}
                       style={[
-                        styles.initialBadge,
+                        styles.providerCard,
                         {
-                          backgroundColor:
-                            scheme === 'light' ? palette.ink : palette.btn,
+                          backgroundColor: palette.surface,
+                          borderColor: isSelected ? palette.selBorder : palette.line,
+                          borderWidth: isSelected ? 1.5 : 1,
                         },
                       ]}
                     >
-                      <Text style={[styles.initialBadgeText, { color: '#FFFFFF' }]}>
-                        {initialLetter}
-                      </Text>
-                    </View>
+                      {/* Top Row: Initial Badge, Name & Distance */}
+                      <View style={styles.providerHeaderRow}>
+                        <View
+                          style={[
+                            styles.initialBadge,
+                            {
+                              backgroundColor: scheme === 'light' ? palette.ink : palette.btn,
+                            },
+                          ]}
+                        >
+                          <Text style={[styles.initialBadgeText, { color: '#FFFFFF' }]}>
+                            {initialLetter}
+                          </Text>
+                        </View>
 
-                    <View style={styles.providerNameGroup}>
-                      <Text style={[styles.providerName, { color: palette.ink }]}>
-                        {item.name}
-                      </Text>
-                      <Text style={[styles.providerSub, { color: palette.ink2 }]}>
-                        {typeSubtitle}
-                      </Text>
-                    </View>
+                        <View style={styles.providerNameGroup}>
+                          <Text style={[styles.providerName, { color: palette.ink }]}>
+                            {item.name}
+                          </Text>
+                          <Text style={[styles.providerSub, { color: palette.ink2 }]}>
+                            {typeSubtitle}
+                          </Text>
+                        </View>
 
-                    {distanceText ? (
-                      <Text style={[styles.providerDistance, { color: palette.ink }]}>
-                        {distanceText}
-                      </Text>
-                    ) : null}
-                  </View>
+                        {formatDistanceOrNull(item.distanceKm) ? (
+                          <Text style={[styles.providerDistance, { color: palette.ink }]}>
+                            {formatDistanceOrNull(item.distanceKm)}
+                          </Text>
+                        ) : null}
+                      </View>
 
-                  {/* Service Tags Row */}
-                  <View style={styles.tagsContainer}>
-                    {item.services.slice(0, 3).map((service, sIdx) => (
-                      <View
-                        key={`${service}-${sIdx}`}
-                        style={[
-                          styles.servicePill,
-                          {
-                            backgroundColor: palette.surface2,
-                            borderColor: palette.line,
-                          },
-                        ]}
-                      >
-                        <Text style={[styles.servicePillText, { color: palette.ink2 }]}>
-                          {service}
+                      {/* Emergency Department Badge (hospitals only when emergency=yes) */}
+                      {item.hasEmergencyDepartment && (
+                        <View style={[styles.emergencyBadge, { backgroundColor: palette.badTint, borderColor: palette.redLine }]}>
+                          <Text style={[styles.emergencyBadgeText, { color: palette.badInk }]}>
+                            🚨 Emergency Department
+                          </Text>
+                        </View>
+                      )}
+
+                      {/* Address */}
+                      {item.address ? (
+                        <Text style={[styles.providerAddress, { color: palette.ink2 }]}>
+                          {item.address}
+                        </Text>
+                      ) : null}
+
+                      {/* Opening hours raw text */}
+                      {item.openingHours ? (
+                        <View style={styles.osmHoursRow}>
+                          <ClockIcon size={13} color={palette.ink2} />
+                          <Text style={[styles.osmHoursText, { color: palette.ink2 }]}>
+                            {item.openingHours} (from OpenStreetMap, may be out of date)
+                          </Text>
+                        </View>
+                      ) : null}
+
+                      {/* Stock status - requirement 4: always show Stock unknown. Call to check. */}
+                      <View style={[styles.osmStockBox, { backgroundColor: palette.surface2, borderColor: palette.line }]}>
+                        <Text style={[styles.osmStockText, { color: palette.ink2 }]}>
+                          Stock unknown. Call to check.
                         </Text>
                       </View>
-                    ))}
-                  </View>
 
-                  {/* Source Attribution */}
-                  <View style={styles.sourceAttributionRow}>
-                    <ShieldCheckIcon size={13} color={palette.ink2} />
-                    <Text style={[styles.sourceAttributionText, { color: palette.ink2 }]}>
-                      Source: verified public health registry • reviewed 2026
-                    </Text>
-                  </View>
+                      {/* Action buttons: Call & Directions */}
+                      <View style={styles.cardActionsRow}>
+                        {item.phone ? (
+                          <Pressable
+                            onPress={() => handleCallPress(item.phone!, item.name)}
+                            accessible={true}
+                            accessibilityRole="button"
+                            accessibilityLabel={`Call ${item.name}`}
+                            style={({ pressed }) => [
+                              styles.callButton,
+                              {
+                                backgroundColor: palette.btn,
+                                borderColor: palette.btnBorder,
+                                opacity: pressed ? 0.88 : 1.0,
+                              },
+                            ]}
+                          >
+                            <PhoneIcon size={16} color={palette.btnInk} />
+                            <Text
+                              style={[styles.callButtonText, { color: palette.btnInk }]}
+                              numberOfLines={1}
+                              ellipsizeMode="tail"
+                            >
+                              Call
+                            </Text>
+                          </Pressable>
+                        ) : null}
 
-                  {/* Action Buttons: Call & Directions */}
-                  <View style={styles.cardActionsRow}>
+                        <Pressable
+                          onPress={() =>
+                            handleDirections(
+                              item.name,
+                              item.address,
+                              item.coordinates.latitude,
+                              item.coordinates.longitude
+                            )
+                          }
+                          accessible={true}
+                          accessibilityRole="button"
+                          accessibilityLabel={`Get directions to ${item.name}`}
+                          style={({ pressed }) => [
+                            styles.directionsBtn,
+                            {
+                              backgroundColor: palette.surface2,
+                              borderColor: palette.line,
+                              opacity: pressed ? 0.85 : 1.0,
+                              flex: item.phone ? undefined : 1,
+                            },
+                          ]}
+                        >
+                          <DirectionsIcon size={16} color={palette.ink} />
+                          <Text
+                            style={[styles.directionsBtnText, { color: palette.ink }]}
+                            numberOfLines={1}
+                          >
+                            Directions
+                          </Text>
+                        </Pressable>
+                      </View>
+                    </Pressable>
+                  );
+                })}
+
+              {/* Requirement 7: Attribution */}
+              <View style={styles.osmAttributionContainer}>
+                <Text style={[styles.osmAttributionFooter, { color: palette.ink2 }]}>
+                  {OSM_ATTRIBUTION}
+                </Text>
+              </View>
+            </>
+          ) : (
+            <>
+              {isLoading && (
+                <ActivityIndicator size="small" color={palette.accent} style={{ marginVertical: 20 }} />
+              )}
+
+              {!isLoading &&
+                displayedListings.map((item) => {
+                  const isSelected = selectedPin === item.id;
+                  const isPharm = item.id.startsWith('pharm-');
+                  const isHospital = item.type === 'hospital';
+                  const isClinic = item.type === 'clinic' && !isPharm;
+                  const isAmbulance = item.type === 'ambulance';
+
+                  const initialLetter = isPharm ? 'P' : isHospital ? 'H' : isClinic ? 'C' : 'A';
+                  const typeSubtitle = isPharm
+                    ? 'Sample Pharmacy • Demo Data'
+                    : isHospital
+                    ? 'Sample Hospital • Demo Data'
+                    : isClinic
+                    ? 'Sample Clinic • Demo Data'
+                    : 'Sample Ambulance Contact • Demo Data';
+
+                  const callLabel = isPharm
+                    ? 'Call pharmacy'
+                    : isHospital
+                    ? 'Call hospital'
+                    : isClinic
+                    ? 'Call clinic'
+                    : 'Call ambulance';
+
+                  const distanceText = isAmbulance
+                    ? 'Area'
+                    : formatDistanceOrNull(item.distanceKm);
+
+                  return (
                     <Pressable
-                      onPress={() => handleCallPress(item.phone, item.name)}
-                      accessible={true}
-                      accessibilityRole="button"
-                      accessibilityLabel={`${callLabel} for ${item.name}`}
-                      style={({ pressed }) => [
-                        styles.callButton,
+                      key={item.id}
+                      onPress={() => setSelectedPin(item.id)}
+                      style={[
+                        styles.providerCard,
                         {
-                          backgroundColor: palette.btn,
-                          borderColor: palette.btnBorder,
-                          opacity: pressed ? 0.88 : 1.0,
+                          backgroundColor: palette.surface,
+                          borderColor: isSelected ? palette.selBorder : palette.line,
+                          borderWidth: isSelected ? 1.5 : 1,
                         },
                       ]}
                     >
-                      <PhoneIcon size={16} color={palette.btnInk} />
-                      <Text
-                        style={[styles.callButtonText, { color: palette.btnInk }]}
-                        numberOfLines={1}
-                        ellipsizeMode="tail"
-                      >
-                        {callLabel}
-                      </Text>
-                    </Pressable>
+                      {/* Top Row: Initial Badge, Facility Name & Distance */}
+                      <View style={styles.providerHeaderRow}>
+                        <View
+                          style={[
+                            styles.initialBadge,
+                            {
+                              backgroundColor:
+                                scheme === 'light' ? palette.ink : palette.btn,
+                            },
+                          ]}
+                        >
+                          <Text style={[styles.initialBadgeText, { color: '#FFFFFF' }]}>
+                            {initialLetter}
+                          </Text>
+                        </View>
 
-                    <Pressable
-                      onPress={() => handleDirections(item)}
-                      accessible={true}
-                      accessibilityRole="button"
-                      accessibilityLabel={`Get directions to ${item.name}`}
-                      style={({ pressed }) => [
-                        styles.directionsBtn,
-                        {
-                          backgroundColor: palette.surface2,
-                          borderColor: palette.line,
-                          opacity: pressed ? 0.85 : 1.0,
-                        },
-                      ]}
-                    >
-                      <DirectionsIcon size={16} color={palette.ink} />
-                      <Text
-                        style={[styles.directionsBtnText, { color: palette.ink }]}
-                        numberOfLines={1}
-                      >
-                        Directions
-                      </Text>
+                        <View style={styles.providerNameGroup}>
+                          <Text style={[styles.providerName, { color: palette.ink }]}>
+                            {item.name}
+                          </Text>
+                          <Text style={[styles.providerSub, { color: palette.ink2 }]}>
+                            {typeSubtitle}
+                          </Text>
+                        </View>
+
+                        {distanceText ? (
+                          <Text style={[styles.providerDistance, { color: palette.ink }]}>
+                            {distanceText}
+                          </Text>
+                        ) : null}
+                      </View>
+
+                      {/* Service Tags Row */}
+                      <View style={styles.tagsContainer}>
+                        {item.services.slice(0, 3).map((service, sIdx) => (
+                          <View
+                            key={`${service}-${sIdx}`}
+                            style={[
+                              styles.servicePill,
+                              {
+                                backgroundColor: palette.surface2,
+                                borderColor: palette.line,
+                              },
+                            ]}
+                          >
+                            <Text style={[styles.servicePillText, { color: palette.ink2 }]}>
+                              {service}
+                            </Text>
+                          </View>
+                        ))}
+                      </View>
+
+                      {/* Source Attribution */}
+                      <View style={styles.sourceAttributionRow}>
+                        <ShieldCheckIcon size={13} color={palette.ink2} />
+                        <Text style={[styles.sourceAttributionText, { color: palette.ink2 }]}>
+                          Sample data • Bengaluru network demo
+                        </Text>
+                      </View>
+
+                      {/* Action Buttons: Call & Directions */}
+                      <View style={styles.cardActionsRow}>
+                        <Pressable
+                          onPress={() => handleCallPress(item.phone, item.name)}
+                          accessible={true}
+                          accessibilityRole="button"
+                          accessibilityLabel={`${callLabel} for ${item.name}`}
+                          style={({ pressed }) => [
+                            styles.callButton,
+                            {
+                              backgroundColor: palette.btn,
+                              borderColor: palette.btnBorder,
+                              opacity: pressed ? 0.88 : 1.0,
+                            },
+                          ]}
+                        >
+                          <PhoneIcon size={16} color={palette.btnInk} />
+                          <Text
+                            style={[styles.callButtonText, { color: palette.btnInk }]}
+                            numberOfLines={1}
+                            ellipsizeMode="tail"
+                          >
+                            {callLabel}
+                          </Text>
+                        </Pressable>
+
+                        <Pressable
+                          onPress={() =>
+                            handleDirections(
+                              item.name,
+                              item.address,
+                              item.latitude,
+                              item.longitude
+                            )
+                          }
+                          accessible={true}
+                          accessibilityRole="button"
+                          accessibilityLabel={`Get directions to ${item.name}`}
+                          style={({ pressed }) => [
+                            styles.directionsBtn,
+                            {
+                              backgroundColor: palette.surface2,
+                              borderColor: palette.line,
+                              opacity: pressed ? 0.85 : 1.0,
+                            },
+                          ]}
+                        >
+                          <DirectionsIcon size={16} color={palette.ink} />
+                          <Text
+                            style={[styles.directionsBtnText, { color: palette.ink }]}
+                            numberOfLines={1}
+                          >
+                            Directions
+                          </Text>
+                        </Pressable>
+                      </View>
                     </Pressable>
-                  </View>
-                </Pressable>
-              );
-            })}
+                  );
+                })}
+            </>
+          )}
         </View>
-          </>
-        )}
       </ScrollView>
       </AnimatedScreenTransition>
 
@@ -924,5 +1300,53 @@ const styles = StyleSheet.create({
   emergencyLinkText: {
     fontFamily: fonts.sansBold,
     fontSize: 13,
+  },
+  providerAddress: {
+    fontFamily: fonts.sans,
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  emergencyBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: radii.chip,
+    borderWidth: 1,
+    alignSelf: 'flex-start',
+  },
+  emergencyBadgeText: {
+    fontFamily: fonts.sansBold,
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  osmHoursRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 6,
+  },
+  osmHoursText: {
+    fontFamily: fonts.sans,
+    fontSize: 12,
+    lineHeight: 16,
+    flex: 1,
+  },
+  osmStockBox: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: radii.chip,
+    borderWidth: 1,
+    alignSelf: 'flex-start',
+  },
+  osmStockText: {
+    fontFamily: fonts.sansMedium,
+    fontSize: 12,
+  },
+  osmAttributionContainer: {
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  osmAttributionFooter: {
+    fontFamily: fonts.sans,
+    fontSize: 12,
+    textAlign: 'center',
   },
 });

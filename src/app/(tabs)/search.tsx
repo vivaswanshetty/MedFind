@@ -29,6 +29,11 @@ import {
 import { sortListingsByDistance, formatDistanceOrNull, getRegionForCoordinates } from '../../services/locationService';
 import { storageService } from '../../services/storageService';
 import {
+  getNearbyPharmacies,
+  NearbyPlace,
+  OSM_ATTRIBUTION,
+} from '../../services/nearbyPlacesService';
+import {
   BackArrowIcon,
   SearchIcon,
   ClearIcon,
@@ -75,6 +80,10 @@ export default function SearchScreen() {
   const [isSampleData, setIsSampleData] = useState<boolean>(true);
   const [selectedRecordId, setSelectedRecordId] = useState<string | null>(null);
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
+  const [osmPharmacies, setOsmPharmacies] = useState<NearbyPlace[]>([]);
+  const [osmLoading, setOsmLoading] = useState(false);
+  const [osmError, setOsmError] = useState<string | null>(null);
+  const [osmRetryCount, setOsmRetryCount] = useState(0);
 
   // Load recent searches from local device storage
   useEffect(() => {
@@ -209,6 +218,37 @@ export default function SearchScreen() {
   const activeRecordResult = searchResults.find((r) => r.medicineId === activeRecord?.medicineId);
   const currentIsSample = activeRecordResult ? activeRecordResult.isSampleData : isSampleData;
 
+  // Fetch real nearby pharmacies from OpenStreetMap when outside coverage and a medicine is selected
+  useEffect(() => {
+    if (!isOutsideCoverage || !userLocation || !activeRecord) {
+      setOsmPharmacies([]);
+      setOsmError(null);
+      return;
+    }
+
+    let isCancelled = false;
+    setOsmLoading(true);
+    setOsmError(null);
+
+    getNearbyPharmacies(userLocation)
+      .then((pharmacies) => {
+        if (!isCancelled) {
+          setOsmPharmacies(pharmacies);
+          setOsmLoading(false);
+        }
+      })
+      .catch((err) => {
+        if (!isCancelled) {
+          setOsmError(err?.message || 'Unable to load nearby pharmacies from OpenStreetMap.');
+          setOsmLoading(false);
+        }
+      });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [isOutsideCoverage, userLocation?.latitude, userLocation?.longitude, activeRecord?.medicineId, osmRetryCount]);
+
   // Participating stores with verified coordinates around Basavanagudi
   const baseStores: Array<{
     id: string;
@@ -311,6 +351,34 @@ export default function SearchScreen() {
       }
     } catch {
       Alert.alert('Error', 'Unable to open phone dialer.');
+    }
+  };
+
+  const handleDirections = async (
+    name: string,
+    address?: string | null,
+    lat?: number,
+    lng?: number
+  ) => {
+    const query = encodeURIComponent([name, address].filter(Boolean).join(', '));
+    const url = Platform.select({
+      ios: lat && lng
+        ? `maps:0,0?daddr=${lat},${lng}`
+        : `maps:0,0?daddr=${query}`,
+      android: lat && lng
+        ? `google.navigation:q=${lat},${lng}`
+        : `geo:0,0?q=${query}`,
+      default: `https://www.google.com/maps/dir/?api=1&destination=${query}`,
+    });
+    try {
+      const canOpen = await Linking.canOpenURL(url);
+      if (canOpen) {
+        await Linking.openURL(url);
+      } else {
+        await Linking.openURL(`https://www.google.com/maps/dir/?api=1&destination=${query}`);
+      }
+    } catch {
+      Alert.alert('Directions Unavailable', 'Unable to open directions in map app.');
     }
   };
 
@@ -834,7 +902,9 @@ export default function SearchScreen() {
                     ) : (
                       <Text style={[styles.recordHoldText, { color: palette.ink2 }]}>
                         {isOutsideCoverage
-                          ? t('unsupported_region_title', 'No pharmacy data for this area yet')
+                          ? osmPharmacies.length > 0
+                            ? `${osmPharmacies.length} nearby pharmacies on OpenStreetMap`
+                            : 'Tap to find nearby pharmacies on OpenStreetMap'
                           : `${pharmacyItems.length} participating pharmacies hold a record`}
                       </Text>
                     )}
@@ -863,54 +933,250 @@ export default function SearchScreen() {
             </View>
 
             {isOutsideCoverage ? (
-              <View
-                style={[
-                  styles.outOfRegionResultCard,
-                  {
-                    backgroundColor: palette.surface,
-                    borderColor: palette.line,
-                  },
-                ]}
-              >
-                <MapPinIcon size={24} color={palette.ink2} />
-                <Text style={[styles.outOfRegionResultTitle, { color: palette.ink }]}>
-                  {t('unsupported_region_title', 'No pharmacy data for this area yet')}
-                </Text>
-                <Text style={[styles.outOfRegionResultSub, { color: palette.ink2 }]}>
-                  {t(
-                    'unsupported_region_notice',
-                    "MedFind doesn't have pharmacy data for this area yet."
-                  )}
-                </Text>
-                <View style={styles.outOfRegionActionRow}>
+              osmLoading ? (
+                <View
+                  style={[
+                    styles.outOfRegionResultCard,
+                    {
+                      backgroundColor: palette.surface,
+                      borderColor: palette.line,
+                    },
+                  ]}
+                >
+                  <ActivityIndicator size="small" color={palette.accent} />
+                  <Text style={[styles.outOfRegionResultSub, { color: palette.ink2, marginTop: 8 }]}>
+                    Looking up nearby pharmacies on OpenStreetMap...
+                  </Text>
+                </View>
+              ) : osmError ? (
+                <View
+                  style={[
+                    styles.outOfRegionResultCard,
+                    {
+                      backgroundColor: palette.surface,
+                      borderColor: palette.line,
+                    },
+                  ]}
+                >
+                  <InfoIcon size={24} color={palette.red} />
+                  <Text style={[styles.outOfRegionResultTitle, { color: palette.ink }]}>
+                    Unable to load nearby pharmacies
+                  </Text>
+                  <Text style={[styles.outOfRegionResultSub, { color: palette.ink2 }]}>
+                    {osmError}
+                  </Text>
                   <Pressable
-                    onPress={() => setShowAreaPickerModal(true)}
-                    accessible={true}
-                    accessibilityRole="button"
-                    accessibilityLabel="Choose another area"
-                    style={[styles.outOfRegionChooseBtn, { backgroundColor: palette.btn }]}
+                    onPress={() => setOsmRetryCount((c) => c + 1)}
+                    style={[styles.outOfRegionChooseBtn, { backgroundColor: palette.btn, marginTop: 10 }]}
                   >
                     <Text style={[styles.outOfRegionChooseBtnText, { color: palette.btnInk }]}>
-                      {t('choose_another_area', 'Choose another area')}
-                    </Text>
-                  </Pressable>
-                  <Pressable
-                    onPress={() => router.push('/(tabs)/emergency')}
-                    accessible={true}
-                    accessibilityRole="button"
-                    accessibilityLabel="Emergency contacts"
-                    style={[
-                      styles.outOfRegionEmergencyBtn,
-                      { backgroundColor: palette.surface2, borderColor: palette.line },
-                    ]}
-                  >
-                    <PhoneIcon size={14} color={palette.red} />
-                    <Text style={[styles.outOfRegionEmergencyText, { color: palette.ink }]}>
-                      {t('emergency_link', 'Emergency contacts')} →
+                      Retry
                     </Text>
                   </Pressable>
                 </View>
-              </View>
+              ) : osmPharmacies.length === 0 ? (
+                <View
+                  style={[
+                    styles.outOfRegionResultCard,
+                    {
+                      backgroundColor: palette.surface,
+                      borderColor: palette.line,
+                    },
+                  ]}
+                >
+                  <MapPinIcon size={24} color={palette.ink2} />
+                  <Text style={[styles.outOfRegionResultTitle, { color: palette.ink }]}>
+                    No nearby pharmacies found
+                  </Text>
+                  <Text style={[styles.outOfRegionResultSub, { color: palette.ink2 }]}>
+                    No pharmacies were found within 10 km on OpenStreetMap for this location.
+                  </Text>
+                  <View style={styles.outOfRegionActionRow}>
+                    <Pressable
+                      onPress={() => setShowAreaPickerModal(true)}
+                      accessible={true}
+                      accessibilityRole="button"
+                      accessibilityLabel="Choose another area"
+                      style={[styles.outOfRegionChooseBtn, { backgroundColor: palette.btn }]}
+                    >
+                      <Text style={[styles.outOfRegionChooseBtnText, { color: palette.btnInk }]}>
+                        {t('choose_another_area', 'Choose another area')}
+                      </Text>
+                    </Pressable>
+                    <Pressable
+                      onPress={() => router.push('/(tabs)/emergency')}
+                      accessible={true}
+                      accessibilityRole="button"
+                      accessibilityLabel="Emergency contacts"
+                      style={[
+                        styles.outOfRegionEmergencyBtn,
+                        { backgroundColor: palette.surface2, borderColor: palette.line },
+                      ]}
+                    >
+                      <PhoneIcon size={14} color={palette.red} />
+                      <Text style={[styles.outOfRegionEmergencyText, { color: palette.ink }]}>
+                        {t('emergency_link', 'Emergency contacts')} →
+                      </Text>
+                    </Pressable>
+                  </View>
+                </View>
+              ) : (
+                <>
+                  {/* Results Title Banner */}
+                  <View
+                    style={[
+                      styles.noticeBanner,
+                      {
+                        backgroundColor: palette.surface2,
+                        borderColor: palette.line,
+                      },
+                    ]}
+                  >
+                    <MapPinIcon size={16} color={palette.okInk} />
+                    <View style={styles.noticeBannerTextGroup}>
+                      <Text style={[styles.noticeBannerTitle, { color: palette.ink }]}>
+                        Real nearby pharmacies from OpenStreetMap
+                      </Text>
+                      <Text style={[styles.noticeBannerSubtitle, { color: palette.ink2 }]}>
+                        Stock unknown. Call to check.
+                      </Text>
+                    </View>
+                  </View>
+
+                  {/* OSM Pharmacies Cards List */}
+                  <View style={styles.pharmacyListContainer}>
+                    {osmPharmacies.map((pharm) => {
+                      const distanceStr = formatDistanceOrNull(pharm.distanceKm);
+
+                      return (
+                        <View
+                          key={pharm.id}
+                          style={[
+                            styles.pharmacyCard,
+                            {
+                              backgroundColor: palette.surface,
+                              borderColor: palette.line,
+                            },
+                          ]}
+                        >
+                          <View style={styles.pharmacyHeaderRow}>
+                            <View style={styles.pharmacyTitleCol}>
+                              <Text style={[styles.pharmacyName, { color: palette.ink }]}>
+                                {pharm.name}
+                              </Text>
+                              {pharm.address ? (
+                                <Text style={[styles.pharmacyAddress, { color: palette.ink2 }]}>
+                                  {pharm.address}
+                                </Text>
+                              ) : null}
+                            </View>
+                            {distanceStr ? (
+                              <View
+                                style={[
+                                  styles.distanceBadge,
+                                  {
+                                    backgroundColor: palette.surface2,
+                                    borderColor: palette.line,
+                                  },
+                                ]}
+                              >
+                                <Text style={[styles.distanceText, { color: palette.ink }]}>
+                                  {distanceStr}
+                                </Text>
+                              </View>
+                            ) : null}
+                          </View>
+
+                          {/* Raw Opening Hours */}
+                          {pharm.openingHours ? (
+                            <View style={styles.osmHoursRow}>
+                              <ClockIcon size={13} color={palette.ink2} />
+                              <Text style={[styles.osmHoursText, { color: palette.ink2 }]}>
+                                {pharm.openingHours} • from OpenStreetMap, may be out of date
+                              </Text>
+                            </View>
+                          ) : null}
+
+                          {/* Stock Status Notice (strictly "Stock unknown. Call to check.") */}
+                          <View
+                            style={[
+                              styles.osmStockNoticeBox,
+                              {
+                                backgroundColor: palette.surface2,
+                                borderColor: palette.line,
+                              },
+                            ]}
+                          >
+                            <InfoIcon size={14} color={palette.ink2} />
+                            <Text style={[styles.osmStockNoticeText, { color: palette.ink }]}>
+                              Stock unknown. Call to check.
+                            </Text>
+                          </View>
+
+                          {/* Action Buttons: Call & Directions */}
+                          <View style={styles.osmActionButtonsRow}>
+                            {pharm.phone ? (
+                              <Pressable
+                                onPress={() => handleDialer(pharm.phone!, pharm.name)}
+                                style={[styles.osmCallBtn, { backgroundColor: palette.btn }]}
+                                accessible={true}
+                                accessibilityRole="button"
+                                accessibilityLabel={`Call ${pharm.name}`}
+                              >
+                                <PhoneIcon size={14} color={palette.btnInk} />
+                                <Text style={[styles.osmCallBtnText, { color: palette.btnInk }]}>
+                                  Call pharmacy
+                                </Text>
+                              </Pressable>
+                            ) : (
+                              <View
+                                style={[
+                                  styles.osmCallBtnDisabled,
+                                  { backgroundColor: palette.surface2, borderColor: palette.line },
+                                ]}
+                              >
+                                <Text style={[styles.osmCallBtnDisabledText, { color: palette.ink2 }]}>
+                                  No phone on record
+                                </Text>
+                              </View>
+                            )}
+
+                            <Pressable
+                              onPress={() =>
+                                handleDirections(
+                                  pharm.name,
+                                  pharm.address,
+                                  pharm.coordinates.latitude,
+                                  pharm.coordinates.longitude
+                                )
+                              }
+                              style={[
+                                styles.osmDirectionsBtn,
+                                { backgroundColor: palette.surface2, borderColor: palette.line },
+                              ]}
+                              accessible={true}
+                              accessibilityRole="button"
+                              accessibilityLabel={`Get directions to ${pharm.name}`}
+                            >
+                              <DirectionsIcon size={14} color={palette.ink} />
+                              <Text style={[styles.osmDirectionsBtnText, { color: palette.ink }]}>
+                                Directions
+                              </Text>
+                            </Pressable>
+                          </View>
+                        </View>
+                      );
+                    })}
+
+                    {/* Attribution */}
+                    <View style={styles.osmAttributionContainer}>
+                      <Text style={[styles.osmAttributionFooter, { color: palette.ink2 }]}>
+                        {OSM_ATTRIBUTION}
+                      </Text>
+                    </View>
+                  </View>
+                </>
+              )
             ) : (
               <>
                 {/* Results Title Banner */}
@@ -1706,5 +1972,111 @@ const styles = StyleSheet.create({
   outOfRegionEmergencyText: {
     fontFamily: fonts.sansBold,
     fontSize: 13,
+  },
+  osmHoursRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 4,
+  },
+  osmHoursText: {
+    fontFamily: fonts.sans,
+    fontSize: 12,
+  },
+  osmStockNoticeBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: radii.chip,
+    borderWidth: 1,
+    marginTop: 8,
+  },
+  osmStockNoticeText: {
+    fontFamily: fonts.sansBold,
+    fontSize: 12,
+  },
+  osmActionButtonsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 10,
+  },
+  osmCallBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: radii.pill,
+    minHeight: 36,
+    justifyContent: 'center',
+  },
+  osmCallBtnText: {
+    fontFamily: fonts.sansBold,
+    fontSize: 12,
+  },
+  osmCallBtnDisabled: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: radii.pill,
+    borderWidth: 1,
+    minHeight: 36,
+    justifyContent: 'center',
+  },
+  osmCallBtnDisabledText: {
+    fontFamily: fonts.sans,
+    fontSize: 12,
+  },
+  osmDirectionsBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: radii.pill,
+    borderWidth: 1,
+    minHeight: 36,
+    justifyContent: 'center',
+  },
+  osmDirectionsBtnText: {
+    fontFamily: fonts.sansBold,
+    fontSize: 12,
+  },
+  osmAttributionContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 14,
+  },
+  osmAttributionFooter: {
+    fontFamily: fonts.sansMedium,
+    fontSize: 12,
+  },
+  noticeBannerSubtitle: {
+    fontFamily: fonts.sans,
+    fontSize: 13,
+  },
+  pharmacyListContainer: {
+    gap: 12,
+  },
+  pharmacyTitleCol: {
+    flex: 1,
+    gap: 2,
+  },
+  pharmacyAddress: {
+    fontFamily: fonts.sans,
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  distanceBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: radii.chip,
+    borderWidth: 1,
+  },
+  distanceText: {
+    fontFamily: fonts.sansBold,
+    fontSize: 12,
   },
 });

@@ -262,6 +262,19 @@ export function LocationStep({ onDone }: LocationStepProps) {
                 Not now
               </Text>
             </Pressable>
+
+            {/* Privacy Notice: OSM Approximate Lookup */}
+            <Text
+              style={[
+                styles.osmNoticeText,
+                {
+                  color: theme.textSecondary,
+                  fontFamily: typography.fontFamilyRegular,
+                },
+              ]}
+            >
+              Nearby places are looked up with your approximate location using OpenStreetMap servers.
+            </Text>
           </View>
         </ScrollView>
       </SafeAreaView>
@@ -389,5 +402,12 @@ const styles = StyleSheet.create({
   notNowButtonText: {
     fontSize: 15,
     letterSpacing: 0.1,
+  },
+  osmNoticeText: {
+    fontSize: 12,
+    lineHeight: 16,
+    textAlign: 'center',
+    paddingHorizontal: 16,
+    marginTop: 4,
   },
 });

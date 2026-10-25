@@ -519,12 +519,12 @@ export function InteractiveCareMap({
               styles.locationDot,
               {
                 backgroundColor:
-                  locationSource === 'none' || isOutsideCoverage ? palette.ink2 : palette.accent,
+                  locationSource === 'none' ? palette.ink2 : palette.accent,
               },
             ]}
           />
           <Text style={[styles.userLocationText, { color: palette.ink }]} numberOfLines={1}>
-            {locationSource === 'none' || isOutsideCoverage ? 'Set your area' : areaName.split(',')[0]}
+            {locationSource === 'none' ? 'Set your area' : areaName.split(',')[0]}
           </Text>
         </Pressable>
 
@@ -575,8 +575,24 @@ export function InteractiveCareMap({
         </View>
       </View>
 
-      {/* Showing honest out-of-region note or gesture hint */}
-      {isOutsideCoverage ? (
+      {/* OpenStreetMap Attribution Badge */}
+      <View
+        style={[
+          styles.osmAttributionBadge,
+          {
+            backgroundColor: scheme === 'light' ? 'rgba(255,255,255,0.85)' : 'rgba(20,20,25,0.85)',
+            borderColor: palette.line,
+          },
+        ]}
+        pointerEvents="none"
+      >
+        <Text style={[styles.osmAttributionText, { color: palette.ink2 }]}>
+          © OpenStreetMap contributors
+        </Text>
+      </View>
+
+      {/* Showing out-of-region note (when 0 markers) or gesture hint */}
+      {isOutsideCoverage && markers.length === 0 ? (
         <View
           style={[
             styles.regionNotePill,
@@ -818,6 +834,21 @@ const styles = StyleSheet.create({
   regionNoteText: {
     fontFamily: fonts.sansMedium,
     fontSize: 11,
+  },
+  osmAttributionBadge: {
+    position: 'absolute',
+    top: 54,
+    left: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: radii.pill,
+    borderWidth: 1,
+    zIndex: 8,
+  },
+  osmAttributionText: {
+    fontFamily: fonts.sansMedium,
+    fontSize: 10,
+    lineHeight: 12,
   },
   floatingControlsGroup: {
     position: 'absolute',
