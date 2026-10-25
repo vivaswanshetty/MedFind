@@ -18,6 +18,7 @@ export type LocationSource = 'gps' | 'manual_area' | 'none';
 export interface LocationContextValue {
   userLocation: Coordinates | null;
   areaName: string;
+  isoCountryCode: string | null;
   locationSource: LocationSource;
   isLocating: boolean;
   hasLocationPermission: boolean;
@@ -28,7 +29,7 @@ export interface LocationContextValue {
   showOnboardingModal: boolean;
   setShowOnboardingModal: (show: boolean) => void;
   requestGpsLocation: () => Promise<LocationRequestResult>;
-  selectManualArea: (area: KnownArea | { name: string; latitude?: number; longitude?: number }) => Promise<void>;
+  selectManualArea: (area: KnownArea | { name: string; latitude?: number; longitude?: number; isoCountryCode?: string | null }) => Promise<void>;
   clearLocation: () => void;
   completeOnboarding: () => Promise<void>;
   replayOnboarding: () => void;
@@ -40,6 +41,7 @@ export function LocationProvider({ children }: { children: ReactNode }) {
   // Session-only in-memory coordinates. NEVER stored to disk or uploaded.
   const [userLocation, setUserLocation] = useState<Coordinates | null>(null);
   const [areaName, setAreaName] = useState<string>('No area set');
+  const [isoCountryCode, setIsoCountryCode] = useState<string | null>(null);
   const [locationSource, setLocationSource] = useState<LocationSource>('none');
   const [isLocating, setIsLocating] = useState<boolean>(false);
   const [hasLocationPermission, setHasLocationPermission] = useState<boolean>(false);
@@ -88,6 +90,9 @@ export function LocationProvider({ children }: { children: ReactNode }) {
                 if (result.areaName) {
                   setAreaName(result.areaName);
                 }
+                if (result.isoCountryCode) {
+                  setIsoCountryCode(result.isoCountryCode);
+                }
               }
             });
           } else if (savedAreaName) {
@@ -96,6 +101,7 @@ export function LocationProvider({ children }: { children: ReactNode }) {
             if (match) {
               setUserLocation({ latitude: match.latitude, longitude: match.longitude });
               setLocationSource('manual_area');
+              setIsoCountryCode('IN');
             }
           }
         }
@@ -133,6 +139,9 @@ export function LocationProvider({ children }: { children: ReactNode }) {
           // Save only the readable locality text, never the raw lat/long
           await AsyncStorage.setItem(SELECTED_AREA_NAME_KEY, result.areaName);
         }
+        if (result.isoCountryCode) {
+          setIsoCountryCode(result.isoCountryCode);
+        }
       } else {
         setHasLocationPermission(false);
       }
@@ -145,13 +154,16 @@ export function LocationProvider({ children }: { children: ReactNode }) {
   /**
    * Set a manual neighborhood area (e.g. Basavanagudi, Jayanagar)
    */
-  const selectManualArea = async (area: KnownArea | { name: string; latitude?: number; longitude?: number }) => {
+  const selectManualArea = async (area: KnownArea | { name: string; latitude?: number; longitude?: number; isoCountryCode?: string | null }) => {
     setAreaName(area.name);
     setLocationSource('manual_area');
     if (area.latitude !== undefined && area.longitude !== undefined) {
       setUserLocation({ latitude: area.latitude, longitude: area.longitude });
     } else {
       setUserLocation(null);
+    }
+    if ('isoCountryCode' in area && area.isoCountryCode) {
+      setIsoCountryCode(area.isoCountryCode);
     }
     await AsyncStorage.setItem(LOCATION_SOURCE_KEY, 'manual_area');
     // Save human-readable area name to storage (no precise coords saved)
@@ -164,6 +176,7 @@ export function LocationProvider({ children }: { children: ReactNode }) {
   const clearLocation = async () => {
     setUserLocation(null);
     setAreaName('No area set');
+    setIsoCountryCode(null);
     setLocationSource('none');
     await AsyncStorage.removeItem(LOCATION_SOURCE_KEY);
     await AsyncStorage.removeItem(SELECTED_AREA_NAME_KEY);
@@ -190,6 +203,7 @@ export function LocationProvider({ children }: { children: ReactNode }) {
       value={{
         userLocation,
         areaName,
+        isoCountryCode,
         locationSource,
         isLocating,
         hasLocationPermission,

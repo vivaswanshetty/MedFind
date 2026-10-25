@@ -103,7 +103,7 @@ export function AreaPickerModal({ visible, onClose, onAreaSelected }: AreaPicker
   };
 
   const handleSelectArea = async (area: KnownArea) => {
-    await selectManualArea(area);
+    await selectManualArea({ ...area, isoCountryCode: 'IN' });
     onAreaSelected?.();
     onClose();
   };
@@ -113,6 +113,7 @@ export function AreaPickerModal({ visible, onClose, onAreaSelected }: AreaPicker
       name: place.name,
       latitude: place.latitude,
       longitude: place.longitude,
+      isoCountryCode: place.isoCountryCode,
     });
     setFilterText('');
     onAreaSelected?.();

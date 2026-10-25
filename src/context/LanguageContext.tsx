@@ -75,12 +75,16 @@ const translations: Record<AppLanguage, Record<string, string>> = {
 
     // Emergency
     emergency_title: 'If this is an emergency, call now.',
-    emergency_subtitle: 'One tap opens your phone dialer. Connect directly to help.',
+    emergency_subtitle: "One tap opens your phone's dialer. You place the call yourself.",
+    emergency_numbers_for: 'Emergency numbers for',
+    change_country: 'Change country',
+    call_local_emergency: 'Call your local emergency number',
+    common_emergency_numbers: 'Common numbers: 112, 911, and 999. MedFind does not dispatch help or estimate arrival.',
     call_112: 'Call emergency service',
     dial_112: 'Dial 112',
-    call_108: 'Call Karnataka Ambulance (108)',
+    call_108: 'Call Ambulance (108)',
     quick_guide: 'Quick Emergency Help',
-    quick_guide_desc: 'In severe or life-threatening situations, dial 112 or 108 immediately for priority help.',
+    quick_guide_desc: 'In severe or life-threatening situations, call your local emergency service immediately for priority help.',
 
     // Settings
     settings: 'Settings',
@@ -159,11 +163,15 @@ const translations: Record<AppLanguage, Record<string, string>> = {
     // Emergency
     emergency_title: 'ತುರ್ತು ಸಂದರ್ಭದಲ್ಲಿ, ಈಗಲೇ ಕರೆ ಮಾಡಿ.',
     emergency_subtitle: 'ಒಂದು ಸ್ಪರ್ಶದಲ್ಲಿ ನಿಮ್ಮ ಫೋನ್ ಡಯಲರ್ ತೆರೆಯುತ್ತದೆ.',
+    emergency_numbers_for: 'ತುರ್ತು ಸಂಖ್ಯೆಗಳು:',
+    change_country: 'ದೇಶ ಬದಲಾಯಿಸಿ',
+    call_local_emergency: 'ನಿಮ್ಮ ಸ್ಥಳೀಯ ತುರ್ತು ಸಂಖ್ಯೆಗೆ ಕರೆ ಮಾಡಿ',
+    common_emergency_numbers: 'ಸಾಮಾನ್ಯ ಸಂಖ್ಯೆಗಳು: 112, 911, ಮತ್ತು 999.',
     call_112: 'ತುರ್ತು ಸೇವೆಗೆ ಕರೆ ಮಾಡಿ',
     dial_112: '112 ಗೆ ಕರೆ ಮಾಡಿ',
-    call_108: 'ಕರ್ನಾಟಕ ಆಂಬ್ಯುಲೆನ್ಸ್‌ಗೆ ಕರೆ (108)',
+    call_108: 'ಆಂಬ್ಯುಲೆನ್ಸ್‌ಗೆ ಕರೆ (108)',
     quick_guide: 'ತ್ವರಿತ ತುರ್ತು ಸಹಾಯ',
-    quick_guide_desc: 'ಗಂಭೀರ ಅಥವಾ ಜೀವಕ್ಕೆ ಅಪಾಯವಿರುವ ಪರಿಸ್ಥಿತಿಯಲ್ಲಿ ತಕ್ಷಣ 112 ಅಥವಾ 108 ಗೆ ಕರೆ ಮಾಡಿ.',
+    quick_guide_desc: 'ಗಂಭೀರ ಅಥವಾ ಜೀವಕ್ಕೆ ಅಪಾಯವಿರುವ ಪರಿಸ್ಥಿತಿಯಲ್ಲಿ ತಕ್ಷಣ ತುರ್ತು ಸಂಖ್ಯೆಗೆ ಕರೆ ಮಾಡಿ.',
 
     // Settings
     settings: 'ಸೆಟ್ಟಿಂಗ್ಸ್',
@@ -242,11 +250,15 @@ const translations: Record<AppLanguage, Record<string, string>> = {
     // Emergency
     emergency_title: 'यदि यह आपातकालीन स्थिति है, तुरंत कॉल करें।',
     emergency_subtitle: 'एक टैप से आपका फोन डायलर खुलेगा। तुरंत सहायता पाएं।',
+    emergency_numbers_for: 'आपातकालीन नंबर:',
+    change_country: 'देश बदलें',
+    call_local_emergency: 'अपने स्थानीय आपातकालीन नंबर पर कॉल करें',
+    common_emergency_numbers: 'सामान्य नंबर: 112, 911, और 999।',
     call_112: 'आपातकालीन सेवा पर कॉल करें',
     dial_112: '112 डायल करें',
-    call_108: 'कर्नाटक एम्बुलेंस (108) को कॉल करें',
+    call_108: 'एम्बुलेंस (108) को कॉल करें',
     quick_guide: 'त्वरित आपातकालीन सहायता',
-    quick_guide_desc: 'गंभीर या जीवन-घातक स्थितियों में प्राथमिकता सहायता के लिए तुरंत 112 या 108 डायल करें।',
+    quick_guide_desc: 'गंभीर या जीवन-घातक स्थितियों में प्राथमिकता सहायता के लिए तुरंत स्थानीय आपातकालीन नंबर पर कॉल करें।',
 
     // Settings
     settings: 'सेटिंग्स',

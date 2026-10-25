@@ -317,6 +317,7 @@ export interface LocationRequestResult {
   granted: boolean;
   coords?: Coordinates;
   areaName?: string;
+  isoCountryCode?: string | null;
   error?: string;
   isOutsideCoverage?: boolean;
 }
@@ -329,6 +330,7 @@ export interface PlaceSearchResult {
   locality: string;
   latitude: number;
   longitude: number;
+  isoCountryCode?: string | null;
 }
 
 
@@ -386,6 +388,7 @@ export async function searchPlacesWorldwide(
     for (const item of capped) {
       let displayName = trimmed;
       let locality = trimmed;
+      let isoCountryCode: string | null = null;
 
       try {
         const places = await Location.reverseGeocodeAsync({
@@ -395,6 +398,7 @@ export async function searchPlacesWorldwide(
 
         if (places && places.length > 0) {
           const p = places[0];
+          isoCountryCode = p.isoCountryCode ? p.isoCountryCode.toUpperCase() : null;
           const name = cleanLocalityName(p.name);
           const street = cleanLocalityName(p.street);
           const sub = cleanLocalityName(p.subregion);
@@ -423,6 +427,7 @@ export async function searchPlacesWorldwide(
         locality,
         latitude: item.latitude,
         longitude: item.longitude,
+        isoCountryCode,
       });
     }
 
@@ -460,10 +465,12 @@ export async function requestDeviceLocation(): Promise<LocationRequestResult> {
 
     // Attempt to reverse geocode to a friendly locality name
     let areaName = 'Current area';
+    let isoCountryCode: string | null = null;
     try {
       const places = await Location.reverseGeocodeAsync(coords);
       if (places && places.length > 0) {
         const p = places[0];
+        isoCountryCode = p.isoCountryCode ? p.isoCountryCode.toUpperCase() : null;
         const name = cleanLocalityName(p.name);
         const street = cleanLocalityName(p.street);
         const sub = cleanLocalityName(p.subregion);
@@ -489,6 +496,7 @@ export async function requestDeviceLocation(): Promise<LocationRequestResult> {
       granted: true,
       coords,
       areaName,
+      isoCountryCode,
       isOutsideCoverage: currentRegion === null,
     };
   } catch (err: unknown) {
