@@ -217,6 +217,28 @@ export default function HomeScreen() {
           </View>
         </View>
 
+        {/* SUBTLE DEMO NOTICE */}
+        <View style={styles.homeDemoBadgeRow}>
+          <View
+            style={[
+              styles.homeDemoBadge,
+              {
+                backgroundColor: palette.surface2,
+                borderColor: palette.line,
+              },
+            ]}
+          >
+            <Text
+              style={[
+                styles.homeDemoBadgeText,
+                { color: palette.ink2, fontFamily: fonts.sansMedium },
+              ]}
+            >
+              {t('demo_sample_data_label', 'Demo app: sample data')}
+            </Text>
+          </View>
+        </View>
+
         {/* BUDDY GREETING BANNER - Tappable to open Profile */}
         <Pressable
           onPress={() => router.push('/profile')}
@@ -691,6 +713,21 @@ export default function HomeScreen() {
                 <Text style={[styles.settingsModalTitle, { color: palette.ink }]}>
                   {t('settings', 'Settings')}
                 </Text>
+                <View
+                  style={[
+                    styles.demoSampleBadge,
+                    { backgroundColor: palette.surface2, borderColor: palette.line },
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.demoSampleBadgeText,
+                      { color: palette.ink2, fontFamily: fonts.sansMedium },
+                    ]}
+                  >
+                    {t('demo_sample_data_label', 'Demo app: sample data')}
+                  </Text>
+                </View>
               </View>
               <Pressable
                 onPress={() => setShowSettingsModal(false)}
@@ -1697,6 +1734,31 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  homeDemoBadgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  homeDemoBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: radii.pill,
+    borderWidth: 1,
+  },
+  homeDemoBadgeText: {
+    fontSize: 11,
+    letterSpacing: 0.1,
+  },
+  demoSampleBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: radii.pill,
+    borderWidth: 1,
+    marginLeft: 8,
+  },
+  demoSampleBadgeText: {
+    fontSize: 11,
   },
   locationPillText: {
     fontFamily: fonts.sansBold,

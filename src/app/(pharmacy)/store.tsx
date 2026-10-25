@@ -142,7 +142,7 @@ export default function PharmacyStoreScreen() {
                 { color: palette.ink, fontFamily: fonts.sansBold },
               ]}
             >
-              Demo app: sample data
+              {t('demo_sample_data_label', 'Demo app: sample data')}
             </Text>
             <Text
               style={[

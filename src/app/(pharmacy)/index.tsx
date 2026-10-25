@@ -44,6 +44,7 @@ export default function PharmacyInventoryScreen() {
   const { palette } = useTheme();
 
   const [partnerAuth, setPartnerAuth] = useState<StorePartnerAuth | null>(null);
+  const [pharmacies, setPharmacies] = useState<Pharmacy[]>([]);
   const [selectedPharmacy, setSelectedPharmacy] = useState<Pharmacy | null>(null);
   const [inventory, setInventory] = useState<InventoryItemRow[]>([]);
   const [auditLog, setAuditLog] = useState<AuditRecordRow[]>([]);
@@ -67,6 +68,7 @@ export default function PharmacyInventoryScreen() {
         pharmacyPortalService.getStorePartnerAuth(),
       ]);
 
+      setPharmacies(stores);
       if (auth && auth.isAuthorized) {
         setPartnerAuth(auth);
         const currentStore = stores.find((s) => s.id === auth.pharmacyId) || stores[0];
@@ -91,6 +93,19 @@ export default function PharmacyInventoryScreen() {
       loadData();
     }, [loadData])
   );
+
+  const handleSelectPharmacy = async (store: Pharmacy) => {
+    setSelectedPharmacy(store);
+    setIsLoading(true);
+    try {
+      const items = await pharmacyPortalService.getInventory(store.id);
+      setInventory(items);
+      setSuccessToast(`Switched to ${store.name}`);
+      setTimeout(() => setSuccessToast(null), 2500);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleUpdateStock = async (medicineId: string, medicineName: string, state: StockState) => {
     if (!selectedPharmacy) return;
@@ -249,6 +264,59 @@ export default function PharmacyInventoryScreen() {
             <Text style={[styles.toastText, { color: palette.okInk, fontFamily: fonts.sansMedium }]} numberOfLines={1}>
               {successToast}
             </Text>
+          </View>
+        )}
+
+        {/* STORE SWITCHER */}
+        {pharmacies.length > 1 && (
+          <View style={styles.storeSwitcherContainer}>
+            <Text style={[styles.sectionTitle, { color: palette.ink2, fontFamily: fonts.sansSemi }]}>
+              PARTICIPATING PHARMACY BRANCHES
+            </Text>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.storeChipsRow}
+            >
+              {pharmacies.map((store) => {
+                const isSelected = selectedPharmacy?.id === store.id;
+                return (
+                  <Pressable
+                    key={store.id}
+                    testID={`pharmacy-branch-${store.id}`}
+                    onPress={() => handleSelectPharmacy(store)}
+                    accessible={true}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: isSelected }}
+                    accessibilityLabel={`Select store: ${store.name}`}
+                    style={[
+                      styles.storeChip,
+                      {
+                        backgroundColor: isSelected ? palette.accent : palette.surface,
+                        borderColor: isSelected ? palette.accent : palette.line,
+                      },
+                    ]}
+                  >
+                    <PharmacyStoreIcon
+                      size={14}
+                      color={isSelected ? '#FFFFFF' : palette.ink}
+                    />
+                    <Text
+                      style={[
+                        styles.storeChipText,
+                        {
+                          color: isSelected ? '#FFFFFF' : palette.ink,
+                          fontFamily: isSelected ? fonts.sansBold : fonts.sans,
+                        },
+                      ]}
+                      numberOfLines={1}
+                    >
+                      {store.name}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
           </View>
         )}
 
@@ -766,6 +834,26 @@ const styles = StyleSheet.create({
   toastText: {
     fontSize: 13,
     flex: 1,
+  },
+  storeSwitcherContainer: {
+    gap: 8,
+  },
+  storeChipsRow: {
+    gap: 8,
+    paddingVertical: 2,
+  },
+  storeChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 14,
+    borderWidth: 1,
+    gap: 6,
+    minHeight: 38,
+  },
+  storeChipText: {
+    fontSize: 13,
   },
   searchBarBox: {
     flexDirection: 'row',

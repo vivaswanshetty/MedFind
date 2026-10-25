@@ -128,3 +128,37 @@ test('clearAllUserData - Clears all designated keys, cancels notifications, and 
   assert.equal(cancelAllCalled, true, 'clearAllUserData must call cancelAllScheduledNotificationsAsync');
   setMockNotificationClient(null);
 });
+
+import { DEFAULT_PROFILE } from '../profile.ts';
+import { pharmacyPortalService } from '../../services/pharmacyPortalService.ts';
+
+test('clearAllUserData - Explicitly wipes role and store authorization', async () => {
+  // 1. Role defaults to null upon clearing profile key
+  assert.equal(DEFAULT_PROFILE.role, null, 'DEFAULT_PROFILE must have null role so clearing resets role');
+
+  // 2. Profile key is in cleared set
+  assert.ok(CLEARED_STORAGE_KEYS.includes('@medfind_user_profile_v1'), 'Must include @medfind_user_profile_v1');
+
+  // 3. Store partner auth key is in cleared set
+  assert.ok(CLEARED_STORAGE_KEYS.includes('@medfind_store_partner_auth_v1'), 'Must include @medfind_store_partner_auth_v1');
+
+  // 4. Save store auth, then verify clearAllUserData removes it
+  await pharmacyPortalService.saveStorePartnerAuth({
+    isAuthorized: true,
+    pharmacyId: 'test_store',
+    pharmacyName: 'Test Pharmacy',
+    pharmacistName: 'Test Pharmacist',
+    licenseNumber: 'TEST/1234',
+    counterId: 'Desk 1',
+    authorizedAt: new Date().toISOString(),
+  });
+
+  const beforeClear = await pharmacyPortalService.getStorePartnerAuth();
+  assert.ok(beforeClear?.isAuthorized, 'Auth must be saved before clear');
+
+  await clearAllUserData();
+
+  const afterClear = await pharmacyPortalService.getStorePartnerAuth();
+  assert.equal(afterClear, null, 'Store authorization must be wiped by clearAllUserData');
+});
+

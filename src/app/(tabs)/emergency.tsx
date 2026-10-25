@@ -27,6 +27,7 @@ import {
   ChevronRightIcon,
   ShieldCheckIcon,
   GlobeIcon,
+  InfoIcon,
 } from '../../components/icons/AppIcons';
 import {
   resolveEmergencyCountry,
@@ -224,6 +225,30 @@ export default function EmergencyScreen() {
             </Text>
             <Text style={[styles.heroSubtitle, { color: palette.ink2 }]}>
               {t('emergency_subtitle', "One tap opens your phone's dialer. You place the call yourself.")}
+            </Text>
+          </View>
+
+          {/* DEMO NOTICE CARD */}
+          <View
+            style={[
+              styles.emergencyDemoNoticeCard,
+              {
+                backgroundColor: palette.amberTint,
+                borderColor: palette.amberLine,
+              },
+            ]}
+          >
+            <InfoIcon size={18} color={palette.amberInk} />
+            <Text
+              style={[
+                styles.emergencyDemoNoticeText,
+                { color: palette.amberInk, fontFamily: fonts.sansMedium },
+              ]}
+            >
+              {t(
+                'emergency_demo_disclaimer',
+                'Demo app: emergency numbers may be incomplete or out of date. In a real emergency, call your local emergency number.'
+              )}
             </Text>
           </View>
 
@@ -902,6 +927,20 @@ const styles = StyleSheet.create({
     fontFamily: fonts.sans,
     fontSize: 16,
     lineHeight: 22,
+  },
+  emergencyDemoNoticeCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderRadius: radii.tab,
+    borderWidth: 1,
+    gap: 10,
+    marginTop: 4,
+  },
+  emergencyDemoNoticeText: {
+    flex: 1,
+    fontSize: 12.5,
+    lineHeight: 17,
   },
 
   // COUNTRY BAR
