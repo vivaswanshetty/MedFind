@@ -82,6 +82,21 @@ export default function EmergencyScreen() {
   const activeCountryCode = resolved.countryCode;
   const activeCountryName = resolved.countryName;
 
+  // Only confirmed or partially-confirmed countries show verified buttons
+  const isVerifiedCountry = Boolean(
+    activeCountry && activeCountry.numbers.verificationStatus !== 'unconfirmed'
+  );
+
+  const isServiceConfirmed = (service: 'general' | 'police' | 'ambulance' | 'fire'): boolean => {
+    if (!activeCountry) return false;
+    const { verificationStatus, confirmedNumbers } = activeCountry.numbers;
+    if (verificationStatus === 'confirmed') return true;
+    if (verificationStatus === 'partial' && confirmedNumbers) {
+      return confirmedNumbers.includes(service);
+    }
+    return false;
+  };
+
   // Check if user is located inside Bengaluru region
   const isBengaluruRegion = useMemo(() => {
     if (!userLocation) return false;
@@ -208,11 +223,11 @@ export default function EmergencyScreen() {
           >
             <View style={styles.countryBarLeft}>
               <Text style={[styles.countryBarLabel, { color: palette.ink2 }]}>
-                {activeCountry
+                {isVerifiedCountry
                   ? `${t('emergency_numbers_for', 'Emergency numbers for')} `
                   : `${t('call_local_emergency', 'Emergency location')}: `}
                 <Text style={[styles.countryBarName, { color: palette.ink }]}>
-                  {activeCountry ? activeCountryName : 'Unverified Region'}
+                  {isVerifiedCountry ? activeCountryName : 'Unverified Region'}
                 </Text>
               </Text>
             </View>
@@ -231,10 +246,10 @@ export default function EmergencyScreen() {
           </View>
 
           {/* CASE 1: VERIFIED COUNTRY NUMBERS */}
-          {activeCountry ? (
+          {isVerifiedCountry && activeCountry ? (
             <>
-              {/* PRIMARY UNIVERSAL HERO BUTTON (IF GENERAL NUMBER EXISTS) */}
-              {activeCountry.numbers.general && (
+              {/* PRIMARY UNIVERSAL HERO BUTTON (IF GENERAL NUMBER EXISTS AND IS CONFIRMED) */}
+              {activeCountry.numbers.general && isServiceConfirmed('general') && (
                 <View style={styles.heroEmergencyWrapper}>
                   <Animated.View
                     style={[
@@ -292,7 +307,7 @@ export default function EmergencyScreen() {
                 </Text>
 
                 {/* Police */}
-                {activeCountry.numbers.police && (
+                {activeCountry.numbers.police && isServiceConfirmed('police') && (
                   <View
                     style={[
                       styles.contactCard,
@@ -345,7 +360,7 @@ export default function EmergencyScreen() {
                 )}
 
                 {/* Ambulance */}
-                {activeCountry.numbers.ambulance && (
+                {activeCountry.numbers.ambulance && isServiceConfirmed('ambulance') && (
                   <View
                     style={[
                       styles.contactCard,
@@ -398,7 +413,7 @@ export default function EmergencyScreen() {
                 )}
 
                 {/* Fire */}
-                {activeCountry.numbers.fire && (
+                {activeCountry.numbers.fire && isServiceConfirmed('fire') && (
                   <View
                     style={[
                       styles.contactCard,
@@ -447,6 +462,25 @@ export default function EmergencyScreen() {
                     >
                       <PhoneIcon size={18} color={scheme === 'light' ? palette.ink : '#FFFFFF'} />
                     </Pressable>
+                  </View>
+                )}
+
+                {/* Regional or Operational Note */}
+                {activeCountry.numbers.note && (
+                  <View
+                    style={[
+                      styles.contactCard,
+                      {
+                        backgroundColor: palette.surface2,
+                        borderColor: palette.line,
+                        paddingVertical: 10,
+                        paddingHorizontal: 14,
+                      },
+                    ]}
+                  >
+                    <Text style={[styles.contactMeta, { color: palette.ink, fontSize: 13, lineHeight: 18 }]}>
+                      ℹ️ {activeCountry.numbers.note}
+                    </Text>
                   </View>
                 )}
 
@@ -571,7 +605,10 @@ export default function EmergencyScreen() {
               {/* Source Verification Note */}
               <View style={styles.sourceBox}>
                 <Text style={[styles.sourceNoteText, { color: palette.ink2 }]}>
-                  Verified against official public records ({activeCountry.numbers.verifiedAt}):
+                  {activeCountry.numbers.verificationStatus === 'confirmed'
+                    ? 'All numbers confirmed in official cited records'
+                    : 'Partially confirmed in official cited records'}{' '}
+                  ({activeCountry.numbers.verifiedAt}):
                   {'\n'}
                   {activeCountry.numbers.sources.join('\n')}
                 </Text>

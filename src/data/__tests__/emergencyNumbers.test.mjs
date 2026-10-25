@@ -174,7 +174,7 @@ test('Emergency Numbers & Country Resolution Tests', async (t) => {
 
   await t.test('6. AUDIT: Every entry in emergency table must have official source and verifiedAt', () => {
     const entries = Object.entries(EMERGENCY_NUMBERS);
-    assert.ok(entries.length >= 50, `Expected at least 50 verified countries, got ${entries.length}`);
+    assert.ok(entries.length >= 80, `Expected at least 80 verified countries, got ${entries.length}`);
 
     const isoDateRegex = /^\d{4}-\d{2}-\d{2}$/;
     const urlRegex = /^https?:\/\/.+/;
@@ -193,13 +193,19 @@ test('Emergency Numbers & Country Resolution Tests', async (t) => {
       const nums = entry.numbers;
       assert.ok(nums, `Country entry ${code} is missing numbers object`);
 
-      // Verified date audit
+      // 1. verificationStatus audit: must exist and be confirmed, partial, or unconfirmed
+      assert.ok(
+        nums.verificationStatus && ['confirmed', 'partial', 'unconfirmed'].includes(nums.verificationStatus),
+        `Country entry ${code} must have a valid verificationStatus ('confirmed' | 'partial' | 'unconfirmed'), got: "${nums?.verificationStatus}"`
+      );
+
+      // 2. Verified date audit
       assert.ok(
         nums.verifiedAt && isoDateRegex.test(nums.verifiedAt),
         `Country entry ${code} must have a valid ISO YYYY-MM-DD verifiedAt date, got: "${nums?.verifiedAt}"`
       );
 
-      // Sources audit: must be a non-empty array of valid URLs
+      // 3. Sources audit: must be a non-empty array of valid URLs
       assert.ok(
         Array.isArray(nums.sources) && nums.sources.length >= 1,
         `Country entry ${code} must have at least one source URL in sources array`
@@ -210,18 +216,73 @@ test('Emergency Numbers & Country Resolution Tests', async (t) => {
           urlRegex.test(sourceUrl),
           `Country entry ${code} has invalid source URL: "${sourceUrl}"`
         );
+
+        // Fail if a confirmed entry has a source that is only a domain root
+        if (nums.verificationStatus === 'confirmed') {
+          const parsed = new URL(sourceUrl);
+          const hasPath = parsed.pathname && parsed.pathname !== '/' && parsed.pathname.length > 1;
+          assert.ok(
+            hasPath,
+            `Confirmed country ${code} source cannot be a bare domain root: "${sourceUrl}"`
+          );
+        }
       }
 
-      // At least one valid emergency dialer number
-      const hasNumber = Boolean(nums.general || nums.police || nums.ambulance || nums.fire);
+      // 4. Number definitions and source attribution
+      const serviceNumbers = [nums.general, nums.police, nums.ambulance, nums.fire].filter(Boolean);
       assert.ok(
-        hasNumber,
-        `Country entry ${code} must specify at least one emergency number (general, police, ambulance, fire)`
+        serviceNumbers.length >= 1,
+        `Country entry ${code} must specify at least one emergency number`
       );
+
+      // Fail if two or more numbers exist in one entry but have no sources
+      if (serviceNumbers.length >= 2) {
+        assert.ok(
+          nums.sources.length >= 1,
+          `Country entry ${code} defines multiple numbers (${serviceNumbers.join(', ')}) but has no sources`
+        );
+      }
+
+      // If partial, confirmedNumbers must be defined and non-empty
+      if (nums.verificationStatus === 'partial') {
+        assert.ok(
+          Array.isArray(nums.confirmedNumbers) && nums.confirmedNumbers.length >= 1,
+          `Partial country ${code} must list confirmedNumbers`
+        );
+      }
     }
   });
 
-  await t.test('7. getAllCountries returns sorted list of all country entries', () => {
+  await t.test('7. Specific Country Integrity: Brazil has no general number, and new countries exist', () => {
+    // Brazil check: no single general number; 190 police, 192 ambulance, 193 fire
+    const br = getEmergencyNumbersForCountry('BR');
+    assert.ok(br);
+    assert.equal(br.numbers.general, undefined, 'Brazil must have no general number');
+    assert.equal(br.numbers.police, '190');
+    assert.equal(br.numbers.ambulance, '192');
+    assert.equal(br.numbers.fire, '193');
+    assert.equal(br.numbers.verificationStatus, 'confirmed');
+
+    // Newly requested countries checks
+    const ru = getEmergencyNumbersForCountry('RU');
+    assert.ok(ru);
+    assert.equal(ru.numbers.general, '112');
+
+    const ua = getEmergencyNumbersForCountry('UA');
+    assert.ok(ua);
+    assert.equal(ua.numbers.police, '102');
+    assert.equal(ua.numbers.ambulance, '103');
+
+    const qa = getEmergencyNumbersForCountry('QA');
+    assert.ok(qa);
+    assert.equal(qa.numbers.general, '999');
+
+    const cr = getEmergencyNumbersForCountry('CR');
+    assert.ok(cr);
+    assert.equal(cr.numbers.general, '911');
+  });
+
+  await t.test('8. getAllCountries returns sorted list of all country entries', () => {
     const list = getAllCountries();
     assert.equal(list.length, Object.keys(EMERGENCY_NUMBERS).length);
 
