@@ -9,7 +9,7 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "test": "npx tsx --test \"src/**/__tests__/*.test.*\"",
-    "postinstall": "node -e \"const fs=require('fs');const p='node_modules/expo-notifications/build/TopicSubscriptionModule.android.js';if(fs.existsSync(p)){let s=fs.readFileSync(p,'utf8');if(s.includes('requireNativeModule')){fs.writeFileSync(p,s.replace('requireNativeModule','requireOptionalNativeModule'));}}\""
+    "postinstall": "node -e \"const fs=require('fs');const p='node_modules/expo-notifications/build/TopicSubscriptionModule.android.js';if(fs.existsSync(p)){let s=fs.readFileSync(p,'utf8');if(s.includes('requireNativeModule')){fs.writeFileSync(p,s.replaceAll('requireNativeModule','requireOptionalNativeModule'));}}\""
   },
   "dependencies": {
     "@react-native-async-storage/async-storage": "2.2.0",

@@ -3,7 +3,7 @@ import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useProfile } from '../store/profile';
 import { useTheme } from '../theme/ThemeContext';
-import { resolveRouteAccess } from './_layout';
+import { resolveRouteAccess } from '../lib/routeGuard';
 
 /**
  * Legacy /portal route redirector.

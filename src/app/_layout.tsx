@@ -37,7 +37,6 @@ import { fonts } from '../constants/theme';
 import { WebCursorGlow } from '../components/WebCursorGlow';
 
 import { resolveRouteAccess } from '../lib/routeGuard';
-export { resolveRouteAccess };
 
 function RootNavigation() {
   const router = useRouter();
