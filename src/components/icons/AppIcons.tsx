@@ -1088,5 +1088,115 @@ export function PencilIcon({ size = 16, color = '#5A3E2B' }: IconProps) {
   );
 }
 
+/**
+ * 49. Camera Icon - Clean photographic camera with lens
+ */
+export function CameraIcon({ size = 20, color = '#87A96B' }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"
+        stroke={color}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Circle cx="12" cy="13" r="4" stroke={color} strokeWidth="2" />
+    </Svg>
+  );
+}
+
+/**
+ * 50. Upload Cloud Icon - Modern document/file upload symbol
+ */
+export function UploadCloudIcon({ size = 20, color = '#87A96B' }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M16 16l-4-4-4 4M12 12v9"
+        stroke={color}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Path
+        d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"
+        stroke={color}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
+/**
+ * 51. Document File Icon - Official compliance certificate icon
+ */
+export function DocumentFileIcon({ size = 20, color = '#87A96B' }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"
+        stroke={color}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Path
+        d="M14 2v6h6M16 13H8M16 17H8M10 9H8"
+        stroke={color}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
+/**
+ * 52. Log Out / Exit Door Icon
+ */
+export function LogOutIcon({ size = 18, color = '#DC2626' }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"
+        stroke={color}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
+/**
+ * 53. First Aid Box Icon (Medical briefcase/kit with cross)
+ */
+export function FirstAidBoxIcon({ size = 18, color = '#DC2626' }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Rect
+        x="2"
+        y="7"
+        width="20"
+        height="14"
+        rx="3"
+        stroke={color}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Path
+        d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"
+        stroke={color}
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+      <Path d="M12 11v6M9 14h6" stroke={color} strokeWidth="2.2" strokeLinecap="round" />
+    </Svg>
+  );
+}
 
 

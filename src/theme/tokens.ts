@@ -25,6 +25,16 @@ export interface GlassTokens {
   elevation: number;
 }
 
+export interface GlowTokens {
+  primary: string;
+  cyan: string;
+  emerald: string;
+  amber: string;
+  purple: string;
+  urgent: string;
+  halo: string;
+}
+
 export interface ColorPalette {
   canvas: string;
   surface: string;
@@ -54,6 +64,7 @@ export interface ColorPalette {
   surfaceSubtle: string;
 
   glass: GlassTokens;
+  glow: GlowTokens;
 }
 
 export const lightPalette: ColorPalette = {
@@ -97,6 +108,15 @@ export const lightPalette: ColorPalette = {
     shadowRadius: 16,
     elevation: 3,
   },
+  glow: {
+    primary: 'rgba(135, 169, 107, 0.40)',
+    cyan: 'rgba(0, 180, 216, 0.35)',
+    emerald: 'rgba(16, 185, 129, 0.35)',
+    amber: 'rgba(213, 133, 31, 0.35)',
+    purple: 'rgba(139, 92, 246, 0.35)',
+    urgent: 'rgba(178, 59, 42, 0.35)',
+    halo: 'rgba(135, 169, 107, 0.22)',
+  },
 };
 
 export const darkPalette: ColorPalette = {
@@ -139,6 +159,15 @@ export const darkPalette: ColorPalette = {
     shadowOpacity: 0.45,
     shadowRadius: 20,
     elevation: 4,
+  },
+  glow: {
+    primary: 'rgba(0, 229, 255, 0.55)',
+    cyan: 'rgba(0, 229, 255, 0.60)',
+    emerald: 'rgba(16, 185, 129, 0.55)',
+    amber: 'rgba(245, 158, 11, 0.55)',
+    purple: 'rgba(147, 51, 234, 0.55)',
+    urgent: 'rgba(255, 92, 92, 0.55)',
+    halo: 'rgba(0, 229, 255, 0.28)',
   },
 };
 

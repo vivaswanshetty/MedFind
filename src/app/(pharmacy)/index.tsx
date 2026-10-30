@@ -13,6 +13,8 @@ import {
 import { useRouter, useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../theme/ThemeContext';
+import { useLanguage } from '../../context/LanguageContext';
+import { useProfile } from '../../store/profile';
 import { fonts, radii, MIN_TARGET } from '../../constants/theme';
 import { AtmosphereBackground } from '../../components/AtmosphereBackground';
 import { Pharmacy, StockState } from '../../types/models';
@@ -21,10 +23,13 @@ import {
   InventoryItemRow,
   AuditRecordRow,
   StorePartnerAuth,
+  FacilityType,
   formatRelativeTime,
 } from '../../services/pharmacyPortalService';
 import {
   PharmacyStoreIcon,
+  HospitalIcon,
+  ClinicIcon,
   StaffBadgeIcon,
   ShieldCheckIcon,
   ClockIcon,
@@ -34,6 +39,8 @@ import {
   SearchIcon,
   CloseIcon,
   ZapIcon,
+  LogOutIcon,
+  RefreshIcon,
 } from '../../components/icons/AppIcons';
 
 type FilterTab = 'all' | 'available' | 'low_stock' | 'unavailable' | 'unreported';
@@ -42,9 +49,15 @@ export default function PharmacyInventoryScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { palette } = useTheme();
+  const { profile, updateProfile } = useProfile();
+  const { t, formatNumber, tMedicine, tPharmacy, tTime, language, setLanguage } = useLanguage();
+
+  const cycleLanguage = () => {
+    const nextLang = language === 'en' ? 'kn' : language === 'kn' ? 'hi' : 'en';
+    setLanguage(nextLang);
+  };
 
   const [partnerAuth, setPartnerAuth] = useState<StorePartnerAuth | null>(null);
-  const [pharmacies, setPharmacies] = useState<Pharmacy[]>([]);
   const [selectedPharmacy, setSelectedPharmacy] = useState<Pharmacy | null>(null);
   const [inventory, setInventory] = useState<InventoryItemRow[]>([]);
   const [auditLog, setAuditLog] = useState<AuditRecordRow[]>([]);
@@ -63,18 +76,49 @@ export default function PharmacyInventoryScreen() {
   const loadData = useCallback(async () => {
     setIsLoading(true);
     try {
-      const [stores, auth] = await Promise.all([
-        pharmacyPortalService.getPharmacies(),
-        pharmacyPortalService.getStorePartnerAuth(),
-      ]);
+      const auth = await pharmacyPortalService.getStorePartnerAuth();
 
-      setPharmacies(stores);
       if (auth && auth.isAuthorized) {
         setPartnerAuth(auth);
-        const currentStore = stores.find((s) => s.id === auth.pharmacyId) || stores[0];
-        setSelectedPharmacy(currentStore);
-        if (currentStore) {
-          const items = await pharmacyPortalService.getInventory(currentStore.id);
+        const resolvedType: FacilityType =
+          auth.facilityType ||
+          (profile.role === 'hospital'
+            ? 'hospital'
+            : profile.role === 'clinic'
+            ? 'clinic'
+            : 'pharmacy');
+
+        const facilities = await pharmacyPortalService.getFacilitiesByType(resolvedType);
+        let lockedStore: Pharmacy | null = facilities.find((s) => s.id === auth.pharmacyId) || null;
+        if (!lockedStore) {
+          lockedStore = await pharmacyPortalService.getFacilityById(auth.pharmacyId, resolvedType);
+        }
+        if (!lockedStore && facilities.length > 0) {
+          lockedStore = facilities[0];
+        }
+        if (!lockedStore) {
+          lockedStore = {
+            id: auth.pharmacyId || 'facility-default',
+            name:
+              auth.pharmacyName ||
+              (resolvedType === 'hospital'
+                ? 'Victoria Hospital (BMCRI)'
+                : resolvedType === 'clinic'
+                ? 'BBMP Urban Health Centre'
+                : 'Community Pharmacy'),
+            address: 'Bengaluru, Karnataka',
+            phone: '080-26701100',
+            latitude: 12.9625,
+            longitude: 77.5745,
+            participation_status: 'participating',
+            verified_at: new Date().toISOString(),
+            is_demo: false,
+          };
+        }
+
+        setSelectedPharmacy(lockedStore);
+        if (lockedStore) {
+          const items = await pharmacyPortalService.getInventory(lockedStore.id);
           setInventory(items);
         }
       }
@@ -82,7 +126,37 @@ export default function PharmacyInventoryScreen() {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [profile.role]);
+
+  const handleSignOut = async () => {
+    const portalName =
+      facilityType === 'hospital'
+        ? 'Hospital Portal'
+        : facilityType === 'clinic'
+        ? 'Clinic Portal'
+        : 'Pharmacy Portal';
+
+    if (Platform.OS === 'web') {
+      const confirmed = (window as any).confirm?.(
+        `Sign out of ${portalName}?\n\nAll selected stock data and attestation will be cleared, asking everything from scratch.`
+      );
+      if (!confirmed) return;
+    }
+    await pharmacyPortalService.clearStorePartnerAuth();
+    await updateProfile({ role: null });
+    router.replace('/');
+  };
+
+  const handleResetSessionStock = () => {
+    pharmacyPortalService.clearLocalSnapshots();
+    if (selectedPharmacy) {
+      pharmacyPortalService.getInventory(selectedPharmacy.id).then((items) => {
+        setInventory(items);
+        setSuccessToast(t('stock_reset_success', 'Stock data reset to scratch'));
+        setTimeout(() => setSuccessToast(null), 2500);
+      });
+    }
+  };
 
   useEffect(() => {
     loadData();
@@ -93,19 +167,6 @@ export default function PharmacyInventoryScreen() {
       loadData();
     }, [loadData])
   );
-
-  const handleSelectPharmacy = async (store: Pharmacy) => {
-    setSelectedPharmacy(store);
-    setIsLoading(true);
-    try {
-      const items = await pharmacyPortalService.getInventory(store.id);
-      setInventory(items);
-      setSuccessToast(`Switched to ${store.name}`);
-      setTimeout(() => setSuccessToast(null), 2500);
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const handleUpdateStock = async (medicineId: string, medicineName: string, state: StockState) => {
     if (!selectedPharmacy) return;
@@ -197,6 +258,28 @@ export default function PharmacyInventoryScreen() {
     return c;
   }, [inventory]);
 
+  const facilityType: FacilityType =
+    partnerAuth?.facilityType ||
+    (profile.role === 'hospital'
+      ? 'hospital'
+      : profile.role === 'clinic'
+      ? 'clinic'
+      : 'pharmacy');
+
+  const portalTitle =
+    facilityType === 'hospital'
+      ? t('hospital_portal', 'Hospital Portal')
+      : facilityType === 'clinic'
+      ? t('clinic_portal', 'Clinic Portal')
+      : t('pharmacy_portal', 'Pharmacy Portal');
+
+  const portalTabLabel =
+    facilityType === 'hospital'
+      ? t('hospital_tab', 'Hospital')
+      : facilityType === 'clinic'
+      ? t('clinic_tab', 'Clinic')
+      : t('pharmacy_tab', 'Pharmacy');
+
   return (
     <View style={[styles.screenRoot, { backgroundColor: palette.bg }]}>
       <AtmosphereBackground />
@@ -206,11 +289,11 @@ export default function PharmacyInventoryScreen() {
         <View style={styles.headerLeftCol}>
           <View style={styles.titleBadgeRow}>
             <Text style={[styles.headerTitleText, { color: palette.ink, fontFamily: fonts.sansBold }]}>
-              Staff Portal
+              {portalTitle}
             </Text>
             <View style={[styles.activePill, { backgroundColor: palette.okTint }]}>
               <Text style={[styles.activePillText, { color: palette.okInk, fontFamily: fonts.sansBold }]}>
-                Verified
+                {t('verified_badge', 'Verified')}
               </Text>
             </View>
           </View>
@@ -218,30 +301,87 @@ export default function PharmacyInventoryScreen() {
             style={[styles.headerSubtitleText, { color: palette.ink2, fontFamily: fonts.sans }]}
             numberOfLines={1}
           >
-            {partnerAuth?.pharmacyName || selectedPharmacy?.name || 'Community Pharmacy'}
+            {tPharmacy(
+              partnerAuth?.pharmacyName ||
+                selectedPharmacy?.name ||
+                (facilityType === 'hospital'
+                  ? 'Victoria Hospital (BMCRI)'
+                  : facilityType === 'clinic'
+                  ? 'BBMP Urban Health Centre'
+                  : 'Community Pharmacy')
+            )}
           </Text>
         </View>
 
-        <Pressable
-          testID="pharmacy-open-store-settings-btn"
-          onPress={() => router.push('/(pharmacy)/store')}
-          accessible={true}
-          accessibilityRole="button"
-          accessibilityLabel="Open store settings and change role"
-          style={({ pressed }) => [
-            styles.storeSettingsBtn,
-            {
-              backgroundColor: palette.surface,
-              borderColor: palette.line,
-              opacity: pressed ? 0.82 : 1.0,
-            },
-          ]}
-        >
-          <PharmacyStoreIcon size={18} color={palette.accent} />
-          <Text style={[styles.storeSettingsText, { color: palette.ink, fontFamily: fonts.sansBold }]}>
-            Store
-          </Text>
-        </Pressable>
+        <View style={styles.headerRightRow}>
+          <Pressable
+            testID="pharmacy-lang-switch-btn"
+            onPress={cycleLanguage}
+            accessible={true}
+            accessibilityRole="button"
+            accessibilityLabel={`Language: ${language.toUpperCase()}. Tap to switch language.`}
+            style={({ pressed }) => [
+              styles.langPillButton,
+              {
+                backgroundColor: palette.surface,
+                borderColor: palette.line,
+                opacity: pressed ? 0.8 : 1.0,
+              },
+            ]}
+          >
+            <Text style={[styles.langPillText, { color: palette.accent }]}>
+              {language === 'en' ? 'EN' : language === 'kn' ? 'ಕನ್ನಡ' : 'हिंदी'}
+            </Text>
+          </Pressable>
+
+          <Pressable
+            testID="pharmacy-open-store-settings-btn"
+            onPress={() => router.push('/(pharmacy)/store')}
+            accessible={true}
+            accessibilityRole="button"
+            accessibilityLabel={`Open ${portalTabLabel} settings and compliance credentials`}
+            style={({ pressed }) => [
+              styles.storeSettingsBtn,
+              {
+                backgroundColor: palette.surface,
+                borderColor: palette.line,
+                opacity: pressed ? 0.82 : 1.0,
+              },
+            ]}
+          >
+            {facilityType === 'hospital' ? (
+              <HospitalIcon size={18} color={palette.accent} />
+            ) : facilityType === 'clinic' ? (
+              <ClinicIcon size={18} color={palette.accent} />
+            ) : (
+              <PharmacyStoreIcon size={18} color={palette.accent} />
+            )}
+            <Text style={[styles.storeSettingsText, { color: palette.ink, fontFamily: fonts.sansBold }]}>
+              {portalTabLabel}
+            </Text>
+          </Pressable>
+
+          <Pressable
+            testID="pharmacy-header-signout-btn"
+            onPress={handleSignOut}
+            accessible={true}
+            accessibilityRole="button"
+            accessibilityLabel={`Sign out of ${portalTitle}`}
+            style={({ pressed }) => [
+              styles.signOutPillBtn,
+              {
+                backgroundColor: palette.surface,
+                borderColor: palette.line,
+                opacity: pressed ? 0.75 : 1.0,
+              },
+            ]}
+          >
+            <LogOutIcon size={14} color={palette.badInk} />
+            <Text style={[styles.signOutPillText, { color: palette.badInk, fontFamily: fonts.sansSemi }]}>
+              {t('sign_out', 'Sign out')}
+            </Text>
+          </Pressable>
+        </View>
       </View>
 
       <ScrollView
@@ -267,60 +407,8 @@ export default function PharmacyInventoryScreen() {
           </View>
         )}
 
-        {/* STORE SWITCHER */}
-        {pharmacies.length > 1 && (
-          <View style={styles.storeSwitcherContainer}>
-            <Text style={[styles.sectionTitle, { color: palette.ink2, fontFamily: fonts.sansSemi }]}>
-              PARTICIPATING PHARMACY BRANCHES
-            </Text>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.storeChipsRow}
-            >
-              {pharmacies.map((store) => {
-                const isSelected = selectedPharmacy?.id === store.id;
-                return (
-                  <Pressable
-                    key={store.id}
-                    testID={`pharmacy-branch-${store.id}`}
-                    onPress={() => handleSelectPharmacy(store)}
-                    accessible={true}
-                    accessibilityRole="button"
-                    accessibilityState={{ selected: isSelected }}
-                    accessibilityLabel={`Select store: ${store.name}`}
-                    style={[
-                      styles.storeChip,
-                      {
-                        backgroundColor: isSelected ? palette.accent : palette.surface,
-                        borderColor: isSelected ? palette.accent : palette.line,
-                      },
-                    ]}
-                  >
-                    <PharmacyStoreIcon
-                      size={14}
-                      color={isSelected ? '#FFFFFF' : palette.ink}
-                    />
-                    <Text
-                      style={[
-                        styles.storeChipText,
-                        {
-                          color: isSelected ? '#FFFFFF' : palette.ink,
-                          fontFamily: isSelected ? fonts.sansBold : fonts.sans,
-                        },
-                      ]}
-                      numberOfLines={1}
-                    >
-                      {store.name}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </ScrollView>
-          </View>
-        )}
-
         {/* SEARCH BAR */}
+
         <View
           style={[
             styles.searchBarBox,
@@ -335,7 +423,13 @@ export default function PharmacyInventoryScreen() {
             testID="pharmacy-search-input"
             value={searchQuery}
             onChangeText={setSearchQuery}
-            placeholder="Search medicine brand, generic name..."
+            placeholder={
+              facilityType === 'hospital'
+                ? 'Search hospital formulary, medicine...'
+                : facilityType === 'clinic'
+                ? 'Search clinic stock, medicine...'
+                : t('search_pharmacy_inventory_placeholder', 'Search medicine brand, generic name...')
+            }
             placeholderTextColor={palette.ink2}
             style={[styles.searchInput, { color: palette.ink, fontFamily: fonts.sans }]}
           />
@@ -352,6 +446,35 @@ export default function PharmacyInventoryScreen() {
           )}
         </View>
 
+        {/* ACTIVE SESSION STOCK RESET OPTION */}
+        {pharmacyPortalService.getLocalSnapshots().length > 0 && (
+          <View style={styles.resetBarRow}>
+            <Text style={[styles.resetBarText, { color: palette.ink2, fontFamily: fonts.sans }]}>
+              {pharmacyPortalService.getLocalSnapshots().length} active stock changes in this session
+            </Text>
+            <Pressable
+              testID="pharmacy-reset-stock-btn"
+              onPress={handleResetSessionStock}
+              accessible={true}
+              accessibilityRole="button"
+              accessibilityLabel="Reset all modified stock back to scratch"
+              style={({ pressed }) => [
+                styles.resetStockBtn,
+                {
+                  backgroundColor: palette.surface,
+                  borderColor: palette.line,
+                  opacity: pressed ? 0.75 : 1.0,
+                },
+              ]}
+            >
+              <RefreshIcon size={12} color={palette.accent} />
+              <Text style={[styles.resetStockBtnText, { color: palette.accent, fontFamily: fonts.sansMedium }]}>
+                Reset all changes
+              </Text>
+            </Pressable>
+          </View>
+        )}
+
         {/* FILTER CHIPS */}
         <ScrollView
           horizontal
@@ -360,11 +483,11 @@ export default function PharmacyInventoryScreen() {
         >
           {(
             [
-              { key: 'all', label: 'All Items', count: counts.all },
-              { key: 'available', label: 'In Stock', count: counts.available },
-              { key: 'low_stock', label: 'Low Stock', count: counts.low_stock },
-              { key: 'unavailable', label: 'Out of Stock', count: counts.unavailable },
-              { key: 'unreported', label: 'Unreported', count: counts.unreported },
+              { key: 'all', label: t('all_items', 'All Items'), count: counts.all },
+              { key: 'available', label: t('in_stock', 'In Stock'), count: counts.available },
+              { key: 'low_stock', label: t('low_stock', 'Low Stock'), count: counts.low_stock },
+              { key: 'unavailable', label: t('out_of_stock', 'Out of Stock'), count: counts.unavailable },
+              { key: 'unreported', label: t('unreported', 'Unreported'), count: counts.unreported },
             ] as const
           ).map((tab) => {
             const isActive = activeFilter === tab.key;
@@ -411,7 +534,7 @@ export default function PharmacyInventoryScreen() {
                       },
                     ]}
                   >
-                    {tab.count}
+                    {formatNumber(tab.count)}
                   </Text>
                 </View>
               </Pressable>
@@ -422,7 +545,12 @@ export default function PharmacyInventoryScreen() {
         {/* INVENTORY LIST */}
         <View style={styles.inventorySection}>
           <Text style={[styles.sectionTitle, { color: palette.ink2, fontFamily: fonts.sansSemi }]}>
-            ON-SHELF DISPENSARY STOCK ({filteredInventory.length})
+            {facilityType === 'hospital'
+              ? 'INPATIENT & WARD DISPENSARY STOCK'
+              : facilityType === 'clinic'
+              ? 'CLINIC DISPENSARY STOCK'
+              : t('on_shelf_stock_header', 'ON-SHELF DISPENSARY STOCK')}{' '}
+            ({formatNumber(filteredInventory.length)})
           </Text>
 
           {isLoading ? (
@@ -466,7 +594,7 @@ export default function PharmacyInventoryScreen() {
                       <Text
                         style={[styles.medBrandName, { color: palette.ink, fontFamily: fonts.sansBold }]}
                       >
-                        {med.brand_name}
+                        {tMedicine(med.brand_name)}
                       </Text>
                       <Text
                         style={[
@@ -474,7 +602,7 @@ export default function PharmacyInventoryScreen() {
                           { color: palette.ink2, fontFamily: fonts.sans },
                         ]}
                       >
-                        {med.generic_name} {med.strength ? `• ${med.strength}` : ''}
+                        {tMedicine(med.generic_name)} {med.strength ? `• ${formatNumber(med.strength)}` : ''}
                       </Text>
                     </View>
 
@@ -519,12 +647,12 @@ export default function PharmacyInventoryScreen() {
                         ]}
                       >
                         {snap?.state === 'available'
-                          ? 'In Stock'
+                          ? t('in_stock', 'In Stock')
                           : snap?.state === 'low_stock'
-                          ? 'Low Stock'
+                          ? t('low_stock', 'Low Stock')
                           : snap?.state === 'unavailable'
-                          ? 'Out of Stock'
-                          : 'Unreported'}
+                          ? t('out_of_stock', 'Out of Stock')
+                          : t('unreported', 'Unreported')}
                       </Text>
                     </View>
                   </View>
@@ -538,7 +666,7 @@ export default function PharmacyInventoryScreen() {
                         { color: palette.ink2, fontFamily: fonts.sans },
                       ]}
                     >
-                      {snap ? `Updated ${formatRelativeTime(snap.updated_at)}` : 'No reports yet'}
+                      {snap ? `${t('updated_prefix', 'Updated')} ${tTime(snap.updated_at)}` : t('no_reports_yet', 'No reports yet')}
                     </Text>
                   </View>
 
@@ -571,7 +699,7 @@ export default function PharmacyInventoryScreen() {
                           },
                         ]}
                       >
-                        Available
+                        {t('available', 'Available')}
                       </Text>
                     </Pressable>
 
@@ -602,7 +730,7 @@ export default function PharmacyInventoryScreen() {
                           },
                         ]}
                       >
-                        Low Stock
+                        {t('low_stock', 'Low Stock')}
                       </Text>
                     </Pressable>
 
@@ -633,7 +761,7 @@ export default function PharmacyInventoryScreen() {
                           },
                         ]}
                       >
-                        Out of Stock
+                        {t('out_of_stock', 'Out of Stock')}
                       </Text>
                     </Pressable>
                   </View>
@@ -666,7 +794,7 @@ export default function PharmacyInventoryScreen() {
                   { color: palette.ink, fontFamily: fonts.sansBold },
                 ]}
               >
-                Recent Updates & Audit Log ({auditLog.length})
+                {t('recent_updates_heading', 'Recent Updates & Audit Log')} ({formatNumber(auditLog.length)})
               </Text>
               <Text
                 style={[
@@ -802,6 +930,23 @@ const styles = StyleSheet.create({
   headerSubtitleText: {
     fontSize: 13,
   },
+  headerRightRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  langPillButton: {
+    paddingHorizontal: 10,
+    height: 40,
+    borderRadius: radii.pill,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  langPillText: {
+    fontFamily: fonts.sansBold,
+    fontSize: 12,
+  },
   storeSettingsBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -814,6 +959,41 @@ const styles = StyleSheet.create({
   },
   storeSettingsText: {
     fontSize: 13,
+  },
+  signOutPillBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    height: 40,
+    borderRadius: radii.pill,
+    borderWidth: 1,
+    minHeight: MIN_TARGET,
+  },
+  signOutPillText: {
+    fontSize: 12,
+  },
+  resetBarRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 4,
+    paddingHorizontal: 4,
+  },
+  resetBarText: {
+    fontSize: 12,
+  },
+  resetStockBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: radii.pill,
+    borderWidth: 1,
+  },
+  resetStockBtnText: {
+    fontSize: 12,
   },
   scrollArea: {
     flex: 1,

@@ -151,7 +151,7 @@ export function getRecommendations(profile: Profile | null | undefined): Recomme
       id: 'rec-medicine-reminders-only',
       title: 'Set refill & expiry reminders',
       subtitle: 'Never run out of essentials',
-      kind: 'feature',
+      kind: 'feature',    
       route: '/medicine-box',
       whyReason: "Because you said you'd like refill reminders",
     });

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { searchMedicineStock } from '../medicineSearch.ts';
+import { searchMedicineStock, searchCatalogMedicines } from '../medicineSearch.ts';
 
 test('Medicine Search Data Layer & Fallback Tests', async (t) => {
   await t.test('Returns verified pharmacy stock when reported snapshots exist', async () => {
@@ -68,5 +68,18 @@ test('Medicine Search Data Layer & Fallback Tests', async (t) => {
       // No fictional phone numbers for unreported catalog entries
       assert.equal(item.pharmacyPhone, '');
     }
+  });
+
+  await t.test('searchCatalogMedicines finds medicines by brand, generic, or strength', () => {
+    const dolo = searchCatalogMedicines('Dolo');
+    assert.ok(dolo.length > 0);
+    assert.equal(dolo[0].brand_name, 'Dolo 650');
+
+    const met = searchCatalogMedicines('Metformin');
+    assert.ok(met.length > 0);
+    assert.match(met[0].generic_name.toLowerCase(), /metformin/);
+
+    const empty = searchCatalogMedicines('', 5);
+    assert.equal(empty.length, 5);
   });
 });

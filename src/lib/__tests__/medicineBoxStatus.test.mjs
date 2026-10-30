@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { getExpiryStatus, parseExpiryDate, getExpiryChipInfo, formatRefillDate } from '../medicineBoxStatus.js';
+import { getExpiryStatus, parseExpiryDate, getExpiryChipInfo, formatRefillDate } from '../medicineBoxStatus.ts';
 
 test('ExpiryStatus - None for missing or invalid dates', () => {
   assert.equal(getExpiryStatus(null), 'none');

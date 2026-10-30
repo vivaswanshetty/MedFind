@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { View, Text, Pressable, StyleSheet, Platform } from 'react-native';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -9,6 +9,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { Recommendation } from '../../lib/recommendations';
 import { ColorPalette, typography } from '../../theme/tokens';
+import { useLanguage } from '../../context/LanguageContext';
 import {
   ChevronRightIcon,
   SearchIcon,
@@ -34,6 +35,7 @@ export function RecommendationCard({
   onDismiss,
   theme,
 }: RecommendationCardProps) {
+  const { t } = useLanguage();
   const shouldReduceMotion = useReducedMotion();
   const entrance = useSharedValue(shouldReduceMotion ? 1 : 0);
 
@@ -84,7 +86,7 @@ export function RecommendationCard({
         onPress={() => item.route && onPress?.(item.route)}
         disabled={!isInteractive}
         accessible={true}
-        accessibilityRole={isInteractive ? 'button' : 'text'}
+        accessibilityRole={Platform.OS === 'web' || (item.dismissible && onDismiss) ? undefined : (isInteractive ? 'button' : 'text')}
         accessibilityLabel={`${item.title}: ${item.subtitle}`}
         style={({ pressed }) => [
           styles.card,
@@ -120,7 +122,7 @@ export function RecommendationCard({
               ]}
               numberOfLines={2}
             >
-              {item.title}
+              {t(item.title, item.title)}
             </Text>
           </View>
 
@@ -160,7 +162,7 @@ export function RecommendationCard({
             },
           ]}
         >
-          {item.subtitle}
+          {t(item.subtitle, item.subtitle)}
         </Text>
 
         {/* Why am I seeing this? Attribution badge */}
@@ -184,7 +186,7 @@ export function RecommendationCard({
             ]}
             numberOfLines={2}
           >
-            Why am I seeing this? {item.whyReason}
+            {t('why_seeing_this', 'Why am I seeing this?')} {t(item.whyReason, item.whyReason)}
           </Text>
         </View>
       </Pressable>

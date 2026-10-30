@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   View,
   Text,
   ScrollView,
+  Animated,
   Pressable,
   StyleSheet,
   Modal,
@@ -23,8 +24,27 @@ import { StatusChip } from '../../components/StatusChip';
 import { useLocation } from '../../context/LocationContext';
 import { AreaPickerModal } from '../../components/location/AreaPickerModal';
 import { storageService } from '../../services/storageService';
+import { MedicineIcon3D } from '../../components/medicine/MedicineIcon3D';
+import { demoMedicines } from '../../data/demoData';
+
+const FEATURED_MED_IDS = [
+  'med-nlem-001', // Dolo 650
+  'med-nlem-009', // Benadryl Cough Formula
+  'med-nlem-003', // Meftal-Spas
+  'med-nlem-015', // Budecort 200
+  'med-nlem-013', // Otrivin Paediatric
+  'med-nlem-025', // Betnovate-C Cream
+  'med-nlem-019', // Pan-D Capsule
+  'med-nlem-091', // Ascoril LS Syrup
+  'med-nlem-034', // Refresh Tears Drops
+  'med-nlem-031', // Ecosprin 75
+  'med-nlem-006', // Combiflam
+  'med-nlem-022', // Allegra 120
+];
 import { useProfile } from '../../store/profile';
 import { useMedicineBox } from '../../store/medicineBox';
+import { getRestockStatus } from '../../lib/medicineBoxStatus';
+import { pharmacyPortalService } from '../../services/pharmacyPortalService';
 import { onboardingAssets } from '../../../assets/onboarding';
 import { getRecommendations, getHomeGreeting } from '../../lib/recommendations';
 import { RecommendationCard } from '../../components/home/RecommendationCard';
@@ -68,7 +88,7 @@ export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const { scheme, palette, theme, toggleTheme } = useTheme();
   const { profile, updateProfile, resetProfile } = useProfile();
-  const { clearAll: clearMedicineBox } = useMedicineBox();
+  const { items: medicineBoxItems, clearAll: clearMedicineBox } = useMedicineBox();
   const {
     userLocation,
     areaName,
@@ -84,11 +104,36 @@ export default function HomeScreen() {
   const [showPolicyModal, setShowPolicyModal] = useState(false);
   const [showLocationInfoModal, setShowLocationInfoModal] = useState(false);
   const [showLanguageModal, setShowLanguageModal] = useState(false);
-  const { language, setLanguage, t } = useLanguage();
+  const { language, setLanguage, t, tMedicine, formatNumber } = useLanguage();
 
   // Recommendations and greeting derived from local profile
   const recommendations = useMemo(() => getRecommendations(profile), [profile]);
   const greetingInfo = useMemo(() => getHomeGreeting(profile), [profile]);
+
+  // Medicine box stats & next upcoming restock alert
+  const regularCount = useMemo(
+    () => (medicineBoxItems || []).filter((i) => i.space === 'daily' || (!i.space && i.isRegular)).length,
+    [medicineBoxItems]
+  );
+  const essentialCount = useMemo(
+    () => (medicineBoxItems || []).filter((i) => i.space === 'essential' || (!i.space && !i.isRegular)).length,
+    [medicineBoxItems]
+  );
+
+  const nextRestock = useMemo(() => {
+    if (!medicineBoxItems || medicineBoxItems.length === 0) return null;
+    const withDates = medicineBoxItems
+      .filter((i) => i.refillOn)
+      .map((i) => ({
+        name: i.name,
+        isRegular: !!i.isRegular,
+        interval: i.restockInterval,
+        status: getRestockStatus(i.refillOn),
+      }))
+      .filter((entry) => entry.status !== null)
+      .sort((a, b) => a.status!.daysRemaining - b.status!.daysRemaining);
+    return withDates[0] || null;
+  }, [medicineBoxItems]);
 
   // Mark first home visit as seen after initial display
   useEffect(() => {
@@ -102,6 +147,28 @@ export default function HomeScreen() {
     alert(res.message);
   };
 
+  const scrollY = useRef(new Animated.Value(0)).current;
+
+  const heroScale = scrollY.interpolate({
+    inputRange: [-120, 0, 160],
+    outputRange: [1.06, 1, 0.94],
+    extrapolate: 'clamp',
+  });
+  const heroTranslateY = scrollY.interpolate({
+    inputRange: [0, 160],
+    outputRange: [0, -8],
+    extrapolate: 'clamp',
+  });
+  const heroOpacity = scrollY.interpolate({
+    inputRange: [0, 160],
+    outputRange: [1, 0.88],
+    extrapolate: 'clamp',
+  });
+
+  const featuredMeds = useMemo(() => {
+    return FEATURED_MED_IDS.map((id) => demoMedicines.find((m) => m.id === id)).filter(Boolean);
+  }, []);
+
   const statusBarHeight = Platform.OS === 'android' ? (StatusBar.currentHeight ?? 24) : 0;
   const paddingTop = Math.max(insets.top, statusBarHeight) + 8;
 
@@ -110,17 +177,22 @@ export default function HomeScreen() {
       <AtmosphereBackground />
 
       <AnimatedScreenTransition style={{ flex: 1 }}>
-        <ScrollView
-        style={styles.scrollArea}
-        contentContainerStyle={[
-          styles.scrollContent,
-          {
-            paddingTop,
-            paddingBottom: 130,
-          },
-        ]}
-        showsVerticalScrollIndicator={false}
-      >
+        <Animated.ScrollView
+          style={styles.scrollArea}
+          contentContainerStyle={[
+            styles.scrollContent,
+            {
+              paddingTop,
+              paddingBottom: 130,
+            },
+          ]}
+          showsVerticalScrollIndicator={false}
+          onScroll={Animated.event(
+            [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+            { useNativeDriver: true }
+          )}
+          scrollEventThrottle={16}
+        >
         {/* A) HEADER ROW */}
         <View style={styles.headerRow}>
           {/* Logo & Brand Name */}
@@ -280,7 +352,11 @@ export default function HomeScreen() {
                   { color: palette.ink, fontFamily: typography.fontFamilyBold },
                 ]}
               >
-                {greetingInfo.headline}
+                {greetingInfo.headline === 'Welcome'
+                  ? t('welcome', 'Welcome')
+                  : greetingInfo.headline.startsWith('Hi ')
+                  ? `${t('hi_prefix', 'Hi')} ${greetingInfo.headline.slice(3)}`
+                  : greetingInfo.headline}
               </Text>
             </View>
           </View>
@@ -291,7 +367,7 @@ export default function HomeScreen() {
                 { color: palette.ink2, fontFamily: typography.fontFamilyRegular },
               ]}
             >
-              {greetingInfo.subline}
+              {t(greetingInfo.subline, greetingInfo.subline)}
             </Text>
           ) : null}
         </Pressable>
@@ -324,8 +400,16 @@ export default function HomeScreen() {
           </View>
         )}
 
-        {/* B) HERO */}
-        <View style={styles.heroSection}>
+        {/* B) HERO with Dimensional Scroll Parallax */}
+        <Animated.View
+          style={[
+            styles.heroSection,
+            {
+              opacity: heroOpacity,
+              transform: [{ scale: heroScale }, { translateY: heroTranslateY }],
+            },
+          ]}
+        >
           <View style={styles.headlineContainer}>
             <Text style={[styles.headlineLine1, { color: palette.ink }]}>
               {t('hero_headline_1', 'Find your medicine')}
@@ -351,7 +435,7 @@ export default function HomeScreen() {
           <Text style={[styles.heroParagraph, { color: palette.ink2 }]}>
             {t('hero_subtext', 'See which nearby pharmacy last confirmed it, and exactly how long ago.')}
           </Text>
-        </View>
+        </Animated.View>
 
         {/* C) SEARCH LINK */}
         <Pressable
@@ -375,6 +459,301 @@ export default function HomeScreen() {
             {t('search_medicine_name', 'Search medicine name')}
           </Text>
         </Pressable>
+
+        {/* ESSENTIAL MEDICINES 3D CATALOG SHELF */}
+        <View style={styles.featuredSection}>
+          <View style={styles.featuredHeaderRow}>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.featuredTitle, { color: palette.ink, fontFamily: typography.fontFamilyBold }]}>
+                {t('featured_meds_title', '3D Medicine Showcase')}
+              </Text>
+              <Text style={[styles.featuredSub, { color: palette.ink2 }]}>
+                {t('featured_meds_sub', 'HD 3D interactive renders, authentic expiry & verified stock')}
+              </Text>
+            </View>
+            <Pressable
+              onPress={() => router.push('/(tabs)/search')}
+              accessible={true}
+              accessibilityRole="button"
+              accessibilityLabel="View entire medicine database"
+              style={[styles.viewAllPill, { backgroundColor: palette.surface2, borderColor: palette.line }]}
+            >
+              <Text style={[styles.viewAllText, { color: palette.accent }]}>
+                {t('view_all', 'View all')} →
+              </Text>
+            </Pressable>
+          </View>
+
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.featuredScrollContent}
+          >
+            {featuredMeds.map((med) => {
+              if (!med) return null;
+              return (
+                <Pressable
+                  key={med.id}
+                  onPress={() => router.push(`/medicine/${med.id}` as any)}
+                  accessible={true}
+                  accessibilityRole="button"
+                  accessibilityLabel={`${med.brand_name}, ${med.dosage_form || ''}, Expiry ${med.expiry_date || 'Valid'}. Tap for details.`}
+                  style={({ pressed }) => [
+                    styles.featuredCard,
+                    {
+                      backgroundColor: palette.surface,
+                      borderColor: palette.line,
+                      shadowColor: med.primary_color || palette.accent,
+                      transform: [{ scale: pressed ? 0.96 : 1 }],
+                    },
+                  ]}
+                >
+                  {/* Glowing 3D Pedestal */}
+                  <View
+                    style={[
+                      styles.featuredPedestal,
+                      {
+                        backgroundColor:
+                          scheme === 'dark' ? 'rgba(255, 255, 255, 0.04)' : 'rgba(0, 0, 0, 0.02)',
+                        borderColor:
+                          scheme === 'dark' ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.04)',
+                      },
+                    ]}
+                  >
+                    <MedicineIcon3D
+                      type={med.image_3d_type || 'tablet'}
+                      color={med.primary_color}
+                      size={54}
+                      glow={true}
+                      float={true}
+                    />
+                  </View>
+
+                  {/* Expiry Badge */}
+                  {med.expiry_date && (
+                    <View
+                      style={[
+                        styles.featuredExpiryBadge,
+                        { backgroundColor: palette.okTint, borderColor: palette.okLine },
+                      ]}
+                    >
+                      <Text style={[styles.featuredExpiryText, { color: palette.okInk }]}>
+                        ✓ Exp: {formatNumber(med.expiry_date)}
+                      </Text>
+                    </View>
+                  )}
+
+                  {/* Title & Brand */}
+                  <Text style={[styles.featuredMedName, { color: palette.ink }]} numberOfLines={1}>
+                    {tMedicine(med.brand_name)}
+                  </Text>
+                  <Text style={[styles.featuredGeneric, { color: palette.ink2 }]}>
+                    {med.dosage_form || 'Form'} • {med.strength || ''}
+                  </Text>
+
+                  {/* MRP & Batch */}
+                  <View style={styles.featuredMetaRow}>
+                    {med.mrp ? (
+                      <Text style={[styles.featuredMrp, { color: palette.ink }]}>
+                        {formatNumber(med.mrp)}
+                      </Text>
+                    ) : null}
+                    <View style={[styles.featuredBatchPill, { backgroundColor: palette.surface2 }]}>
+                      <Text style={[styles.featuredBatchText, { color: palette.ink2 }]}>
+                        {med.batch_no || 'BATCH OK'}
+                      </Text>
+                    </View>
+                  </View>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+        </View>
+
+        {/* MY MEDICINE BOX PREVIEW & RESTOCK TRACKER */}
+        <View style={styles.medicineBoxSection}>
+          <View style={styles.medicineBoxHeaderRow}>
+            <View style={{ flex: 1 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <Text style={[styles.medicineBoxTitle, { color: palette.ink, fontFamily: typography.fontFamilyBold }]}>
+                  {t('my_medicine_box', 'My Medicine Box')}
+                </Text>
+                {medicineBoxItems.length > 0 && (
+                  <View style={[styles.boxCountBadge, { backgroundColor: palette.surface2, borderColor: palette.line }]}>
+                    <Text style={[styles.boxCountBadgeText, { color: palette.accent }]}>
+                      {medicineBoxItems.length}
+                    </Text>
+                  </View>
+                )}
+              </View>
+              <Text style={[styles.medicineBoxSub, { color: palette.ink2 }]}>
+                {t('medicine_box_home_sub', 'Track regular supplies, refill reminders & expiry dates')}
+              </Text>
+            </View>
+            <Pressable
+              onPress={() => router.push('/medicine-box')}
+              accessible={true}
+              accessibilityRole="button"
+              accessibilityLabel="Open Medicine Box"
+              style={[styles.viewAllPill, { backgroundColor: palette.surface2, borderColor: palette.line }]}
+            >
+              <Text style={[styles.viewAllText, { color: palette.accent }]}>
+                {t('open_box', 'Open')} →
+              </Text>
+            </Pressable>
+          </View>
+
+          <Pressable
+            onPress={() => router.push('/medicine-box')}
+            accessible={true}
+            accessibilityRole="button"
+            accessibilityLabel="Open Medicine Box card"
+            style={({ pressed }) => [
+              styles.medicineBoxCard,
+              {
+                backgroundColor: palette.surface,
+                borderColor: palette.line,
+                shadowColor: palette.shadow,
+                opacity: pressed ? 0.95 : 1,
+              },
+            ]}
+          >
+            <View style={styles.medicineBoxCardInner}>
+              <View
+                style={[
+                  styles.medicineBoxIconWrap,
+                  {
+                    backgroundColor:
+                      scheme === 'light'
+                        ? 'rgba(135, 169, 107, 0.18)'
+                        : 'rgba(135, 169, 107, 0.28)',
+                    borderColor:
+                      scheme === 'light'
+                        ? 'rgba(135, 169, 107, 0.35)'
+                        : 'rgba(135, 169, 107, 0.45)',
+                  },
+                ]}
+              >
+                <PillCapsuleIcon
+                  size={26}
+                  color={scheme === 'light' ? '#4A7036' : '#87A96B'}
+                />
+              </View>
+
+              <View style={styles.medicineBoxCardBody}>
+                {medicineBoxItems.length === 0 ? (
+                  <>
+                    <Text style={[styles.medicineBoxCardTitle, { color: palette.ink }]}>
+                      Your Medicine Box is empty
+                    </Text>
+                    <Text style={[styles.medicineBoxCardDesc, { color: palette.ink2 }]}>
+                      Add your daily or regular meds (weekly, monthly, or 2 months) to get automatic restock reminders.
+                    </Text>
+                  </>
+                ) : (
+                  <>
+                    <View style={styles.boxTagRow}>
+                      <View style={[styles.regularCountBadge, { backgroundColor: scheme === 'light' ? '#EEF2FF' : '#312E81' }]}>
+                        <Text style={[styles.regularCountBadgeText, { color: scheme === 'light' ? '#4338CA' : '#C7D2FE' }]}>
+                          💊 {regularCount} Daily {regularCount === 1 ? 'Med' : 'Meds'}
+                        </Text>
+                      </View>
+                      <View style={[styles.regularCountBadge, { backgroundColor: scheme === 'light' ? '#FEF3C7' : '#78350F' }]}>
+                        <Text style={[styles.regularCountBadgeText, { color: scheme === 'light' ? '#92400E' : '#FDE68A' }]}>
+                          🧰 {essentialCount} Essential
+                        </Text>
+                      </View>
+                      {nextRestock && (
+                        <View
+                          style={[
+                            styles.restockDueTag,
+                            {
+                              backgroundColor: nextRestock.status!.isOverdue
+                                ? palette.amberTint
+                                : palette.okTint,
+                              borderColor: nextRestock.status!.isOverdue
+                                ? palette.amberLine
+                                : palette.okLine,
+                            },
+                          ]}
+                        >
+                          <Text
+                            style={[
+                              styles.restockDueTagText,
+                              {
+                                color: nextRestock.status!.isOverdue
+                                  ? palette.amberInk
+                                  : palette.okInk,
+                              },
+                            ]}
+                          >
+                            🔔 {nextRestock.status!.label}: {nextRestock.name}
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+
+                    <Text style={[styles.medicineBoxSummaryLine, { color: palette.ink2 }]}>
+                      {medicineBoxItems.length} {medicineBoxItems.length === 1 ? 'medicine' : 'medicines'} tracked on this device
+                    </Text>
+                  </>
+                )}
+              </View>
+
+              <ChevronRightIcon size={18} color={palette.ink2} />
+            </View>
+
+            <View style={[styles.medicineBoxActionRow, { borderTopColor: palette.line }]}>
+              <Pressable
+                onPress={(e) => {
+                  e.stopPropagation();
+                  router.push({ pathname: '/medicine-box', params: { action: 'add', space: 'daily' } } as any);
+                }}
+                accessible={true}
+                accessibilityRole="button"
+                accessibilityLabel="Add daily health medicine"
+                style={[styles.boxActionBtn, { backgroundColor: palette.surface2, borderColor: palette.line }]}
+              >
+                <PlusIcon size={14} color={palette.accent} />
+                <Text style={[styles.boxActionBtnText, { color: palette.accent }]}>
+                  + Add Daily
+                </Text>
+              </Pressable>
+
+              <Pressable
+                onPress={(e) => {
+                  e.stopPropagation();
+                  router.push({ pathname: '/medicine-box', params: { action: 'add', space: 'essential' } } as any);
+                }}
+                accessible={true}
+                accessibilityRole="button"
+                accessibilityLabel="Add essential medicine"
+                style={[styles.boxActionBtn, { backgroundColor: palette.surface2, borderColor: palette.line }]}
+              >
+                <PlusIcon size={14} color={scheme === 'light' ? '#B45309' : '#FDE68A'} />
+                <Text style={[styles.boxActionBtnText, { color: scheme === 'light' ? '#B45309' : '#FDE68A' }]}>
+                  + Add Essential
+                </Text>
+              </Pressable>
+
+              <Pressable
+                onPress={(e) => {
+                  e.stopPropagation();
+                  router.push('/(tabs)/search');
+                }}
+                accessible={true}
+                accessibilityRole="button"
+                accessibilityLabel="Search catalog medicines"
+                style={[styles.boxActionBtn, { backgroundColor: palette.surface2, borderColor: palette.line }]}
+              >
+                <SearchIcon size={14} color={palette.ink} />
+                <Text style={[styles.boxActionBtnText, { color: palette.ink }]}>
+                  Search
+                </Text>
+              </Pressable>
+            </View>
+          </Pressable>
+        </View>
 
         {/* D) "FOR YOU" SECTION */}
         {recommendations.length > 0 && (
@@ -675,7 +1054,7 @@ export default function HomeScreen() {
             </Text>
           </View>
         </View>
-      </ScrollView>
+      </Animated.ScrollView>
       </AnimatedScreenTransition>
 
       {/* Area Picker Modal */}
@@ -691,11 +1070,13 @@ export default function HomeScreen() {
         animationType="fade"
         onRequestClose={() => setShowSettingsModal(false)}
       >
-        <Pressable
-          style={styles.modalOverlay}
-          onPress={() => setShowSettingsModal(false)}
-        >
+        <View style={styles.modalOverlay}>
           <Pressable
+            style={StyleSheet.absoluteFill}
+            onPress={() => setShowSettingsModal(false)}
+            accessibilityLabel="Close settings modal"
+          />
+          <View
             style={[
               styles.settingsCard,
               {
@@ -704,7 +1085,6 @@ export default function HomeScreen() {
                 shadowColor: palette.shadow,
               },
             ]}
-            onPress={(e) => e.stopPropagation()}
           >
             {/* Modal Header */}
             <View style={styles.settingsModalHeader}>
@@ -1263,6 +1643,59 @@ export default function HomeScreen() {
                 </View>
               </Pressable>
 
+              {/* User-accessible: Sign Out / Switch Role */}
+              <Pressable
+                onPress={async () => {
+                  setShowSettingsModal(false);
+                  try {
+                    await pharmacyPortalService.clearStorePartnerAuth();
+                  } catch {}
+                  await updateProfile({ role: null });
+                  router.replace('/');
+                }}
+                accessible={true}
+                accessibilityRole="button"
+                accessibilityLabel="Sign out or switch role. Return to start screen to choose Buyer, Pharmacy, Clinic, or Hospital."
+                style={[
+                  styles.settingsRowItem,
+                  { borderBottomColor: palette.line },
+                ]}
+              >
+                <View
+                  style={[
+                    styles.settingsIconBox,
+                    {
+                      backgroundColor:
+                        scheme === 'light'
+                          ? 'rgba(13, 148, 136, 0.14)'
+                          : 'rgba(45, 212, 191, 0.18)',
+                      borderColor:
+                        scheme === 'light'
+                          ? 'rgba(13, 148, 136, 0.3)'
+                          : 'rgba(45, 212, 191, 0.35)',
+                    },
+                  ]}
+                >
+                  <RefreshIcon
+                    size={18}
+                    color={scheme === 'light' ? '#0D9488' : '#2DD4BF'}
+                  />
+                </View>
+                <View style={styles.settingsItemInfo}>
+                  <Text
+                    style={[
+                      styles.settingsItemTitle,
+                      { color: scheme === 'light' ? '#0D9488' : '#2DD4BF' },
+                    ]}
+                  >
+                    {t('change_role_or_signout', 'Sign Out / Switch Role')}
+                  </Text>
+                  <Text style={[styles.settingsItemSubtitle, { color: palette.ink2 }]}>
+                    {t('change_role_or_signout_sub', 'Return to start screen to choose Buyer, Pharmacy, Clinic, or Hospital')}
+                  </Text>
+                </View>
+              </Pressable>
+
               {/* User-accessible: Delete all medicine box data */}
               <Pressable
                 onPress={() => {
@@ -1383,8 +1816,8 @@ export default function HomeScreen() {
                 </>
               )}
             </ScrollView>
-          </Pressable>
-        </Pressable>
+          </View>
+        </View>
       </Modal>
 
       {/* Language Selection Modal */}
@@ -1554,11 +1987,13 @@ export default function HomeScreen() {
         animationType="fade"
         onRequestClose={() => setShowLocationInfoModal(false)}
       >
-        <Pressable
-          style={styles.modalOverlay}
-          onPress={() => setShowLocationInfoModal(false)}
-        >
+        <View style={styles.modalOverlay}>
           <Pressable
+            style={StyleSheet.absoluteFill}
+            onPress={() => setShowLocationInfoModal(false)}
+            accessibilityLabel="Close location info modal"
+          />
+          <View
             style={[
               styles.policyCard,
               {
@@ -1567,7 +2002,6 @@ export default function HomeScreen() {
                 shadowColor: palette.shadow,
               },
             ]}
-            onPress={(e) => e.stopPropagation()}
           >
             <View style={styles.settingsModalHeader}>
               <View style={styles.settingsModalTitleRow}>
@@ -1626,8 +2060,8 @@ export default function HomeScreen() {
                 Got it
               </Text>
             </Pressable>
-          </Pressable>
-        </Pressable>
+          </View>
+        </View>
       </Modal>
     </View>
   );
@@ -2322,5 +2756,220 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 18,
     marginTop: 2,
+  },
+  featuredSection: {
+    marginTop: 18,
+    marginBottom: 8,
+  },
+  featuredHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  featuredTitle: {
+    fontSize: 18,
+    lineHeight: 24,
+    letterSpacing: -0.2,
+  },
+  featuredSub: {
+    fontFamily: fonts.sans,
+    fontSize: 12,
+    lineHeight: 16,
+    marginTop: 2,
+  },
+  viewAllPill: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: radii.pill,
+    borderWidth: 1,
+  },
+  viewAllText: {
+    fontFamily: fonts.sansBold,
+    fontSize: 12,
+  },
+  featuredScrollContent: {
+    gap: 12,
+    paddingRight: 16,
+    paddingBottom: 6,
+  },
+  featuredCard: {
+    width: 164,
+    borderRadius: 18,
+    borderWidth: 1,
+    padding: 12,
+    shadowOffset: { width: 0, height: 4 },
+    shadowRadius: 10,
+    shadowOpacity: 0.1,
+    elevation: 3,
+  },
+  featuredPedestal: {
+    height: 80,
+    borderRadius: 12,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+  },
+  featuredExpiryBadge: {
+    paddingHorizontal: 7,
+    paddingVertical: 2.5,
+    borderRadius: radii.chip,
+    borderWidth: 1,
+    alignSelf: 'flex-start',
+    marginBottom: 6,
+  },
+  featuredExpiryText: {
+    fontFamily: fonts.sansBold,
+    fontSize: 10.5,
+    letterSpacing: 0.2,
+  },
+  featuredMedName: {
+    fontFamily: fonts.sansBold,
+    fontSize: 14,
+    lineHeight: 18,
+    marginBottom: 2,
+  },
+  featuredGeneric: {
+    fontFamily: fonts.sans,
+    fontSize: 11,
+    lineHeight: 15,
+    marginBottom: 8,
+  },
+  featuredMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 'auto',
+  },
+  featuredMrp: {
+    fontFamily: fonts.sansBold,
+    fontSize: 13,
+  },
+  featuredBatchPill: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  featuredBatchText: {
+    fontFamily: fonts.sansMedium,
+    fontSize: 10,
+  },
+  medicineBoxSection: {
+    marginTop: 18,
+    marginBottom: 10,
+  },
+  medicineBoxHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  medicineBoxTitle: {
+    fontSize: 17,
+    letterSpacing: -0.2,
+  },
+  boxCountBadge: {
+    paddingHorizontal: 7,
+    paddingVertical: 1.5,
+    borderRadius: radii.chip,
+    borderWidth: 1,
+  },
+  boxCountBadgeText: {
+    fontFamily: fonts.sansBold,
+    fontSize: 11,
+  },
+  medicineBoxSub: {
+    fontSize: 12.5,
+    lineHeight: 17,
+    marginTop: 2,
+  },
+  medicineBoxCard: {
+    borderRadius: 16,
+    borderWidth: 1,
+    overflow: 'hidden',
+    shadowOffset: { width: 0, height: 3 },
+    shadowRadius: 8,
+    shadowOpacity: 0.08,
+    elevation: 2,
+  },
+  medicineBoxCardInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 14,
+    gap: 12,
+  },
+  medicineBoxIconWrap: {
+    width: 48,
+    height: 48,
+    borderRadius: 13,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  medicineBoxCardBody: {
+    flex: 1,
+  },
+  medicineBoxCardTitle: {
+    fontFamily: fonts.sansBold,
+    fontSize: 14.5,
+    marginBottom: 3,
+  },
+  medicineBoxCardDesc: {
+    fontFamily: fonts.sans,
+    fontSize: 12,
+    lineHeight: 16,
+  },
+  boxTagRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginBottom: 6,
+  },
+  regularCountBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: radii.chip,
+    alignSelf: 'flex-start',
+  },
+  regularCountBadgeText: {
+    fontFamily: fonts.sansBold,
+    fontSize: 11,
+  },
+  restockDueTag: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: radii.chip,
+    borderWidth: 1,
+    alignSelf: 'flex-start',
+  },
+  restockDueTagText: {
+    fontFamily: fonts.sansBold,
+    fontSize: 10.5,
+  },
+  medicineBoxSummaryLine: {
+    fontFamily: fonts.sans,
+    fontSize: 11.5,
+  },
+  medicineBoxActionRow: {
+    flexDirection: 'row',
+    borderTopWidth: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    gap: 10,
+  },
+  boxActionBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 8,
+    borderRadius: 10,
+    borderWidth: 1,
+  },
+  boxActionBtnText: {
+    fontFamily: fonts.sansBold,
+    fontSize: 12,
   },
 });

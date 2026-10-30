@@ -19,6 +19,10 @@ export const STORE_AUTH_STORAGE_KEY = '@medfind_store_partner_auth_v1';
 export const LEGACY_STORE_AUTH_STORAGE_KEY = '@medfind_store_auth_v1';
 export const EMERGENCY_COUNTRY_STORAGE_KEY = '@medfind_emergency_selected_country_v1';
 export const NEARBY_PLACES_CACHE_STORAGE_KEY = '@medfind_nearby_places_cache_v1';
+export const STORE_PHOTO_STORAGE_KEY = '@medfind_store_photo';
+export const LEGACY_STORE_PHOTO_STORAGE_KEY = '@medfind_store_photo_v1';
+export const STORE_LOCATION_STORAGE_KEY = '@medfind_store_location';
+export const LEGACY_STORE_LOCATION_STORAGE_KEY = '@medfind_store_location_v1';
 
 // Preferences keys kept on "Clear everything"
 export const THEME_STORAGE_KEY = 'medfind.theme';
@@ -39,6 +43,10 @@ export const CLEARED_STORAGE_KEYS = [
   LEGACY_STORE_AUTH_STORAGE_KEY,
   EMERGENCY_COUNTRY_STORAGE_KEY,
   NEARBY_PLACES_CACHE_STORAGE_KEY,
+  STORE_PHOTO_STORAGE_KEY,
+  LEGACY_STORE_PHOTO_STORAGE_KEY,
+  STORE_LOCATION_STORAGE_KEY,
+  LEGACY_STORE_LOCATION_STORAGE_KEY,
 ];
 
 export const KEPT_STORAGE_KEYS = [

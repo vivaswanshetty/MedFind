@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -24,9 +24,11 @@ import * as Haptics from 'expo-haptics';
 import { useTheme } from '../../theme/ThemeContext';
 import { typography } from '../../theme/tokens';
 import { onboardingAssets } from '../../../assets/onboarding';
+import { AgeGroup } from './AgePicker';
 
 export interface SwipeCardsProps {
   onDone: (answers: boolean[]) => void;
+  ageGroup?: AgeGroup | string;
 }
 
 interface QuestionCard {
@@ -36,43 +38,91 @@ interface QuestionCard {
   image: any;
 }
 
-const CARDS: QuestionCard[] = [
+// Child questions (under5, 5to12)
+const CHILD_QUESTIONS = [
+  { statement: "I keep children's medicine at home", subtext: 'Fever reducers, vitamins & essentials' },
+  { statement: 'Finding child-safe medicine is hard', subtext: 'Right dosage for little ones' },
+  { statement: 'My child takes daily vitamins', subtext: 'Regular supplements or prescriptions' },
+  { statement: 'I need liquid/syrup medicines', subtext: 'Easier for young children to take' },
+  { statement: "I'd like dosage reminders", subtext: 'Never miss a scheduled dose' },
+];
+
+// Teen questions (13to17)
+const TEEN_QUESTIONS = [
+  { statement: 'I manage my own medicines', subtext: 'Taking responsibility for health' },
+  { statement: 'Finding a pharmacy nearby is tough', subtext: 'Especially in a hurry' },
+  { statement: 'I take daily supplements', subtext: 'Vitamins or health boosters' },
+  { statement: 'I compare medicine prices', subtext: 'Looking for the best value' },
+  { statement: 'I want refill notifications', subtext: 'So I never run out' },
+];
+
+// Adult questions (18to59)
+const ADULT_QUESTIONS = [
   {
-    id: 1,
     statement: 'I keep a medicine box at home',
     subtext: 'Basic first aid and essentials',
-    image: onboardingAssets.small.cardMedicineBox,
   },
   {
-    id: 2,
     statement: "I've struggled to find a medicine in stock",
     subtext: 'Pharmacies out of stock nearby',
-    image: onboardingAssets.small.cardOutOfStock,
   },
   {
-    id: 3,
     statement: 'I buy medicines for my family',
     subtext: 'Caring for parents or children',
-    image: onboardingAssets.small.cardFamily,
   },
   {
-    id: 4,
     statement: "I'd like refill reminders",
     subtext: 'Never miss a scheduled dose',
-    image: onboardingAssets.small.cardReminder,
   },
   {
-    id: 5,
     statement: 'I compare prices before buying',
     subtext: 'Looking for the best pharmacy value',
-    image: onboardingAssets.small.cardCompare,
   },
 ];
 
-export function SwipeCards({ onDone }: SwipeCardsProps) {
+// Senior questions (60plus)
+const SENIOR_QUESTIONS = [
+  { statement: 'I take multiple daily medications', subtext: 'Managing several prescriptions' },
+  { statement: 'Large text on labels would help', subtext: 'Easier to read medicine info' },
+  { statement: 'Someone helps manage my medicines', subtext: 'Family or caregiver support' },
+  { statement: 'Emergency quick-dial would be useful', subtext: 'One-tap help in emergencies' },
+  { statement: 'I compare generic vs brand prices', subtext: 'Finding affordable alternatives' },
+];
+
+const CARD_IMAGES = [
+  onboardingAssets.small.cardMedicineBox,
+  onboardingAssets.small.cardOutOfStock,
+  onboardingAssets.small.cardFamily,
+  onboardingAssets.small.cardReminder,
+  onboardingAssets.small.cardCompare,
+];
+
+export function getCardsForAgeGroup(ageGroup?: AgeGroup | string): QuestionCard[] {
+  let questions = ADULT_QUESTIONS;
+  if (ageGroup === 'under5' || ageGroup === '5to12') {
+    questions = CHILD_QUESTIONS;
+  } else if (ageGroup === '13to17') {
+    questions = TEEN_QUESTIONS;
+  } else if (ageGroup === '60plus') {
+    questions = SENIOR_QUESTIONS;
+  }
+
+  return questions.map((q, idx) => ({
+    id: idx + 1,
+    statement: q.statement,
+    subtext: q.subtext,
+    image: CARD_IMAGES[idx] ?? onboardingAssets.small.cardMedicineBox,
+  }));
+}
+
+export const CARDS: QuestionCard[] = getCardsForAgeGroup('18to59');
+
+export function SwipeCards({ onDone, ageGroup }: SwipeCardsProps) {
   const { theme } = useTheme();
   const shouldReduceMotion = useReducedMotion();
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
+
+  const cards = useMemo(() => getCardsForAgeGroup(ageGroup), [ageGroup]);
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState<boolean[]>([]);
@@ -117,7 +167,7 @@ export function SwipeCards({ onDone }: SwipeCardsProps) {
       hasCrossedThreshold.value = false;
       isDismissing.value = false;
 
-      if (currentIndex + 1 < CARDS.length) {
+      if (currentIndex + 1 < cards.length) {
         setCurrentIndex((prev) => prev + 1);
       } else {
         onDone(nextAnswers);
@@ -267,8 +317,8 @@ export function SwipeCards({ onDone }: SwipeCardsProps) {
     onCardAnswered(answer);
   };
 
-  const currentCard = CARDS[currentIndex];
-  const nextCard = currentIndex + 1 < CARDS.length ? CARDS[currentIndex + 1] : null;
+  const currentCard = cards[currentIndex];
+  const nextCard = currentIndex + 1 < cards.length ? cards[currentIndex + 1] : null;
 
   return (
     <View style={[StyleSheet.absoluteFill, styles.overlay, { backgroundColor: theme.canvas }]}>
@@ -276,7 +326,7 @@ export function SwipeCards({ onDone }: SwipeCardsProps) {
         {/* Top Header & Segmented Progress Bar */}
         <View style={styles.topSection}>
           <View style={styles.progressRow}>
-            {CARDS.map((_, idx) => (
+            {cards.map((_, idx) => (
               <View
                 key={idx}
                 style={[
@@ -696,3 +746,6 @@ const styles = StyleSheet.create({
     letterSpacing: 0.3,
   },
 });
+
+export { SwipeCards as SwipeCardsEnhanced };
+export default SwipeCards;

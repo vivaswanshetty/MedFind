@@ -220,4 +220,65 @@ export function formatRefillDate(refillOn?: string | null): string | null {
   return `${day} ${monthNames[month - 1]} ${year}`;
 }
 
+export interface RestockStatusInfo {
+  isDue: boolean;
+  isOverdue: boolean;
+  daysRemaining: number;
+  label: string;
+}
+
+/**
+ * Evaluates the status of a scheduled restock date.
+ */
+export function getRestockStatus(
+  refillOn?: string | null,
+  now: Date = new Date()
+): RestockStatusInfo | null {
+  if (!refillOn) return null;
+  const match = refillOn.trim().match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+  if (!match) return null;
+  const year = parseInt(match[1], 10);
+  const month = parseInt(match[2], 10);
+  const day = parseInt(match[3], 10);
+  if (month < 1 || month > 12 || day < 1 || day > 31) return null;
+
+  const targetDate = new Date(year, month - 1, day, 0, 0, 0, 0);
+  const nowDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+  const diffMs = targetDate.getTime() - nowDate.getTime();
+  const diffDays = Math.round(diffMs / (24 * 60 * 60 * 1000));
+
+  if (diffDays < 0) {
+    const absDays = Math.abs(diffDays);
+    return {
+      isDue: true,
+      isOverdue: true,
+      daysRemaining: diffDays,
+      label: `Restock overdue by ${absDays} day${absDays === 1 ? '' : 's'}`,
+    };
+  }
+  if (diffDays === 0) {
+    return {
+      isDue: true,
+      isOverdue: false,
+      daysRemaining: 0,
+      label: 'Restock due today',
+    };
+  }
+  if (diffDays <= 3) {
+    return {
+      isDue: true,
+      isOverdue: false,
+      daysRemaining: diffDays,
+      label: `Restock in ${diffDays} day${diffDays === 1 ? '' : 's'}`,
+    };
+  }
+  return {
+    isDue: false,
+    isOverdue: false,
+    daysRemaining: diffDays,
+    label: `Restock in ${diffDays} days`,
+  };
+}
+
+
 

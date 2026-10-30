@@ -67,8 +67,13 @@ export function CountryPickerModal({
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={styles.keyboardAvoidingView}
       >
-        <Pressable style={styles.modalBackdrop} onPress={onClose}>
+        <View style={styles.modalBackdrop}>
           <Pressable
+            style={StyleSheet.absoluteFill}
+            onPress={onClose}
+            accessibilityLabel="Close country selector"
+          />
+          <View
             style={[
               styles.modalCard,
               {
@@ -77,7 +82,6 @@ export function CountryPickerModal({
                 shadowColor: palette.shadow,
               },
             ]}
-            onPress={(e) => e.stopPropagation()}
           >
             {/* Header */}
             <View style={[styles.modalHeader, { borderBottomColor: palette.line }]}>
@@ -276,8 +280,8 @@ export function CountryPickerModal({
                 })
               )}
             </ScrollView>
-          </Pressable>
-        </Pressable>
+          </View>
+        </View>
       </KeyboardAvoidingView>
     </Modal>
   );

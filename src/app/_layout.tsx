@@ -23,16 +23,18 @@ import { SplashIntro } from '../components/onboarding/SplashIntro';
 import { RolePicker, UserRoleChoice } from '../components/onboarding/RolePicker';
 import { WhoPicker, WhoOption } from '../components/onboarding/WhoPicker';
 import { AgePicker, AgeGroup } from '../components/onboarding/AgePicker';
-import { SwipeCards } from '../components/onboarding/SwipeCards';
+import { SwipeCardsEnhanced } from '../components/onboarding/SwipeCardsEnhanced';
 import { BuddyReveal } from '../components/onboarding/BuddyReveal';
 import { NamePicker } from '../components/onboarding/NamePicker';
+import { ProfileFieldsStep } from '../components/onboarding/ProfileFieldsStep';
 import { LocationStep } from '../components/onboarding/LocationStep';
 import { AllDone } from '../components/onboarding/AllDone';
 import { EmergencySkip } from '../components/onboarding/EmergencySkip';
 import { BuddyProfile } from '../lib/buddy';
-import { ProfileProvider, useProfile, mapSwipeAnswers, UserRole } from '../store/profile';
+import { ProfileProvider, useProfile, mapSwipeAnswers, UserRole, isProviderRole, BloodGroup, Gender } from '../store/profile';
 import { MedicineBoxProvider } from '../store/medicineBox';
 import { fonts } from '../constants/theme';
+import { WebCursorGlow } from '../components/WebCursorGlow';
 
 import { resolveRouteAccess } from '../lib/routeGuard';
 export { resolveRouteAccess };
@@ -42,6 +44,11 @@ function RootNavigation() {
   const pathname = usePathname();
   const { scheme, palette } = useTheme();
   const { profile, isLoading, saveProfile, updateProfile } = useProfile();
+
+  const isEmergencyRoute =
+    pathname === '/emergency' ||
+    pathname === '/(tabs)/emergency' ||
+    pathname === '/emergency-directory';
 
   const needsOnboarding =
     profile.role === null ||
@@ -54,6 +61,7 @@ function RootNavigation() {
   const [showSwipeCards, setShowSwipeCards] = useState(false);
   const [showBuddyReveal, setShowBuddyReveal] = useState(false);
   const [showNamePicker, setShowNamePicker] = useState(false);
+  const [showProfileFields, setShowProfileFields] = useState(false);
   const [showLocationStep, setShowLocationStep] = useState(false);
   const [showAllDone, setShowAllDone] = useState(false);
   const [selectedWho, setSelectedWho] = useState<WhoOption | null>(null);
@@ -61,10 +69,28 @@ function RootNavigation() {
   const [quickAnswers, setQuickAnswers] = useState<boolean[] | null>(null);
   const [selectedBuddy, setSelectedBuddy] = useState<BuddyProfile | null>(null);
   const [displayName, setDisplayName] = useState<string | null>(null);
+  const [profileFields, setProfileFields] = useState<{
+    bloodGroup: BloodGroup | null;
+    allergies: string[];
+    gender: Gender | null;
+  } | null>(null);
 
   // Re-launch role selection / onboarding if role becomes null or answers reset
   React.useEffect(() => {
     if (!isLoading && !showSplash) {
+      // If user is currently viewing emergency help, never interrupt with onboarding overlays
+      if (isEmergencyRoute) {
+        setShowRolePicker(false);
+        setShowWhoPicker(false);
+        setShowAgePicker(false);
+        setShowSwipeCards(false);
+        setShowBuddyReveal(false);
+        setShowNamePicker(false);
+        setShowProfileFields(false);
+        setShowLocationStep(false);
+        setShowAllDone(false);
+        return;
+      }
       if (profile.role === null) {
         if (!showRolePicker) {
           setShowWhoPicker(false);
@@ -72,6 +98,7 @@ function RootNavigation() {
           setShowSwipeCards(false);
           setShowBuddyReveal(false);
           setShowNamePicker(false);
+          setShowProfileFields(false);
           setShowLocationStep(false);
           setShowAllDone(false);
           setShowRolePicker(true);
@@ -86,6 +113,7 @@ function RootNavigation() {
         !showSwipeCards &&
         !showBuddyReveal &&
         !showNamePicker &&
+        !showProfileFields &&
         !showLocationStep &&
         !showAllDone
       ) {
@@ -104,16 +132,22 @@ function RootNavigation() {
     showSwipeCards,
     showBuddyReveal,
     showNamePicker,
+    showProfileFields,
     showLocationStep,
     showAllDone,
+    isEmergencyRoute,
   ]);
 
-  // Route access guard effect
+  // Route access guard effect — debounced to let programmatic navigation
+  // (e.g. sign-out, change-role) settle before enforcing route rules.
   React.useEffect(() => {
     if (isLoading) return;
     const redirectTarget = resolveRouteAccess(profile.role, pathname);
     if (redirectTarget && redirectTarget !== pathname) {
-      router.replace(redirectTarget as any);
+      const timer = setTimeout(() => {
+        router.replace(redirectTarget as any);
+      }, 150);
+      return () => clearTimeout(timer);
     }
   }, [profile.role, pathname, isLoading, router]);
 
@@ -122,7 +156,9 @@ function RootNavigation() {
     setShowRolePicker(false);
     if (role === 'customer') {
       setShowWhoPicker(true);
+      router.replace('/(tabs)');
     } else {
+      // All provider roles (pharmacist, clinic, hospital) go to portal
       router.replace('/(pharmacy)');
     }
   };
@@ -135,6 +171,7 @@ function RootNavigation() {
     setShowSwipeCards(false);
     setShowBuddyReveal(false);
     setShowNamePicker(false);
+    setShowProfileFields(false);
     setShowLocationStep(false);
     setShowAllDone(false);
 
@@ -144,24 +181,27 @@ function RootNavigation() {
     setSelectedBuddy(null);
     setDisplayName(null);
 
+    // Route directly to emergency screen immediately
+    router.replace('/(tabs)/emergency');
+
     await updateProfile({
       role: 'customer',
       onboardingSkippedAt: new Date().toISOString(),
     });
-
-    router.replace('/(tabs)/emergency');
   };
 
   const isOnboardingActive =
-    showSplash ||
-    showRolePicker ||
-    showWhoPicker ||
-    showAgePicker ||
-    showSwipeCards ||
-    showBuddyReveal ||
-    showNamePicker ||
-    showLocationStep ||
-    showAllDone;
+    !isEmergencyRoute &&
+    (showSplash ||
+      showRolePicker ||
+      showWhoPicker ||
+      showAgePicker ||
+      showSwipeCards ||
+      showBuddyReveal ||
+      showNamePicker ||
+      showProfileFields ||
+      showLocationStep ||
+      showAllDone);
 
   return (
     <>
@@ -226,7 +266,7 @@ function RootNavigation() {
         />
       </Stack>
       {/* Prevent underlying screens from flashing through during splash or onboarding transitions */}
-      {needsOnboarding && (
+      {needsOnboarding && !isEmergencyRoute && (
         <View
           style={[
             StyleSheet.absoluteFill,
@@ -235,7 +275,7 @@ function RootNavigation() {
           pointerEvents="none"
         />
       )}
-      {showSplash && (
+      {showSplash && !isEmergencyRoute && (
         <SplashIntro
           fadeOut={!needsOnboarding}
           onDone={() => {
@@ -244,16 +284,16 @@ function RootNavigation() {
               setShowRolePicker(true);
             } else if (profile.role === 'customer' && needsOnboarding) {
               setShowWhoPicker(true);
-            } else if (profile.role === 'pharmacist') {
+            } else if (isProviderRole(profile.role)) {
               router.replace('/(pharmacy)');
             }
           }}
         />
       )}
-      {showRolePicker && (
+      {!isEmergencyRoute && showRolePicker && (
         <RolePicker onSelect={handleSelectRole} />
       )}
-      {showWhoPicker && (
+      {!isEmergencyRoute && showWhoPicker && (
         <WhoPicker
           onSelect={(who) => {
             setSelectedWho(who);
@@ -262,7 +302,7 @@ function RootNavigation() {
           }}
         />
       )}
-      {showAgePicker && selectedWho && (
+      {!isEmergencyRoute && showAgePicker && selectedWho && (
         <AgePicker
           who={selectedWho}
           onSelect={(age) => {
@@ -272,8 +312,9 @@ function RootNavigation() {
           }}
         />
       )}
-      {showSwipeCards && (
-        <SwipeCards
+      {!isEmergencyRoute && showSwipeCards && (
+        <SwipeCardsEnhanced
+          ageGroup={selectedAge || undefined}
           onDone={(answers) => {
             setQuickAnswers(answers);
             setShowSwipeCards(false);
@@ -281,7 +322,7 @@ function RootNavigation() {
           }}
         />
       )}
-      {showBuddyReveal && quickAnswers && (
+      {!isEmergencyRoute && showBuddyReveal && quickAnswers && (
         <BuddyReveal
           answers={quickAnswers}
           onDone={(buddy) => {
@@ -291,17 +332,26 @@ function RootNavigation() {
           }}
         />
       )}
-      {showNamePicker && selectedBuddy && (
+      {!isEmergencyRoute && showNamePicker && selectedBuddy && (
         <NamePicker
           buddyName={selectedBuddy.name}
           onDone={(name) => {
             setDisplayName(name);
             setShowNamePicker(false);
+            setShowProfileFields(true);
+          }}
+        />
+      )}
+      {!isEmergencyRoute && showProfileFields && (
+        <ProfileFieldsStep
+          onDone={(fields) => {
+            setProfileFields(fields as any);
+            setShowProfileFields(false);
             setShowLocationStep(true);
           }}
         />
       )}
-      {showLocationStep && (
+      {!isEmergencyRoute && showLocationStep && (
         <LocationStep
           onDone={() => {
             setShowLocationStep(false);
@@ -309,7 +359,7 @@ function RootNavigation() {
           }}
         />
       )}
-      {showAllDone && (
+      {!isEmergencyRoute && showAllDone && (
         <AllDone
           name={displayName}
           onDone={async () => {
@@ -323,6 +373,9 @@ function RootNavigation() {
               buddyName: selectedBuddy?.name ?? null,
               buddyTrait: selectedBuddy?.traits[0] ?? null,
               displayName: displayName,
+              bloodGroup: profileFields?.bloodGroup ?? null,
+              allergies: profileFields?.allergies ?? [],
+              gender: profileFields?.gender ?? null,
               onboardingComplete: true,
               onboardingSkippedAt: null,
               dismissedSetupCard: false,
@@ -330,6 +383,7 @@ function RootNavigation() {
               createdAt: new Date().toISOString(),
             });
             setShowAllDone(false);
+            router.replace('/(tabs)');
           }}
         />
       )}
@@ -358,6 +412,7 @@ export default function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
         <ThemeProvider>
+          <WebCursorGlow />
           <LanguageProvider>
             <LocationProvider>
               <ProfileProvider>

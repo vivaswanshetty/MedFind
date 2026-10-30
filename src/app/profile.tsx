@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -21,11 +21,12 @@ import { fonts, radii, MIN_TARGET } from '../constants/theme';
 import { AtmosphereBackground } from '../components/AtmosphereBackground';
 import { AnimatedScreenTransition } from '../components/AnimatedScreenTransition';
 import { onboardingAssets } from '../../assets/onboarding';
-import { useProfile, ProfileAnswers } from '../store/profile';
+import { useProfile, ProfileAnswers, BloodGroup, Gender } from '../store/profile';
 import { useMedicineBox } from '../store/medicineBox';
 import { useLocation } from '../context/LocationContext';
 import { storageService } from '../services/storageService';
 import { clearAllUserData } from '../services/clearDataService';
+import { pharmacyPortalService } from '../services/pharmacyPortalService';
 import { cancelAllItemReminders } from '../lib/reminders';
 import { getBuddy } from '../lib/buddy';
 import { WhoOption } from '../components/onboarding/WhoPicker';
@@ -72,6 +73,24 @@ const AGE_CHIP_OPTIONS: AgeChipOption[] = [
   { id: '60plus', label: '60 and above' },
 ];
 
+import { COMMON_ALLERGIES, searchAllergies } from '../data/allergies';
+
+const BLOOD_GROUPS: BloodGroup[] = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
+
+const ALLERGY_OPTIONS = COMMON_ALLERGIES;
+
+interface GenderChipOption {
+  id: Gender;
+  label: string;
+}
+
+const GENDER_CHIP_OPTIONS: GenderChipOption[] = [
+  { id: 'male', label: 'Male' },
+  { id: 'female', label: 'Female' },
+  { id: 'other', label: 'Other' },
+  { id: 'prefer_not_to_say', label: 'Prefer not to say' },
+];
+
 interface AnswerToggleDef {
   key: keyof ProfileAnswers;
   label: string;
@@ -104,7 +123,7 @@ export default function ProfileScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { scheme, palette, theme } = useTheme();
-  const { t } = useLanguage();
+  const { t, formatNumber } = useLanguage();
 
   const { profile, updateProfile, resetProfile } = useProfile();
   const { items: medicineBoxItems, clearAll: clearMedicineBox } = useMedicineBox();
@@ -117,6 +136,25 @@ export default function ProfileScreen() {
   // Edit Name Modal State
   const [showEditNameModal, setShowEditNameModal] = useState<boolean>(false);
   const [nameInput, setNameInput] = useState<string>('');
+
+  // Allergy Search State
+  const [isAllergySearchOpen, setIsAllergySearchOpen] = useState<boolean>(false);
+  const [allergySearchQuery, setAllergySearchQuery] = useState<string>('');
+
+  const allergySearchResults = useMemo(() => {
+    return searchAllergies(allergySearchQuery, 14);
+  }, [allergySearchQuery]);
+
+  const handleAddCustomAllergy = async (allergyName: string) => {
+    const trimmed = allergyName.trim();
+    if (!trimmed) return;
+    const current = profile.allergies || [];
+    const filtered = current.filter((a) => a !== 'None');
+    if (!filtered.some((a) => a.toLowerCase() === trimmed.toLowerCase())) {
+      await updateProfile({ allergies: [...filtered, trimmed] });
+    }
+    setAllergySearchQuery('');
+  };
 
   const refreshCounts = useCallback(async () => {
     try {
@@ -144,6 +182,28 @@ export default function ProfileScreen() {
 
   const handleSelectAge = async (ageGroup: AgeGroup) => {
     await updateProfile({ ageGroup });
+  };
+
+  const handleSelectBloodGroup = async (bg: BloodGroup) => {
+    const next = profile.bloodGroup === bg ? null : bg;
+    await updateProfile({ bloodGroup: next });
+  };
+
+  const handleSelectGender = async (gender: Gender) => {
+    const next = profile.gender === gender ? null : gender;
+    await updateProfile({ gender: next });
+  };
+
+  const handleToggleAllergy = async (allergy: string) => {
+    const current = profile.allergies || [];
+    if (allergy === 'None') {
+      await updateProfile({ allergies: [] });
+      return;
+    }
+    const filtered = current.filter((a) => a !== 'None');
+    const exists = filtered.includes(allergy);
+    const updated = exists ? filtered.filter((a) => a !== allergy) : [...filtered, allergy];
+    await updateProfile({ allergies: updated });
   };
 
   // Handle Answers Toggle
@@ -259,26 +319,41 @@ export default function ProfileScreen() {
     );
   };
 
-  const handleChangeRole = () => {
-    Alert.alert(
-      t('change_role', 'Change role?'),
-      t('change_role_confirm_msg', 'This takes you back to the start.'),
-      [
-        { text: t('cancel', 'Cancel'), style: 'cancel' },
-        {
-          text: t('change_role', 'Change role'),
-          style: 'destructive',
-          onPress: async () => {
-            await updateProfile({ role: null });
-            router.replace('/');
-          },
-        },
-      ]
-    );
+  const handleChangeRole = async () => {
+    try {
+      await pharmacyPortalService.clearStorePartnerAuth();
+    } catch {}
+    await updateProfile({ role: null });
+    router.replace('/');
   };
 
   // Clear Everything (Full Privacy Wipe & Reset)
   const handleClearEverything = () => {
+    const doReset = async () => {
+      // 1. Clear disk storage and reminders
+      await clearAllUserData();
+
+      // 2. Reset in-memory contexts
+      await resetProfile();
+      await clearMedicineBox();
+      await clearLocation();
+
+      // 3. Reset local counts
+      setFavoritesCount(0);
+      setRecentSearchesCount(0);
+
+      // 4. Return to root which restarts onboarding cleanly
+      setTimeout(() => router.replace('/'), 100);
+    };
+
+    if (Platform.OS === 'web') {
+      const confirmed = (window as any).confirm(
+        'Clear everything?\n\nThis will delete your profile, medicine box items, favorites, search history, and location preference.\n\nTheme and language settings will be kept.'
+      );
+      if (confirmed) doReset();
+      return;
+    }
+
     Alert.alert(
       'Clear everything?',
       'This will delete your profile, medicine box items, favorites, search history, and location preference, and cancel all scheduled reminders.\n\nTheme and language settings will be kept.',
@@ -287,22 +362,7 @@ export default function ProfileScreen() {
         {
           text: 'Delete Everything',
           style: 'destructive',
-          onPress: async () => {
-            // 1. Clear disk storage and reminders
-            await clearAllUserData();
-
-            // 2. Reset in-memory contexts
-            await resetProfile();
-            await clearMedicineBox();
-            await clearLocation();
-
-            // 3. Reset local counts
-            setFavoritesCount(0);
-            setRecentSearchesCount(0);
-
-            // 4. Return to root which restarts onboarding cleanly
-            router.replace('/');
-          },
+          onPress: doReset,
         },
       ]
     );
@@ -522,7 +582,7 @@ export default function ProfileScreen() {
                         },
                       ]}
                     >
-                      {opt.label}
+                      {t(opt.label, opt.label)}
                     </Text>
                   </Pressable>
                 );
@@ -574,12 +634,395 @@ export default function ProfileScreen() {
                         },
                       ]}
                     >
-                      {opt.label}
+                      {t(opt.label, opt.label)}
                     </Text>
                   </Pressable>
                 );
               })}
             </View>
+          </View>
+
+          {/* Section 2b: Health & Clinical Profile (Blood Group, Gender, Allergies) */}
+          <View
+            style={[
+              styles.card,
+              {
+                backgroundColor: palette.surface,
+                borderColor: palette.line,
+                shadowColor: palette.shadow,
+              },
+            ]}
+          >
+            {/* Blood Group */}
+            <Text style={[styles.sectionHeading, { color: palette.ink }]}>
+              {t('blood_group_title', 'Blood group')}
+            </Text>
+            <Text style={[styles.sectionCaption, { color: palette.ink2 }]}>
+              {t('blood_group_sub', 'Essential for emergency triage and clinical record')}
+            </Text>
+
+            <View style={styles.chipsRow}>
+              {BLOOD_GROUPS.map((bg) => {
+                const isSelected = profile.bloodGroup === bg;
+                return (
+                  <Pressable
+                    key={bg}
+                    onPress={() => handleSelectBloodGroup(bg)}
+                    accessible={true}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: isSelected }}
+                    accessibilityLabel={`Blood group: ${bg}`}
+                    style={[
+                      styles.chip,
+                      {
+                        backgroundColor: isSelected
+                          ? palette.accent || theme.primaryAccent
+                          : palette.surface2,
+                        borderColor: isSelected
+                          ? palette.accent || theme.primaryAccent
+                          : palette.line,
+                      },
+                    ]}
+                  >
+                    {isSelected && <CheckCircleIcon size={14} color={palette.surface} />}
+                    <Text
+                      style={[
+                        styles.chipText,
+                        {
+                          color: isSelected ? palette.surface : palette.ink,
+                          fontFamily: isSelected ? fonts.sansSemi : fonts.sans,
+                        },
+                      ]}
+                    >
+                      {formatNumber(bg)}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+
+            <View style={[styles.divider, { backgroundColor: palette.line }]} />
+
+            {/* Gender */}
+            <Text style={[styles.sectionHeading, { color: palette.ink }]}>
+              {t('gender_title', 'Gender')}
+            </Text>
+            <Text style={[styles.sectionCaption, { color: palette.ink2 }]}>
+              {t('gender_sub', 'Used to personalise clinical dosage considerations')}
+            </Text>
+
+            <View style={styles.chipsRow}>
+              {GENDER_CHIP_OPTIONS.map((g) => {
+                const isSelected = profile.gender === g.id;
+                return (
+                  <Pressable
+                    key={g.id}
+                    onPress={() => handleSelectGender(g.id)}
+                    accessible={true}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: isSelected }}
+                    accessibilityLabel={`Gender: ${g.label}`}
+                    style={[
+                      styles.chip,
+                      {
+                        backgroundColor: isSelected
+                          ? palette.accent || theme.primaryAccent
+                          : palette.surface2,
+                        borderColor: isSelected
+                          ? palette.accent || theme.primaryAccent
+                          : palette.line,
+                      },
+                    ]}
+                  >
+                    {isSelected && <CheckCircleIcon size={14} color={palette.surface} />}
+                    <Text
+                      style={[
+                        styles.chipText,
+                        {
+                          color: isSelected ? palette.surface : palette.ink,
+                          fontFamily: isSelected ? fonts.sansSemi : fonts.sans,
+                        },
+                      ]}
+                    >
+                      {t(g.label, g.label)}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+
+            <View style={[styles.divider, { backgroundColor: palette.line }]} />
+
+            {/* Allergies Header Row */}
+            <View style={styles.allergyHeaderRow}>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.sectionHeading, { color: palette.ink }]}>
+                  {t('allergies_title', 'Known allergies')}
+                </Text>
+                <Text style={[styles.sectionCaption, { color: palette.ink2 }]}>
+                  {t('allergies_sub', 'MedFind checks contraindications against your saved medicines')}
+                </Text>
+              </View>
+
+              <Pressable
+                onPress={() => setIsAllergySearchOpen((prev) => !prev)}
+                accessible={true}
+                accessibilityRole="button"
+                accessibilityLabel="Search or add allergy"
+                style={({ pressed }) => [
+                  styles.profileSearchAllergyBtn,
+                  {
+                    backgroundColor: isAllergySearchOpen ? (palette.accent || theme.primaryAccent) : palette.surface2,
+                    borderColor: palette.line,
+                    opacity: pressed ? 0.75 : 1.0,
+                  },
+                ]}
+              >
+                <SearchIcon
+                  size={14}
+                  color={isAllergySearchOpen ? palette.surface : palette.ink}
+                />
+              </Pressable>
+            </View>
+
+            <View style={styles.chipsRow}>
+              {ALLERGY_OPTIONS.map((allergy) => {
+                const isNone = allergy === 'None';
+                const isSelected = isNone
+                  ? !profile.allergies || profile.allergies.length === 0
+                  : profile.allergies?.includes(allergy);
+
+                return (
+                  <Pressable
+                    key={allergy}
+                    onPress={() => handleToggleAllergy(allergy)}
+                    accessible={true}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: Boolean(isSelected) }}
+                    accessibilityLabel={`Allergy: ${allergy}`}
+                    style={[
+                      styles.chip,
+                      {
+                        backgroundColor: isSelected
+                          ? palette.accent || theme.primaryAccent
+                          : palette.surface2,
+                        borderColor: isSelected
+                          ? palette.accent || theme.primaryAccent
+                          : palette.line,
+                      },
+                    ]}
+                  >
+                    {isSelected && <CheckCircleIcon size={14} color={palette.surface} />}
+                    <Text
+                      style={[
+                        styles.chipText,
+                        {
+                          color: isSelected ? palette.surface : palette.ink,
+                          fontFamily: isSelected ? fonts.sansSemi : fonts.sans,
+                        },
+                      ]}
+                    >
+                      {t(allergy, allergy)}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+
+              {/* Show any custom selected allergies that are not in common options */}
+              {(profile.allergies || [])
+                .filter((a) => !ALLERGY_OPTIONS.includes(a as any) && a !== 'None')
+                .map((customAllergy) => (
+                  <Pressable
+                    key={customAllergy}
+                    onPress={() => handleToggleAllergy(customAllergy)}
+                    accessible={true}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: true }}
+                    accessibilityLabel={`Allergy: ${customAllergy}`}
+                    style={[
+                      styles.chip,
+                      {
+                        backgroundColor: palette.accent || theme.primaryAccent,
+                        borderColor: palette.accent || theme.primaryAccent,
+                      },
+                    ]}
+                  >
+                    <CheckCircleIcon size={14} color={palette.surface} />
+                    <Text
+                      style={[
+                        styles.chipText,
+                        {
+                          color: palette.surface,
+                          fontFamily: fonts.sansSemi,
+                        },
+                      ]}
+                    >
+                      {customAllergy}
+                    </Text>
+                  </Pressable>
+                ))}
+
+              {/* Search Allergy Chip */}
+              <Pressable
+                onPress={() => setIsAllergySearchOpen((prev) => !prev)}
+                accessible={true}
+                accessibilityRole="button"
+                accessibilityLabel="Search other allergy names"
+                style={({ pressed }) => [
+                  styles.chip,
+                  styles.profileSearchTriggerChip,
+                  {
+                    backgroundColor: isAllergySearchOpen ? palette.surface2 : palette.surface,
+                    borderColor: isAllergySearchOpen ? (palette.accent || theme.primaryAccent) : palette.line,
+                    opacity: pressed ? 0.75 : 1.0,
+                  },
+                ]}
+              >
+                <SearchIcon
+                  size={12}
+                  color={isAllergySearchOpen ? (palette.accent || theme.primaryAccent) : palette.ink2}
+                />
+                <Text
+                  style={[
+                    styles.chipText,
+                    {
+                      color: isAllergySearchOpen ? (palette.accent || theme.primaryAccent) : palette.ink2,
+                      fontFamily: fonts.sansMedium,
+                      marginLeft: 4,
+                    },
+                  ]}
+                >
+                  Search more...
+                </Text>
+              </Pressable>
+            </View>
+
+            {/* Expandable Search Panel in Profile */}
+            {isAllergySearchOpen && (
+              <View
+                style={[
+                  styles.profileSearchPanel,
+                  {
+                    backgroundColor: palette.surface2,
+                    borderColor: palette.line,
+                  },
+                ]}
+              >
+                <View
+                  style={[
+                    styles.profileSearchInputRow,
+                    {
+                      backgroundColor: palette.surface,
+                      borderColor: palette.line,
+                    },
+                  ]}
+                >
+                  <SearchIcon size={16} color={palette.ink2} />
+                  <TextInput
+                    style={[
+                      styles.profileSearchInput,
+                      {
+                        color: palette.ink,
+                        fontFamily: fonts.sans,
+                      },
+                    ]}
+                    placeholder="Search or type allergy (e.g. Amoxicillin, Ibuprofen...)"
+                    placeholderTextColor={palette.ink2}
+                    value={allergySearchQuery}
+                    onChangeText={setAllergySearchQuery}
+                    autoFocus={true}
+                    returnKeyType="done"
+                    onSubmitEditing={() => {
+                      if (allergySearchQuery.trim()) {
+                        handleAddCustomAllergy(allergySearchQuery);
+                      }
+                    }}
+                  />
+                  {allergySearchQuery.length > 0 && (
+                    <Pressable
+                      onPress={() => setAllergySearchQuery('')}
+                      hitSlop={8}
+                      style={{ padding: 4 }}
+                      accessibilityLabel="Clear allergy search"
+                    >
+                      <CloseIcon size={14} color={palette.ink2} />
+                    </Pressable>
+                  )}
+                </View>
+
+                {/* Search Results */}
+                <View style={styles.profileSearchResultsRow}>
+                  {allergySearchQuery.trim().length > 0 &&
+                    !(profile.allergies || []).some(
+                      (a) => a.toLowerCase() === allergySearchQuery.trim().toLowerCase()
+                    ) && (
+                      <Pressable
+                        onPress={() => handleAddCustomAllergy(allergySearchQuery)}
+                        accessible={true}
+                        accessibilityRole="button"
+                        accessibilityLabel={`Add ${allergySearchQuery.trim()} to allergies`}
+                        style={({ pressed }) => [
+                          styles.profileAddCustomPill,
+                          {
+                            backgroundColor: palette.accent || theme.primaryAccent,
+                            borderColor: palette.accent || theme.primaryAccent,
+                            opacity: pressed ? 0.8 : 1.0,
+                          },
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.profileAddCustomPillText,
+                            {
+                              color: palette.surface,
+                              fontFamily: fonts.sansBold,
+                            },
+                          ]}
+                        >
+                          + Add &ldquo;{allergySearchQuery.trim()}&rdquo;
+                        </Text>
+                      </Pressable>
+                    )}
+
+                  {allergySearchResults.map((item) => {
+                    const isSelected = (profile.allergies || []).includes(item);
+                    return (
+                      <Pressable
+                        key={item}
+                        onPress={() => handleToggleAllergy(item)}
+                        accessible={true}
+                        accessibilityRole="button"
+                        accessibilityLabel={`${item}${isSelected ? ', selected' : ''}`}
+                        style={({ pressed }) => [
+                          styles.profileSearchResultChip,
+                          {
+                            backgroundColor: isSelected
+                              ? palette.accent || theme.primaryAccent
+                              : palette.surface,
+                            borderColor: isSelected
+                              ? palette.accent || theme.primaryAccent
+                              : palette.line,
+                            opacity: pressed ? 0.75 : 1.0,
+                          },
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.profileSearchResultText,
+                            {
+                              color: isSelected ? palette.surface : palette.ink,
+                              fontFamily: isSelected ? fonts.sansSemi : fonts.sans,
+                            },
+                          ]}
+                        >
+                          {isSelected ? `✓ ${item}` : `+ ${item}`}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              </View>
+            )}
           </View>
 
           {/* Section 3: My Answers (5 Exact Questions) */}
@@ -614,7 +1057,7 @@ export default function ProfileScreen() {
                     ]}
                   >
                     <Text style={[styles.toggleLabel, { color: palette.ink }]}>
-                      {def.label}
+                      {t(def.label, def.label)}
                     </Text>
                     <Switch
                       value={isEnabled}
@@ -984,10 +1427,10 @@ export default function ProfileScreen() {
 
               <View style={styles.storageItemInfo}>
                 <Text style={[styles.storageItemTitle, { color: palette.ink }]}>
-                  {t('change_role', 'Change role')}
+                  {t('change_role_or_signout', 'Sign Out / Switch Role')}
                 </Text>
                 <Text style={[styles.storageItemSubtitle, { color: palette.ink2 }]}>
-                  {t('change_role_sub', 'Switch between customer and pharmacy staff')}
+                  {t('change_role_or_signout_sub', 'Return to start screen to choose Buyer, Pharmacy, Clinic, or Hospital')}
                 </Text>
               </View>
 
@@ -1272,6 +1715,69 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 8,
+  },
+  allergyHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 4,
+    gap: 12,
+  },
+  profileSearchAllergyBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  profileSearchTriggerChip: {
+    borderStyle: 'dashed',
+    borderWidth: 1.5,
+  },
+  profileSearchPanel: {
+    marginTop: 12,
+    padding: 12,
+    borderRadius: radii.card,
+    borderWidth: 1,
+  },
+  profileSearchInputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: Platform.OS === 'ios' ? 8 : 4,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  profileSearchInput: {
+    flex: 1,
+    fontSize: 14,
+    marginLeft: 8,
+    paddingVertical: 2,
+  },
+  profileSearchResultsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginTop: 10,
+  },
+  profileAddCustomPill: {
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: radii.pill,
+    borderWidth: 1,
+  },
+  profileAddCustomPillText: {
+    fontSize: 12,
+  },
+  profileSearchResultChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: radii.pill,
+    borderWidth: 1,
+  },
+  profileSearchResultText: {
+    fontSize: 12,
   },
   chip: {
     flexDirection: 'row',

@@ -15,18 +15,20 @@ interface AnimatedScreenTransitionProps {
 export function AnimatedScreenTransition({
   children,
   style,
-  duration = 240,
+  duration = 260,
 }: AnimatedScreenTransitionProps) {
   const isFocused = useIsFocused();
   const fadeAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(10)).current;
-  const scaleAnim = useRef(new Animated.Value(0.985)).current;
+  const slideAnim = useRef(new Animated.Value(14)).current;
+  const scaleAnim = useRef(new Animated.Value(0.972)).current;
+  const tiltAnim = useRef(new Animated.Value(3)).current;
 
   useEffect(() => {
     if (isFocused) {
       fadeAnim.setValue(0);
-      slideAnim.setValue(10);
-      scaleAnim.setValue(0.985);
+      slideAnim.setValue(14);
+      scaleAnim.setValue(0.972);
+      tiltAnim.setValue(3);
 
       Animated.parallel([
         Animated.timing(fadeAnim, {
@@ -37,18 +39,29 @@ export function AnimatedScreenTransition({
         Animated.spring(slideAnim, {
           toValue: 0,
           friction: 8,
-          tension: 70,
+          tension: 85,
           useNativeDriver: true,
         }),
         Animated.spring(scaleAnim, {
           toValue: 1,
           friction: 8,
-          tension: 70,
+          tension: 85,
+          useNativeDriver: true,
+        }),
+        Animated.spring(tiltAnim, {
+          toValue: 0,
+          friction: 8,
+          tension: 85,
           useNativeDriver: true,
         }),
       ]).start();
     }
   }, [isFocused]);
+
+  const rotateX = tiltAnim.interpolate({
+    inputRange: [0, 10],
+    outputRange: ['0deg', '10deg'],
+  });
 
   return (
     <Animated.View
@@ -58,8 +71,10 @@ export function AnimatedScreenTransition({
         {
           opacity: fadeAnim,
           transform: [
+            { perspective: 1000 },
             { translateY: slideAnim },
             { scale: scaleAnim },
+            { rotateX },
           ],
         },
       ]}

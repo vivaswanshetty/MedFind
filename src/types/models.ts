@@ -18,9 +18,18 @@ export interface Medicine {
   generic_name: string;
   brand_name: string;
   strength?: string;
-  dosage_form?: string; // e.g., 'Tablet', 'Syrup', 'Capsule', 'Inhaler'
+  dosage_form?: string; // e.g., 'Tablet', 'Syrup', 'Capsule', 'Inhaler', 'Drops', 'Cream', 'Injection'
   searchable_aliases: string[];
   created_at: string;
+  expiry_date?: string; // e.g. "11/2027" or "Nov 2027"
+  batch_no?: string; // e.g. "MF-2025/B902"
+  image_3d_type?: 'tablet' | 'capsule' | 'syrup' | 'inhaler' | 'drops' | 'cream' | 'injection';
+  primary_color?: string;
+  secondary_color?: string;
+  mrp?: string;
+  manufacturer?: string;
+  schedule?: string; // e.g. "OTC" or "Rx - Schedule H"
+  indications?: string[];
 }
 
 export type DirectorySourceType = 'public_directory' | 'provider_confirmed';

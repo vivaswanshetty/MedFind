@@ -23,6 +23,11 @@ async function getLocationModule() {
   return expoLocationModule;
 }
 
+// Check if running on web without direct top-level react-native import for pure testability
+const isWeb = typeof window !== 'undefined' && typeof (window as any).document !== 'undefined';
+import { isCoordinatesInIndia } from '../data/emergencyNumbers';
+import { searchCuratedLandmarks } from '../data/landmarks';
+
 export interface Coordinates {
   latitude: number;
   longitude: number;
@@ -41,6 +46,30 @@ export interface KnownArea {
  * Verified areas in Bengaluru for manual area selection when GPS is skipped/denied.
  */
 export const PREDEFINED_AREAS: KnownArea[] = [
+  {
+    id: 'area-bmsce',
+    name: 'BMS College of Engineering (BMSCE)',
+    locality: 'Basavanagudi',
+    pincode: '560019',
+    latitude: 12.9410,
+    longitude: 77.5655,
+  },
+  {
+    id: 'area-girinagar',
+    name: 'Girinagar, Bengaluru',
+    locality: 'Girinagar',
+    pincode: '560085',
+    latitude: 12.9350,
+    longitude: 77.5440,
+  },
+  {
+    id: 'area-hosakerehalli',
+    name: 'Hosakerehalli, Bengaluru',
+    locality: 'Hosakerehalli',
+    pincode: '560085',
+    latitude: 12.9250,
+    longitude: 77.5350,
+  },
   {
     id: 'area-basavanagudi',
     name: 'Basavanagudi, Bengaluru',
@@ -365,76 +394,147 @@ export function cleanLocalityName(raw?: string | null): string {
 }
 
 /**
- * Searches places worldwide using expo-location geocodeAsync.
- * Does not require external API keys. Handles geocoding errors gracefully.
+ * Searches places worldwide using a fast multi-tier approach:
+ * 1. Instant curated directory for colleges (BMS, PES, RV, etc.), tech parks, and neighborhoods.
+ * 2. OpenStreetMap Nominatim geocoding (works globally on web & mobile without keys).
+ * 3. expo-location geocodeAsync fallback on native mobile.
  */
 export async function searchPlacesWorldwide(
   query: string,
-  maxResults: number = 5
+  maxResults: number = 6
 ): Promise<PlaceSearchResult[]> {
   const trimmed = query.trim();
   if (trimmed.length < 2) return [];
 
-  try {
-    const Location = await getLocationModule();
-    const geocoded = await Location.geocodeAsync(trimmed);
-    if (!geocoded || geocoded.length === 0) {
-      return [];
+  const results: PlaceSearchResult[] = [];
+  const seenCoords = new Set<string>();
+
+  const addResult = (res: PlaceSearchResult) => {
+    const key = `${res.latitude.toFixed(3)},${res.longitude.toFixed(3)}`;
+    if (!seenCoords.has(key)) {
+      seenCoords.add(key);
+      results.push(res);
     }
+  };
 
-    const capped = geocoded.slice(0, maxResults);
-    const results: PlaceSearchResult[] = [];
-
-    for (const item of capped) {
-      let displayName = trimmed;
-      let locality = trimmed;
-      let isoCountryCode: string | null = null;
-
-      try {
-        const places = await Location.reverseGeocodeAsync({
-          latitude: item.latitude,
-          longitude: item.longitude,
-        });
-
-        if (places && places.length > 0) {
-          const p = places[0];
-          isoCountryCode = p.isoCountryCode ? p.isoCountryCode.toUpperCase() : null;
-          const name = cleanLocalityName(p.name);
-          const street = cleanLocalityName(p.street);
-          const sub = cleanLocalityName(p.subregion);
-          const dist = cleanLocalityName(p.district);
-          const city = cleanLocalityName(p.city);
-          const region = cleanLocalityName(p.region);
-          const country = p.country || '';
-
-          const candidate = [name, sub, dist, street, city].find(
-            (c) => c && !isInvalidLocality(c)
-          );
-          locality = candidate || city || region || trimmed;
-
-          const contextParts = [city, region, country].filter(
-            (cp) => cp && cp.toLowerCase() !== locality.toLowerCase()
-          );
-          const uniqueContext = Array.from(new Set(contextParts));
-          displayName = uniqueContext.length > 0 ? `${locality}, ${uniqueContext.join(', ')}` : locality;
-        }
-      } catch {
-        // Fallback gracefully to query name
-      }
-
-      results.push({
-        name: displayName,
-        locality,
-        latitude: item.latitude,
-        longitude: item.longitude,
-        isoCountryCode,
+  // 1. Instant Curated Landmarks & Colleges matching (BMS, PES, RV, Girinagar, Hosakerehalli, etc.)
+  try {
+    const localMatches = searchCuratedLandmarks(trimmed, maxResults);
+    for (const lm of localMatches) {
+      addResult({
+        name: lm.name,
+        locality: lm.locality,
+        latitude: lm.latitude,
+        longitude: lm.longitude,
+        isoCountryCode: 'IN',
       });
     }
-
-    return results;
   } catch {
-    return [];
+    // Non-blocking
   }
+
+  // 2. OpenStreetMap Nominatim Geocoding API (Works worldwide & on web/mobile with zero keys)
+  if (results.length < maxResults) {
+    try {
+      const q = encodeURIComponent(trimmed);
+      const url = `https://nominatim.openstreetmap.org/search?format=json&q=${q}&limit=6&addressdetails=1`;
+      const res = await fetch(url, {
+        headers: {
+          'Accept': 'application/json',
+          'User-Agent': 'MedFind-App/1.0 (https://github.com/vivaswanshetty/MedFind; medical-app)',
+        },
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data)) {
+          for (const item of data) {
+            const lat = parseFloat(item.lat);
+            const lon = parseFloat(item.lon);
+            if (!isNaN(lat) && !isNaN(lon)) {
+              const addr = item.address || {};
+              const nameParts = (item.display_name || '').split(',').map((s: string) => s.trim());
+              const name = nameParts.slice(0, 3).join(', ') || trimmed;
+              const locality = addr.suburb || addr.neighbourhood || addr.city || addr.town || addr.county || 'Bengaluru';
+              const isIndia = addr.country_code?.toUpperCase() === 'IN' || isCoordinatesInIndia({ latitude: lat, longitude: lon });
+              addResult({
+                name,
+                locality,
+                latitude: lat,
+                longitude: lon,
+                isoCountryCode: isIndia ? 'IN' : addr.country_code?.toUpperCase() || null,
+              });
+            }
+          }
+        }
+      }
+    } catch {
+      // Best-effort network geocoding
+    }
+  }
+
+  // 3. Fallback to native expo-location on iOS / Android if needed
+  if (results.length < maxResults && !isWeb) {
+    try {
+      const Location = await getLocationModule();
+      const geocoded = await Location.geocodeAsync(trimmed);
+      if (geocoded && geocoded.length > 0) {
+        for (const item of geocoded.slice(0, maxResults - results.length)) {
+          let displayName = trimmed;
+          let locality = trimmed;
+          let isoCountryCode: string | null = null;
+
+          try {
+            const places = await Location.reverseGeocodeAsync({
+              latitude: item.latitude,
+              longitude: item.longitude,
+            });
+
+            if (places && places.length > 0) {
+              const p = places[0];
+              isoCountryCode = p.isoCountryCode ? p.isoCountryCode.toUpperCase() : null;
+              const name = cleanLocalityName(p.name);
+              const street = cleanLocalityName(p.street);
+              const sub = cleanLocalityName(p.subregion);
+              const dist = cleanLocalityName(p.district);
+              const city = cleanLocalityName(p.city);
+              const region = cleanLocalityName(p.region);
+              const country = p.country || '';
+
+              const candidate = [name, sub, dist, street, city].find(
+                (c) => c && !isInvalidLocality(c)
+              );
+              locality = candidate || city || region || trimmed;
+
+              const contextParts = [city, region, country].filter(
+                (cp) => cp && cp.toLowerCase() !== locality.toLowerCase()
+              );
+              const uniqueContext = Array.from(new Set(contextParts));
+              displayName = uniqueContext.length > 0 ? `${locality}, ${uniqueContext.join(', ')}` : locality;
+            }
+          } catch {
+            // Fallback gracefully
+          }
+
+          if (!isoCountryCode && isCoordinatesInIndia({ latitude: item.latitude, longitude: item.longitude })) {
+            isoCountryCode = 'IN';
+          }
+
+          addResult({
+            name: displayName,
+            locality,
+            latitude: item.latitude,
+            longitude: item.longitude,
+            isoCountryCode,
+          });
+        }
+      }
+    } catch {
+      // Best-effort
+    }
+  }
+
+  return results.slice(0, maxResults);
 }
 
 /**
@@ -489,6 +589,38 @@ export async function requestDeviceLocation(): Promise<LocationRequestResult> {
       }
     } catch {
       // Reverse geocode is best-effort; keep "Current area" fallback
+    }
+
+    // If native reverse-geocoding didn't supply an ISO code, check India boundaries or query Nominatim
+    if (!isoCountryCode) {
+      if (isCoordinatesInIndia(coords)) {
+        isoCountryCode = 'IN';
+      } else {
+        try {
+          const res = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?lat=${coords.latitude}&lon=${coords.longitude}&format=json`,
+            { headers: { 'User-Agent': 'MedFind-App/1.0' } }
+          );
+          if (res.ok) {
+            const data = await res.json();
+            if (data?.address?.country_code) {
+              isoCountryCode = data.address.country_code.toUpperCase();
+            }
+            if (areaName === 'Current area' && data?.address) {
+              const a = data.address;
+              const placeName = a.suburb || a.neighbourhood || a.city || a.town || a.county || '';
+              const stateName = a.state || a.country || '';
+              if (placeName && stateName) {
+                areaName = `${placeName}, ${stateName}`;
+              } else if (placeName || stateName) {
+                areaName = placeName || stateName;
+              }
+            }
+          }
+        } catch {
+          // Best effort
+        }
+      }
     }
 
     const currentRegion = getRegionForCoordinates(coords);

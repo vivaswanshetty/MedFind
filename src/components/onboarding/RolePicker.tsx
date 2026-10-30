@@ -20,10 +20,12 @@ import Animated, {
 } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '../../theme/ThemeContext';
+import { useLanguage } from '../../context/LanguageContext';
 import { fonts, MIN_TARGET } from '../../constants/theme';
+import { typography } from '../../theme/tokens';
 import { onboardingAssets } from '../../../assets/onboarding';
 
-export type UserRoleChoice = 'customer' | 'pharmacist';
+export type UserRoleChoice = 'customer' | 'pharmacist' | 'clinic' | 'hospital';
 
 interface RolePickerProps {
   onSelect: (role: UserRoleChoice) => void;
@@ -33,26 +35,9 @@ interface RoleCardItem {
   id: UserRoleChoice;
   title: string;
   subtitle: string;
-  image: any;
+  emoji: string;
   testID: string;
 }
-
-const ROLE_CARDS: RoleCardItem[] = [
-  {
-    id: 'customer',
-    title: "I'm looking for medicine",
-    subtitle: 'Search nearby stores, verify stock, find generic substitutes',
-    image: onboardingAssets.cardMedicineBox,
-    testID: 'role-customer-card',
-  },
-  {
-    id: 'pharmacist',
-    title: 'I work at a pharmacy',
-    subtitle: 'Report live on-shelf stock, manage dispensary catalog & logs',
-    image: onboardingAssets.mascotWave,
-    testID: 'role-pharmacist-card',
-  },
-];
 
 interface RoleCardProps {
   item: RoleCardItem;
@@ -72,28 +57,31 @@ function RoleCard({
   palette,
 }: RoleCardProps) {
   const entrance = useSharedValue(shouldReduceMotion ? 1 : 0);
-  const cardScale = useSharedValue(shouldReduceMotion ? (isSelected ? 1.02 : 1.0) : 1.0);
+  const cardScale = useSharedValue(shouldReduceMotion ? (isSelected ? 1.03 : 1.0) : 1.0);
   const iconBounce = useSharedValue(0);
+  const pressTilt = useSharedValue(0);
 
+  // Staggered spring entrance (100ms delay between cards, going left-to-right, top-to-bottom)
   useEffect(() => {
     if (!shouldReduceMotion) {
       entrance.value = withDelay(
-        140 + index * 100,
+        120 + index * 100,
         withSpring(1, { damping: 14, stiffness: 120 })
       );
     }
   }, [shouldReduceMotion, index, entrance]);
 
+  // Selected state: highlighted border + scale animation
   useEffect(() => {
     if (shouldReduceMotion) {
-      cardScale.value = isSelected ? 1.02 : 1.0;
+      cardScale.value = isSelected ? 1.03 : 1.0;
       return;
     }
 
     if (isSelected) {
       cardScale.value = withSequence(
         withTiming(0.97, { duration: 70 }),
-        withSpring(1.02, { damping: 12, stiffness: 160 })
+        withSpring(1.03, { damping: 12, stiffness: 160 })
       );
       iconBounce.value = withSequence(
         withTiming(-8, { duration: 110, easing: Easing.out(Easing.quad) }),
@@ -105,19 +93,24 @@ function RoleCard({
     }
   }, [isSelected, shouldReduceMotion, cardScale, iconBounce]);
 
+  // 3D perspective tilt on press: rotateX: 2deg, rotateY: -2deg, spring back on release
   const cardAnimatedStyle = useAnimatedStyle(() => {
     if (shouldReduceMotion) {
       return {
         opacity: 1,
-        transform: [{ scale: isSelected ? 1.02 : 1.0 }],
+        transform: [{ scale: isSelected ? 1.03 : 1.0 }],
       };
     }
     const p = entrance.value;
+    const tilt = pressTilt.value;
     return {
       opacity: p,
       transform: [
+        { perspective: 800 },
         { translateY: (1 - p) * 32 },
         { scale: cardScale.value },
+        { rotateX: `${tilt * 2}deg` },
+        { rotateY: `${tilt * -2}deg` },
       ],
     };
   });
@@ -130,6 +123,18 @@ function RoleCard({
       transform: [{ translateY: iconBounce.value }],
     };
   });
+
+  const handlePressIn = () => {
+    if (!shouldReduceMotion) {
+      pressTilt.value = withTiming(1, { duration: 80 });
+    }
+  };
+
+  const handlePressOut = () => {
+    if (!shouldReduceMotion) {
+      pressTilt.value = withSpring(0, { damping: 14, stiffness: 160 });
+    }
+  };
 
   const handlePress = () => {
     try {
@@ -144,6 +149,8 @@ function RoleCard({
     <Pressable
       testID={item.testID}
       onPress={handlePress}
+      onPressIn={handlePressIn}
+      onPressOut={handlePressOut}
       accessible={true}
       accessibilityRole="button"
       accessibilityLabel={`${item.title}. ${item.subtitle}${isSelected ? ', selected' : ''}`}
@@ -154,19 +161,16 @@ function RoleCard({
         style={[
           styles.card,
           {
-            backgroundColor: isSelected ? palette.tint : palette.surface,
-            borderColor: isSelected ? palette.teal : palette.line,
+            backgroundColor: isSelected ? (palette.okTint || palette.surface2) : palette.surface,
+            borderColor: isSelected ? (palette.accent || palette.selBorder) : palette.line,
             borderWidth: isSelected ? 2.5 : 1.5,
+            shadowColor: palette.shadow,
           },
           cardAnimatedStyle,
         ]}
       >
-        <Animated.View style={[styles.cardIconBox, iconAnimatedStyle]}>
-          <Image
-            source={item.image}
-            style={styles.cardImage}
-            resizeMode="contain"
-          />
+        <Animated.View style={[styles.cardEmojiBox, iconAnimatedStyle]}>
+          <Text style={styles.cardEmoji}>{item.emoji}</Text>
         </Animated.View>
         <View style={styles.cardTextContainer}>
           <Text
@@ -177,6 +181,7 @@ function RoleCard({
                 fontFamily: isSelected ? fonts.sansBold : fonts.sansSemi,
               },
             ]}
+            numberOfLines={1}
           >
             {item.title}
           </Text>
@@ -188,6 +193,7 @@ function RoleCard({
                 fontFamily: fonts.sans,
               },
             ]}
+            numberOfLines={3}
           >
             {item.subtitle}
           </Text>
@@ -199,13 +205,51 @@ function RoleCard({
 
 export function RolePicker({ onSelect }: RolePickerProps) {
   const { palette } = useTheme();
+  const { t, language, setLanguage } = useLanguage();
   const shouldReduceMotion = useReducedMotion();
   const { width: screenWidth } = useWindowDimensions();
   const [selectedRole, setSelectedRole] = useState<UserRoleChoice | null>(null);
 
+  const cycleLanguage = () => {
+    const next = language === 'en' ? 'kn' : language === 'kn' ? 'hi' : 'en';
+    setLanguage(next);
+  };
+
+  const roleCards: RoleCardItem[] = [
+    {
+      id: 'customer',
+      title: t('role_buyer', 'Buyer / Patient'),
+      subtitle: t('role_buyer_sub', 'Find medicines, compare prices & track health'),
+      emoji: '🛒',
+      testID: 'role-customer-card',
+    },
+    {
+      id: 'pharmacist',
+      title: t('role_pharma', 'Pharmacy'),
+      subtitle: t('role_pharma_sub', 'Manage pharmacy stock & dispensary'),
+      emoji: '💊',
+      testID: 'role-pharmacist-card',
+    },
+    {
+      id: 'clinic',
+      title: t('role_clinic', 'Clinic'),
+      subtitle: t('role_clinic_sub', 'Manage clinic dispensary & patient supplies'),
+      emoji: '🩺',
+      testID: 'role-clinic-card',
+    },
+    {
+      id: 'hospital',
+      title: t('role_hospital', 'Hospital'),
+      subtitle: t('role_hospital_sub', 'Manage hospital pharmacy, wards & scanning'),
+      emoji: '🏥',
+      testID: 'role-hospital-card',
+    },
+  ];
+
   // Mascot entrance spring
   const mascotEntrance = useSharedValue(shouldReduceMotion ? 1 : 0);
   const mascotRotate = useSharedValue(0);
+  const mascotPop = useSharedValue(1);
 
   useEffect(() => {
     if (shouldReduceMotion) {
@@ -224,6 +268,15 @@ export function RolePicker({ onSelect }: RolePickerProps) {
     );
   }, [shouldReduceMotion, mascotEntrance, mascotRotate]);
 
+  // Mascot celebratory pop on role selection
+  useEffect(() => {
+    if (shouldReduceMotion || !selectedRole) return;
+    mascotPop.value = withSequence(
+      withTiming(1.12, { duration: 90, easing: Easing.out(Easing.quad) }),
+      withSpring(1.0, { damping: 10, stiffness: 160 })
+    );
+  }, [selectedRole, shouldReduceMotion, mascotPop]);
+
   const mascotAnimatedStyle = useAnimatedStyle(() => {
     if (shouldReduceMotion) {
       return { transform: [{ scale: 1 }, { rotate: '0deg' }] };
@@ -231,7 +284,7 @@ export function RolePicker({ onSelect }: RolePickerProps) {
     return {
       opacity: mascotEntrance.value,
       transform: [
-        { scale: mascotEntrance.value },
+        { scale: mascotEntrance.value * mascotPop.value },
         { rotate: `${mascotRotate.value}deg` },
       ],
     };
@@ -280,6 +333,21 @@ export function RolePicker({ onSelect }: RolePickerProps) {
     <View style={[StyleSheet.absoluteFill, styles.overlay, { backgroundColor: palette.bg }]}>
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.content}>
+          {/* Top Row with Language Switcher */}
+          <View style={styles.topActionRow}>
+            <Pressable
+              onPress={cycleLanguage}
+              style={[styles.langSwitchPill, { backgroundColor: palette.surface, borderColor: palette.line }]}
+              accessible={true}
+              accessibilityRole="button"
+              accessibilityLabel={`Current language: ${language.toUpperCase()}. Tap to toggle.`}
+            >
+              <Text style={[styles.langSwitchPillText, { color: palette.accent, fontFamily: fonts.sansBold }]}>
+                {language === 'en' ? 'EN' : language === 'kn' ? 'ಕನ್ನಡ' : 'हिंदी'}
+              </Text>
+            </Pressable>
+          </View>
+
           {/* Top Mascot */}
           <Animated.View style={[styles.mascotContainer, mascotAnimatedStyle]}>
             <Image
@@ -300,7 +368,7 @@ export function RolePicker({ onSelect }: RolePickerProps) {
                 },
               ]}
             >
-              How will you use MedFind?
+              {t('how_will_you_use', 'How will you use MedFind?')}
             </Text>
             <Text
               style={[
@@ -311,13 +379,13 @@ export function RolePicker({ onSelect }: RolePickerProps) {
                 },
               ]}
             >
-              You can change this later.
+              {t('select_role_sub', 'Select your role to personalize your medical directory & tools.')}
             </Text>
           </View>
 
-          {/* Two Large Cards */}
+          {/* 2x2 Animated Grid */}
           <View style={styles.cardsContainer}>
-            {ROLE_CARDS.map((item, index) => (
+            {roleCards.map((item, index) => (
               <RoleCard
                 key={item.id}
                 item={item}
@@ -338,7 +406,7 @@ export function RolePicker({ onSelect }: RolePickerProps) {
               disabled={!selectedRole}
               accessible={true}
               accessibilityRole="button"
-              accessibilityLabel="Continue to next step"
+              accessibilityLabel={t('role_continue', 'Continue')}
               accessibilityState={{ disabled: !selectedRole }}
               style={({ pressed }) => [
                 styles.continueButton,
@@ -352,12 +420,12 @@ export function RolePicker({ onSelect }: RolePickerProps) {
                 style={[
                   styles.continueButtonText,
                   {
-                    color: '#FFFFFF',
+                    color: palette.btnInk || '#FFFFFF',
                     fontFamily: fonts.sansBold,
                   },
                 ]}
               >
-                Continue
+                {t('role_continue', 'Continue')}
               </Text>
             </Pressable>
           </Animated.View>
@@ -376,77 +444,106 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    paddingHorizontal: 24,
+    paddingHorizontal: 20,
     justifyContent: 'space-between',
-    paddingBottom: 24,
+    paddingBottom: 20,
+  },
+  topActionRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    paddingTop: 4,
+  },
+  langSwitchPill: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 14,
+    borderWidth: 1,
+    minHeight: 32,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  langSwitchPillText: {
+    fontSize: 13,
   },
   mascotContainer: {
     alignItems: 'center',
-    marginTop: 16,
-    height: 88,
+    marginTop: 12,
+    height: 80,
     justifyContent: 'center',
   },
   mascotImage: {
-    width: 80,
-    height: 80,
+    width: 76,
+    height: 76,
   },
   headerContainer: {
     alignItems: 'center',
-    marginVertical: 12,
+    marginVertical: 8,
   },
   headline: {
-    fontSize: 27,
-    lineHeight: 33,
+    fontSize: 26,
+    lineHeight: 32,
     textAlign: 'center',
     letterSpacing: -0.4,
   },
   subline: {
-    fontSize: 16,
-    lineHeight: 22,
+    fontSize: 15,
+    lineHeight: 20,
     textAlign: 'center',
-    marginTop: 6,
+    marginTop: 4,
   },
   cardsContainer: {
-    gap: 16,
-    marginVertical: 8,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    rowGap: 14,
+    marginVertical: 10,
+    width: '100%',
   },
   cardPressable: {
+    width: '48%',
     minHeight: MIN_TARGET,
   },
   card: {
-    flexDirection: 'row',
+    width: '100%',
     alignItems: 'center',
-    padding: 16,
+    justifyContent: 'center',
+    paddingVertical: 18,
+    paddingHorizontal: 10,
     borderRadius: 20,
-    minHeight: 104,
+    minHeight: 164,
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.06,
+    shadowOpacity: 0.08,
     shadowRadius: 10,
     elevation: 3,
   },
-  cardIconBox: {
-    width: 68,
-    height: 68,
-    borderRadius: 16,
+  cardEmojiBox: {
+    width: 52,
+    height: 52,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 16,
+    marginBottom: 8,
   },
-  cardImage: {
-    width: 60,
-    height: 60,
+  cardEmoji: {
+    fontSize: 40,
+    lineHeight: 46,
+    textAlign: 'center',
+    includeFontPadding: false,
   },
   cardTextContainer: {
-    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '100%',
   },
   cardTitle: {
-    fontSize: 18,
-    lineHeight: 23,
+    fontSize: 17,
+    lineHeight: 22,
+    textAlign: 'center',
     marginBottom: 4,
   },
   cardSubtitle: {
-    fontSize: 13,
-    lineHeight: 18,
+    fontSize: 12,
+    lineHeight: 16,
+    textAlign: 'center',
   },
   bottomContainer: {
     paddingTop: 8,

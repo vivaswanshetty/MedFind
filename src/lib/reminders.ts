@@ -1,5 +1,5 @@
 import type * as Notifications from 'expo-notifications';
-import { parseExpiryDate, resolveItemExpiryDate, ExpiryInputItem } from './medicineBoxStatus';
+import { parseExpiryDate, resolveItemExpiryDate, type ExpiryInputItem } from './medicineBoxStatus.ts';
 
 const isWeb = typeof window !== 'undefined' && typeof window.document !== 'undefined';
 
@@ -158,6 +158,8 @@ export async function scheduleItemReminders(
     exactExpiryDate?: string | null;
     refillOn?: string | null;
     remindersEnabled?: boolean;
+    isRegular?: boolean;
+    restockInterval?: 'weekly' | 'monthly' | '2months' | 'custom';
   },
   now = new Date()
 ): Promise<ScheduleResult> {
@@ -209,11 +211,25 @@ export async function scheduleItemReminders(
   // 2. Refill reminder: on refillOn at 9:00 AM
   const refillMoment = calculateRefillMoment(item.refillOn);
   if (refillMoment && refillMoment.getTime() > nowMs) {
+    const cycleLabel =
+      item.restockInterval === 'weekly'
+        ? 'weekly'
+        : item.restockInterval === 'monthly'
+        ? 'monthly'
+        : item.restockInterval === '2months'
+        ? '2-month'
+        : '';
+
+    const title = item.isRegular ? 'Regular Medicine Restock' : 'Medicine reminder';
+    const body = cycleLabel
+      ? `Time for your ${cycleLabel} restock of ${item.name}. Check nearby pharmacy stock on MedFind.`
+      : `Time to restock ${item.name}.`;
+
     try {
       refillNotificationId = await client.scheduleNotificationAsync({
         content: {
-          title: 'Medicine reminder',
-          body: `Time to restock ${item.name}.`,
+          title,
+          body,
         },
         trigger: {
           type: 'date',

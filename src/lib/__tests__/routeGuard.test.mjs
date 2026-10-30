@@ -63,9 +63,13 @@ test('Route Guard - Null role (unselected) route boundaries', () => {
   // Root / is allowed to render splash and RolePicker
   assert.equal(resolveRouteAccess(null, '/'), null);
 
-  // Any other route attempt redirects back to /
+  // Emergency routes MUST be universally accessible (never blocked or redirected to /)
+  assert.equal(resolveRouteAccess(null, '/(tabs)/emergency'), null);
+  assert.equal(resolveRouteAccess(null, '/emergency'), null);
+  assert.equal(resolveRouteAccess(null, '/emergency-directory'), null);
+
+  // Non-emergency customer/portal routes redirect to / for onboarding
   assert.equal(resolveRouteAccess(null, '/(tabs)'), '/');
-  assert.equal(resolveRouteAccess(null, '/(tabs)/emergency'), '/');
   assert.equal(resolveRouteAccess(null, '/(pharmacy)'), '/');
   assert.equal(resolveRouteAccess(null, '/(pharmacy)/store'), '/');
   assert.equal(resolveRouteAccess(null, '/medicine/calpol-500'), '/');
@@ -75,4 +79,42 @@ test('Route Guard - Null role (unselected) route boundaries', () => {
 test('Route Guard - Normalizes hashes and query parameters', () => {
   assert.equal(resolveRouteAccess('customer', '/(pharmacy)?store=1#inventory'), '/(tabs)');
   assert.equal(resolveRouteAccess('pharmacist', '/(tabs)?tab=search#top'), '/(pharmacy)');
+});
+
+test('Emergency Access Integrity - Direct emergency routing from anywhere', async () => {
+  const fs = await import('node:fs');
+  const path = await import('node:path');
+
+  const rootIndexSrc = fs.readFileSync(path.resolve('src/app/index.tsx'), 'utf8');
+  const emergencyRouteSrc = fs.readFileSync(path.resolve('src/app/emergency.tsx'), 'utf8');
+  const locationContextSrc = fs.readFileSync(path.resolve('src/context/LocationContext.tsx'), 'utf8');
+  const emergencyScreenSrc = fs.readFileSync(path.resolve('src/app/(tabs)/emergency.tsx'), 'utf8');
+
+  // 1. Root index redirects emergency-skipped user to emergency tab, not general home
+  assert.ok(
+    rootIndexSrc.includes("profile.onboardingSkippedAt && !profile.onboardingComplete"),
+    'RootIndex must check for onboarding skipped for emergency'
+  );
+  assert.ok(
+    rootIndexSrc.includes('href="/(tabs)/emergency"'),
+    'RootIndex must redirect to emergency tab when skipped for emergency'
+  );
+
+  // 2. Root emergency redirector exists
+  assert.ok(
+    emergencyRouteSrc.includes('href="/(tabs)/emergency"'),
+    'Root emergency.tsx must redirect to /(tabs)/emergency'
+  );
+
+  // 3. LocationContext memoizes requestGpsLocation with useCallback
+  assert.ok(
+    locationContextSrc.includes('const requestGpsLocation = useCallback('),
+    'requestGpsLocation must be wrapped in useCallback to avoid re-rendering loops'
+  );
+
+  // 4. EmergencyScreen uses ref guard so location check does not flicker in an infinite loop
+  assert.ok(
+    emergencyScreenSrc.includes('hasRequestedLocationRef'),
+    'EmergencyScreen must use hasRequestedLocationRef to prevent continuous location toggling'
+  );
 });

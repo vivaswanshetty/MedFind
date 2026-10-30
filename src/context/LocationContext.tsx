@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   Coordinates,
@@ -8,6 +8,7 @@ import {
   checkLocationPermission,
   LocationRequestResult,
 } from '../services/locationService';
+import { isCoordinatesInIndia } from '../data/emergencyNumbers';
 
 export const ONBOARDING_COMPLETED_KEY = '@medfind_onboarding_completed_v1';
 export const SELECTED_AREA_NAME_KEY = '@medfind_user_area_name_v1';
@@ -125,7 +126,7 @@ export function LocationProvider({ children }: { children: ReactNode }) {
    * Request device foreground GPS location.
    * Device coordinates are held in-memory ONLY for current session.
    */
-  const requestGpsLocation = async (): Promise<LocationRequestResult> => {
+  const requestGpsLocation = useCallback(async (): Promise<LocationRequestResult> => {
     setIsLocating(true);
     try {
       const result = await requestDeviceLocation();
@@ -149,12 +150,12 @@ export function LocationProvider({ children }: { children: ReactNode }) {
     } finally {
       setIsLocating(false);
     }
-  };
+  }, []);
 
   /**
    * Set a manual neighborhood area (e.g. Basavanagudi, Jayanagar)
    */
-  const selectManualArea = async (area: KnownArea | { name: string; latitude?: number; longitude?: number; isoCountryCode?: string | null }) => {
+  const selectManualArea = useCallback(async (area: KnownArea | { name: string; latitude?: number; longitude?: number; isoCountryCode?: string | null }) => {
     setAreaName(area.name);
     setLocationSource('manual_area');
     if (area.latitude !== undefined && area.longitude !== undefined) {
@@ -164,23 +165,25 @@ export function LocationProvider({ children }: { children: ReactNode }) {
     }
     if ('isoCountryCode' in area && area.isoCountryCode) {
       setIsoCountryCode(area.isoCountryCode);
+    } else if (area.latitude !== undefined && area.longitude !== undefined && isCoordinatesInIndia({ latitude: area.latitude, longitude: area.longitude })) {
+      setIsoCountryCode('IN');
     }
     await AsyncStorage.setItem(LOCATION_SOURCE_KEY, 'manual_area');
     // Save human-readable area name to storage (no precise coords saved)
     await AsyncStorage.setItem(SELECTED_AREA_NAME_KEY, area.name);
-  };
+  }, []);
 
   /**
    * Clear active location filter
    */
-  const clearLocation = async () => {
+  const clearLocation = useCallback(async () => {
     setUserLocation(null);
     setAreaName('No area set');
     setIsoCountryCode(null);
     setLocationSource('none');
     await AsyncStorage.removeItem(LOCATION_SOURCE_KEY);
     await AsyncStorage.removeItem(SELECTED_AREA_NAME_KEY);
-  };
+  }, []);
 
   /**
    * Mark onboarding as completed

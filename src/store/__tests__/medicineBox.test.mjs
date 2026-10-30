@@ -6,9 +6,15 @@ import {
   addItemToList,
   updateItemInList,
   removeItemFromList,
+  calculateNextRestockDate,
+  formatRestockIntervalLabel,
+  getItemSpace,
+  getTodayDateString,
+  isItemTakenToday,
+  toggleItemTakenToday,
   MAX_MEDICINE_BOX_ITEMS,
   MEDICINE_BOX_STORAGE_KEY,
-} from '../medicineBox.tsx';
+} from '../medicineBoxModel.ts';
 
 test('MedicineBox Store - Storage key and cap constants', () => {
   assert.equal(MEDICINE_BOX_STORAGE_KEY, '@medfind_medicine_box_v1');
@@ -54,14 +60,44 @@ test('MedicineBox Store - validateMedicineBoxItem handles valid and corrupt entr
   assert.equal(validateMedicineBoxItem('string'), null);
   assert.equal(validateMedicineBoxItem(123), null);
 
-  // 5. Invalid createdAt generates valid fallback ISO timestamp
-  const itemWithBadDate = validateMedicineBoxItem({
-    id: 'mb_2',
-    name: 'Cetirizine',
-    createdAt: 'invalid-date',
+  // 6. Regular medicine with restock frequency
+  const regularItem = validateMedicineBoxItem({
+    id: 'mb_reg_1',
+    name: 'Metformin 500mg',
+    isRegular: true,
+    restockInterval: 'monthly',
+    dosageForm: 'Tablet',
+    strength: '500 mg',
   });
-  assert.ok(itemWithBadDate);
-  assert.ok(!isNaN(new Date(itemWithBadDate.createdAt).getTime()));
+  assert.ok(regularItem);
+  assert.equal(regularItem.isRegular, true);
+  assert.equal(regularItem.restockInterval, 'monthly');
+  assert.equal(regularItem.dosageForm, 'Tablet');
+  assert.equal(regularItem.strength, '500 mg');
+});
+
+test('MedicineBox Store - calculateNextRestockDate handles weekly, monthly, and 2-month schedules', () => {
+  const baseDate = new Date('2026-10-30T10:00:00Z');
+
+  // Weekly: +7 days -> 2026-11-06
+  const weekly = calculateNextRestockDate('weekly', baseDate);
+  assert.equal(weekly, '2026-11-06');
+
+  // Monthly: +30 days -> 2026-11-29
+  const monthly = calculateNextRestockDate('monthly', baseDate);
+  assert.equal(monthly, '2026-11-29');
+
+  // 2 Months: +60 days -> 2026-12-29
+  const twoMonths = calculateNextRestockDate('2months', baseDate);
+  assert.equal(twoMonths, '2026-12-29');
+});
+
+test('MedicineBox Store - formatRestockIntervalLabel returns user-friendly string', () => {
+  assert.equal(formatRestockIntervalLabel('weekly'), 'Weekly restock');
+  assert.equal(formatRestockIntervalLabel('monthly'), 'Monthly restock');
+  assert.equal(formatRestockIntervalLabel('2months'), '2-month restock');
+  assert.equal(formatRestockIntervalLabel('custom'), 'Custom restock');
+  assert.equal(formatRestockIntervalLabel(undefined), 'Restock');
 });
 
 test('MedicineBox Store - sanitizeMedicineBoxItems discards corrupt records and caps at 30', () => {
@@ -135,4 +171,65 @@ test('MedicineBox Store - updateItemInList and removeItemFromList', () => {
   const removed = removeItemFromList(updated, '1');
   assert.equal(removed.length, 1);
   assert.equal(removed[0].id, '2');
+});
+
+test('MedicineBox Store - getItemSpace maps explicit space and legacy isRegular items', () => {
+  // Explicit space
+  assert.equal(getItemSpace({ space: 'daily' }), 'daily');
+  assert.equal(getItemSpace({ space: 'essential' }), 'essential');
+
+  // Legacy fallback: isRegular = true -> daily, else essential
+  assert.equal(getItemSpace({ isRegular: true }), 'daily');
+  assert.equal(getItemSpace({ isRegular: false }), 'essential');
+  assert.equal(getItemSpace({}), 'essential');
+  assert.equal(getItemSpace(null), 'essential');
+});
+
+test('MedicineBox Store - daily dose taken tracking (isItemTakenToday, toggleItemTakenToday)', () => {
+  const testDate = '2026-10-30';
+  const item = {
+    id: 'mb_daily_1',
+    name: 'Metformin 500mg',
+    space: 'daily',
+    dailyTakenDates: ['2026-10-29'],
+  };
+
+  // Not taken today yet
+  assert.equal(isItemTakenToday(item, testDate), false);
+
+  // Toggle on -> taken today
+  const checked = toggleItemTakenToday(item, testDate);
+  assert.equal(isItemTakenToday(checked, testDate), true);
+  assert.deepEqual(checked.dailyTakenDates, ['2026-10-29', '2026-10-30']);
+
+  // Toggle off -> unmarked
+  const unchecked = toggleItemTakenToday(checked, testDate);
+  assert.equal(isItemTakenToday(unchecked, testDate), false);
+  assert.deepEqual(unchecked.dailyTakenDates, ['2026-10-29']);
+});
+
+test('MedicineBox Store - validateMedicineBoxItem preserves space, dailyTime, category, and stockLevel', () => {
+  const dailyMed = validateMedicineBoxItem({
+    id: 'mb_d',
+    name: 'Telmisartan 40mg',
+    space: 'daily',
+    dailyTime: 'morning',
+    restockInterval: 'monthly',
+  });
+  assert.ok(dailyMed);
+  assert.equal(dailyMed.space, 'daily');
+  assert.equal(dailyMed.dailyTime, 'morning');
+  assert.equal(dailyMed.isRegular, true);
+
+  const essentialMed = validateMedicineBoxItem({
+    id: 'mb_e',
+    name: 'Dolo 650',
+    space: 'essential',
+    essentialCategory: 'Fever & Pain',
+    stockLevel: 'few',
+  });
+  assert.ok(essentialMed);
+  assert.equal(essentialMed.space, 'essential');
+  assert.equal(essentialMed.essentialCategory, 'Fever & Pain');
+  assert.equal(essentialMed.stockLevel, 'few');
 });

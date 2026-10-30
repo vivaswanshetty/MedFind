@@ -18,6 +18,7 @@ import {
   getFlagEmoji,
   subscribeToEmergencyCountryChange,
   notifyEmergencyCountryChange,
+  isCoordinatesInIndia,
 } from '../emergencyNumbers.ts';
 import { getRegionForCoordinates } from '../../config/regions.ts';
 
@@ -117,7 +118,23 @@ test('Emergency Numbers & Country Resolution Tests', async (t) => {
     const fallbackResult = resolveEmergencyCountry({});
     assert.equal(fallbackResult.source, 'unknown');
     assert.equal(fallbackResult.countryCode, null);
-    assert.equal(fallbackResult.country, null);
+    // E. Live location in India overrides foreign device locale (prevents false 999)
+    setMockDeviceRegion('GB'); // Device OS language/locale is English (UK)
+    const indiaLiveLocResult = resolveEmergencyCountry({
+      coordinates: { latitude: 12.9716, longitude: 77.5946 }, // Bengaluru, India
+    });
+    assert.equal(indiaLiveLocResult.countryCode, 'IN');
+    assert.equal(indiaLiveLocResult.country?.numbers.ambulance, '108');
+    assert.equal(indiaLiveLocResult.country?.numbers.general, '112');
+    assert.equal(indiaLiveLocResult.source, 'gps');
+    assert.notEqual(indiaLiveLocResult.country?.numbers.general, '999');
+
+    // Outside India (e.g. London) respects foreign device or country
+    const ukResult = resolveEmergencyCountry({
+      coordinates: { latitude: 51.5074, longitude: -0.1278 }, // London, UK
+    });
+    assert.equal(ukResult.countryCode, 'GB');
+    assert.equal(ukResult.country?.numbers.general, '999');
   });
 
   await t.test('4. India inside region: Bengaluru casualty & local helplines shown', () => {

@@ -109,7 +109,7 @@ test('Storage Key Audit - Cleared keys include profile, medicine box, favorites,
   assert.ok(clearedSet.has('@medfind_nearby_places_cache_v1'), 'Must clear nearby places cache');
 });
 
-import { setMockNotificationClient } from '../../lib/reminders.js';
+import { setMockNotificationClient } from '../../lib/reminders.ts';
 
 test('clearAllUserData - Clears all designated keys, cancels notifications, and preserves kept keys', async () => {
   let cancelAllCalled = false;

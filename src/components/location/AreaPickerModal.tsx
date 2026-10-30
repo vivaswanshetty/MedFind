@@ -18,7 +18,9 @@ import {
   searchPlacesWorldwide,
   PlaceSearchResult,
   getRegionForCoordinates,
+  Coordinates,
 } from '../../services/locationService';
+import { searchCuratedLandmarks } from '../../data/landmarks';
 import {
   MapPinIcon,
   CrosshairTargetIcon,
@@ -26,6 +28,10 @@ import {
   SearchIcon,
   CheckmarkIcon,
 } from '../icons/AppIcons';
+import {
+  LiveLocationPinpointMap,
+  PinpointResult,
+} from './LiveLocationPinpointMap';
 
 interface AreaPickerModalProps {
   visible: boolean;
@@ -50,6 +56,10 @@ export function AreaPickerModal({ visible, onClose, onAreaSelected }: AreaPicker
   const [isSearchingPlaces, setIsSearchingPlaces] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
 
+  // Pinpoint on OpenStreetMap state
+  const [showPinpointMap, setShowPinpointMap] = useState(false);
+  const [pinpointCoords, setPinpointCoords] = useState<Coordinates | null>(userLocation);
+
   const userRegion = getRegionForCoordinates(userLocation);
   const isInBengaluru = userRegion?.id === 'bengaluru';
 
@@ -69,7 +79,7 @@ export function AreaPickerModal({ visible, onClose, onAreaSelected }: AreaPicker
 
     const timer = setTimeout(async () => {
       try {
-        const results = await searchPlacesWorldwide(trimmed, 5);
+        const results = await searchPlacesWorldwide(trimmed, 6);
         if (!isCancelled) {
           setPlaceResults(results);
           if (results.length === 0) {
@@ -86,7 +96,7 @@ export function AreaPickerModal({ visible, onClose, onAreaSelected }: AreaPicker
           setIsSearchingPlaces(false);
         }
       }
-    }, 350);
+    }, 150);
 
     return () => {
       isCancelled = true;
@@ -96,10 +106,30 @@ export function AreaPickerModal({ visible, onClose, onAreaSelected }: AreaPicker
 
   const handleUseGps = async () => {
     const res = await requestGpsLocation();
-    if (res.granted) {
-      onAreaSelected?.();
-      onClose();
+    if (res.granted && res.coords) {
+      setPinpointCoords(res.coords);
+      setShowPinpointMap(true);
+    } else {
+      setPinpointCoords(userLocation || { latitude: 12.9416, longitude: 77.5738 });
+      setShowPinpointMap(true);
     }
+  };
+
+  const handleOpenPinpointMap = () => {
+    setPinpointCoords(userLocation || { latitude: 12.9416, longitude: 77.5738 });
+    setShowPinpointMap(true);
+  };
+
+  const handlePinpointConfirm = async (result: PinpointResult) => {
+    await selectManualArea({
+      name: result.address || 'Pinpointed Location',
+      latitude: result.latitude,
+      longitude: result.longitude,
+      isoCountryCode: result.isoCountryCode || 'IN',
+    });
+    setShowPinpointMap(false);
+    onAreaSelected?.();
+    onClose();
   };
 
   const handleSelectArea = async (area: KnownArea) => {
@@ -123,7 +153,42 @@ export function AreaPickerModal({ visible, onClose, onAreaSelected }: AreaPicker
   const handleCustomAreaSubmit = async () => {
     const trimmed = filterText.trim();
     if (!trimmed) return;
-    await selectManualArea({ name: trimmed });
+
+    // 1. If search results already have a match, use the top match
+    if (placeResults.length > 0) {
+      await handleSelectPlaceResult(placeResults[0]);
+      return;
+    }
+
+    // 2. Instant search through curated colleges and landmarks
+    const local = searchCuratedLandmarks(trimmed, 1);
+    if (local.length > 0) {
+      await selectManualArea({
+        name: local[0].name,
+        latitude: local[0].latitude,
+        longitude: local[0].longitude,
+        isoCountryCode: 'IN',
+      });
+      setFilterText('');
+      onAreaSelected?.();
+      onClose();
+      return;
+    }
+
+    // 3. Fallback geocoding search
+    const searched = await searchPlacesWorldwide(trimmed, 1);
+    if (searched.length > 0) {
+      await handleSelectPlaceResult(searched[0]);
+      return;
+    }
+
+    // 4. Safe centroid fallback so userLocation is never null
+    await selectManualArea({
+      name: trimmed,
+      latitude: 12.9416,
+      longitude: 77.5738,
+      isoCountryCode: 'IN',
+    });
     setFilterText('');
     onAreaSelected?.();
     onClose();
@@ -142,17 +207,20 @@ export function AreaPickerModal({ visible, onClose, onAreaSelected }: AreaPicker
   );
 
   return (
-    <Modal
+    <>
+      <Modal
       visible={visible}
       transparent={true}
       animationType="fade"
       onRequestClose={onClose}
     >
-      <Pressable
-        style={styles.modalBackdrop}
-        onPress={onClose}
-      >
+      <View style={styles.modalBackdrop}>
         <Pressable
+          style={StyleSheet.absoluteFill}
+          onPress={onClose}
+          accessibilityLabel="Dismiss location modal"
+        />
+        <View
           style={[
             styles.modalCard,
             {
@@ -161,7 +229,6 @@ export function AreaPickerModal({ visible, onClose, onAreaSelected }: AreaPicker
               shadowColor: palette.shadow,
             },
           ]}
-          onPress={(e) => e.stopPropagation()}
         >
           {/* Header */}
           <View style={[styles.modalHeader, { borderBottomColor: palette.line }]}>
@@ -224,6 +291,35 @@ export function AreaPickerModal({ visible, onClose, onAreaSelected }: AreaPicker
                 <CheckmarkIcon size={12} color={palette.surface} />
               </View>
             )}
+          </Pressable>
+
+          {/* Quick Action: Pinpoint on Map */}
+          <Pressable
+            onPress={handleOpenPinpointMap}
+            style={({ pressed }) => [
+              styles.gpsButton,
+              {
+                backgroundColor: palette.surface2,
+                borderColor: palette.accent,
+                marginTop: 8,
+                opacity: pressed ? 0.85 : 1.0,
+              },
+            ]}
+            accessible={true}
+            accessibilityRole="button"
+            accessibilityLabel="Pinpoint exact location on live map"
+          >
+            <View style={[styles.gpsIconCircle, { backgroundColor: palette.accent }]}>
+              <MapPinIcon size={16} color="#FFFFFF" />
+            </View>
+            <View style={styles.gpsTextCol}>
+              <Text style={[styles.gpsButtonTitle, { color: palette.ink, fontFamily: fonts.sansBold }]}>
+                Pinpoint on Live Map
+              </Text>
+              <Text style={[styles.gpsButtonSubtitle, { color: palette.ink2 }]}>
+                Tap or drag pin on OpenStreetMap to fine-tune exact location
+              </Text>
+            </View>
           </Pressable>
 
           {/* Search Input for Worldwide Places */}
@@ -411,9 +507,18 @@ export function AreaPickerModal({ visible, onClose, onAreaSelected }: AreaPicker
               Clear location
             </Text>
           </Pressable>
-        </Pressable>
-      </Pressable>
+        </View>
+      </View>
     </Modal>
+
+      <LiveLocationPinpointMap
+        visible={showPinpointMap}
+        initialCoords={pinpointCoords || userLocation}
+        initialAddress={areaName !== 'No area set' ? areaName : undefined}
+        onConfirm={handlePinpointConfirm}
+        onClose={() => setShowPinpointMap(false)}
+      />
+    </>
   );
 }
 

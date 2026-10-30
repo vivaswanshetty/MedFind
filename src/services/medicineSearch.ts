@@ -13,15 +13,15 @@
  * 3. Does not provide dosage advice, treatment, or automatic medicine substitution.
  */
 
-import { supabase, isSupabaseConfigured } from './supabase';
-import { StockState, DirectorySourceType } from '../types/models';
-import { calculateFreshness, FreshnessCalculation } from '../utils/freshness';
+import { supabase, isSupabaseConfigured } from './supabase.ts';
+import type { StockState, DirectorySourceType, Medicine } from '../types/models.ts';
+import { calculateFreshness, type FreshnessCalculation } from '../utils/freshness.ts';
 import {
   demoMedicines,
   demoPharmacies,
   demoStockSnapshots,
-} from '../data/demoData';
-import { pharmacyPortalService } from './pharmacyPortalService';
+} from '../data/demoData.ts';
+import { pharmacyPortalService } from './pharmacyPortalService.ts';
 
 export type DataSource = 'database' | 'demo';
 
@@ -51,6 +51,13 @@ export interface MedicineSearchResultItem {
   sourceUrl?: string;
   verifiedDate?: string;
   freshness: FreshnessCalculation;
+  expiryDate?: string;
+  batchNo?: string;
+  image3dType?: 'tablet' | 'capsule' | 'syrup' | 'inhaler' | 'drops' | 'cream' | 'injection';
+  mrp?: string;
+  manufacturer?: string;
+  schedule?: string;
+  primaryColor?: string;
 }
 
 export interface MedicineSearchResponse {
@@ -67,7 +74,50 @@ export interface MedicineSearchResponse {
 export async function getMedicineResultById(id: string): Promise<MedicineSearchResultItem | null> {
   const search = await searchMedicineStock('');
   const found = search.results.find((r) => r.id === id || r.medicineId === id);
-  return found || null;
+  if (found) return found;
+
+  const med = demoMedicines.find(
+    (m) =>
+      m.id === id ||
+      m.generic_name.toLowerCase() === id.toLowerCase() ||
+      m.brand_name.toLowerCase() === id.toLowerCase()
+  );
+  if (med) {
+    return {
+      id: `catalog-${med.id}`,
+      medicineId: med.id,
+      genericName: med.generic_name,
+      brandName: med.brand_name,
+      strength: med.strength,
+      dosageForm: med.dosage_form,
+      pharmacyId: demoPharmacies[0]?.id || '',
+      pharmacyName: demoPharmacies[0]?.name || 'Apollo Pharmacy - Victoria Hospital Road',
+      pharmacyAddress: demoPharmacies[0]?.address || 'Opposite BMCRI Victoria Hospital Campus, Kalasipalya, Bengaluru 560002',
+      pharmacyPhone: demoPharmacies[0]?.phone || '080-26702200',
+      latitude: demoPharmacies[0]?.latitude ?? null,
+      longitude: demoPharmacies[0]?.longitude ?? null,
+      openingHours: demoPharmacies[0]?.opening_hours || '24 Hours Open',
+      verifiedAt: '2026-10-24T00:00:00.000Z',
+      state: 'available',
+      updatedAt: '2026-10-24T08:00:00.000Z',
+      isDemo: true,
+      isReported: true,
+      isSampleData: true,
+      sourceType: 'provider_confirmed',
+      sourceName: 'Sample Demonstration Report',
+      sourceUrl: 'https://medfind.local',
+      verifiedDate: '2026-10-24',
+      freshness: calculateFreshness('2026-10-24T08:00:00.000Z', new Date(), true),
+      expiryDate: med.expiry_date || '11/2027',
+      batchNo: med.batch_no || 'MF-2025/B902',
+      image3dType: med.image_3d_type || 'tablet',
+      mrp: med.mrp,
+      manufacturer: med.manufacturer,
+      schedule: med.schedule || 'Schedule H',
+      primaryColor: med.primary_color,
+    };
+  }
+  return null;
 }
 
 /**
@@ -255,6 +305,13 @@ function getFilteredDemoResults(
           sourceUrl: pharmacy?.source_url || 'https://medfind.local/pilot',
           verifiedDate: '2026-10-22',
           freshness: calculateFreshness(snap.updated_at, new Date(), true),
+          expiryDate: med.expiry_date || '11/2027',
+          batchNo: med.batch_no || 'MF-2025/B902',
+          image3dType: med.image_3d_type || (med.dosage_form?.toLowerCase().includes('syrup') ? 'syrup' : med.dosage_form?.toLowerCase().includes('capsule') ? 'capsule' : med.dosage_form?.toLowerCase().includes('inhaler') ? 'inhaler' : med.dosage_form?.toLowerCase().includes('drop') ? 'drops' : med.dosage_form?.toLowerCase().includes('cream') || med.dosage_form?.toLowerCase().includes('ointment') ? 'cream' : 'tablet'),
+          mrp: med.mrp,
+          manufacturer: med.manufacturer,
+          schedule: med.schedule || 'Schedule H',
+          primaryColor: med.primary_color,
         });
       });
     } else {
@@ -285,9 +342,54 @@ function getFilteredDemoResults(
         sourceUrl: 'https://cdsco.gov.in',
         verifiedDate: '2022-09-13',
         freshness: calculateFreshness(null, new Date(), false),
+        expiryDate: med.expiry_date || '12/2027',
+        batchNo: med.batch_no || 'MF-2025/B881',
+        image3dType: med.image_3d_type || (med.dosage_form?.toLowerCase().includes('syrup') ? 'syrup' : med.dosage_form?.toLowerCase().includes('capsule') ? 'capsule' : med.dosage_form?.toLowerCase().includes('inhaler') ? 'inhaler' : med.dosage_form?.toLowerCase().includes('drop') ? 'drops' : med.dosage_form?.toLowerCase().includes('cream') || med.dosage_form?.toLowerCase().includes('ointment') ? 'cream' : 'tablet'),
+        mrp: med.mrp,
+        manufacturer: med.manufacturer,
+        schedule: med.schedule || 'Schedule H',
+        primaryColor: med.primary_color,
       });
     }
   });
 
   return results;
 }
+
+/**
+ * Direct fast search across the medicine catalog.
+ * Returns distinct medicines matching generic, brand name, strength, or aliases.
+ * If query is empty, returns popular essential and regular medicines.
+ */
+export function searchCatalogMedicines(query: string = '', limit = 15): Medicine[] {
+  const normalized = query.trim().toLowerCase();
+  if (!normalized) {
+    return demoMedicines.slice(0, limit);
+  }
+
+  const exactMatches: Medicine[] = [];
+  const prefixMatches: Medicine[] = [];
+  const substringMatches: Medicine[] = [];
+
+  for (const med of demoMedicines) {
+    const brandLower = med.brand_name.toLowerCase();
+    const genericLower = med.generic_name.toLowerCase();
+    const aliasesLower = (med.searchable_aliases || []).map((a) => a.toLowerCase());
+
+    if (brandLower === normalized || genericLower === normalized) {
+      exactMatches.push(med);
+    } else if (brandLower.startsWith(normalized) || genericLower.startsWith(normalized)) {
+      prefixMatches.push(med);
+    } else if (
+      brandLower.includes(normalized) ||
+      genericLower.includes(normalized) ||
+      aliasesLower.some((a) => a.includes(normalized)) ||
+      (med.strength && med.strength.toLowerCase().includes(normalized))
+    ) {
+      substringMatches.push(med);
+    }
+  }
+
+  return [...exactMatches, ...prefixMatches, ...substringMatches].slice(0, limit);
+}
+

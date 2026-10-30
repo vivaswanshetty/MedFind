@@ -1,5 +1,4 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { useColorScheme } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { palettes, Palette, SchemeName } from '../constants/theme';
 import { ColorPalette, lightPalette, darkPalette, ThemeMode } from './tokens';
@@ -28,29 +27,24 @@ const ThemeContext = createContext<ThemeContextType>({
 });
 
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const systemColorScheme = useColorScheme();
-  const [scheme, setSchemeState] = useState<SchemeName>(
-    systemColorScheme === 'dark' ? 'dark' : 'light'
-  );
+  // Always default to light mode — only switch to dark when user explicitly chooses it.
+  const [scheme, setSchemeState] = useState<SchemeName>('light');
 
   useEffect(() => {
     async function loadSavedTheme() {
       try {
         const saved = await AsyncStorage.getItem(THEME_STORAGE_KEY);
         if (saved === 'light' || saved === 'dark') {
+          // Only honour an explicit saved user preference
           setSchemeState(saved);
-        } else if (systemColorScheme) {
-          setSchemeState(systemColorScheme === 'dark' ? 'dark' : 'light');
         }
+        // No fallback to system scheme — light is always the first-launch default
       } catch {
-        // Fallback to system scheme
-        if (systemColorScheme) {
-          setSchemeState(systemColorScheme === 'dark' ? 'dark' : 'light');
-        }
+        // Stay on light (default)
       }
     }
     loadSavedTheme();
-  }, [systemColorScheme]);
+  }, []); // Run once on mount only
 
   const setScheme = async (newScheme: SchemeName) => {
     setSchemeState(newScheme);
@@ -68,6 +62,13 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const palette = palettes[scheme];
   const legacyTheme = scheme === 'light' ? lightPalette : darkPalette;
+
+  useEffect(() => {
+    if (typeof document !== 'undefined') {
+      document.documentElement.style.backgroundColor = palette.bg;
+      document.body.style.backgroundColor = palette.bg;
+    }
+  }, [palette.bg]);
 
   return (
     <ThemeContext.Provider

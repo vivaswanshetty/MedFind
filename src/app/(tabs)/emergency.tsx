@@ -10,6 +10,7 @@ import {
   Platform,
   StatusBar,
   Animated,
+  ActivityIndicator,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, useFocusEffect } from 'expo-router';
@@ -28,12 +29,14 @@ import {
   ShieldCheckIcon,
   GlobeIcon,
   InfoIcon,
+  CrosshairTargetIcon,
 } from '../../components/icons/AppIcons';
 import {
   resolveEmergencyCountry,
   CountryEmergencyData,
   subscribeToEmergencyCountryChange,
   notifyEmergencyCountryChange,
+  getFlagEmoji,
 } from '../../data/emergencyNumbers';
 import { CountryPickerModal } from '../../components/emergency/CountryPickerModal';
 import { EMERGENCY_COUNTRY_STORAGE_KEY } from '../../constants/storageKeys';
@@ -42,11 +45,20 @@ export default function EmergencyScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { scheme, palette } = useTheme();
-  const { t } = useLanguage();
-  const { userLocation, isoCountryCode: gpsIsoCountryCode } = useLocation();
+  const { t, formatNumber } = useLanguage();
+  const { userLocation, isoCountryCode: gpsIsoCountryCode, requestGpsLocation, isLocating } = useLocation();
 
   const [manualCountryCode, setManualCountryCode] = useState<string | null>(null);
   const [showCountryPicker, setShowCountryPicker] = useState(false);
+  const hasRequestedLocationRef = useRef(false);
+
+  // Automatically check live location once when Emergency Help is opened
+  useEffect(() => {
+    if (!hasRequestedLocationRef.current) {
+      hasRequestedLocationRef.current = true;
+      requestGpsLocation();
+    }
+  }, [requestGpsLocation]);
 
   const statusBarHeight = Platform.OS === 'android' ? (StatusBar.currentHeight ?? 24) : 0;
   const paddingTop = Math.max(insets.top, statusBarHeight) + 8;
@@ -83,14 +95,16 @@ export default function EmergencyScreen() {
   // Determine active country in order:
   // 1. Manual user override (if explicitly chosen by user)
   // 2. Last known GPS reverse-geocode isoCountryCode
-  // 3. Device region from expo-localization
-  // 4. Fallback: unknown
+  // 3. Live physical coordinates (if in India / Bengaluru)
+  // 4. Device region from expo-localization
+  // 5. Fallback: unknown
   const resolved = useMemo(() => {
     return resolveEmergencyCountry({
       manualCountryCode,
       gpsCountryCode: gpsIsoCountryCode,
+      coordinates: userLocation,
     });
-  }, [manualCountryCode, gpsIsoCountryCode]);
+  }, [manualCountryCode, gpsIsoCountryCode, userLocation]);
 
   const activeCountry: CountryEmergencyData | null = resolved.country;
   const activeCountryCode = resolved.countryCode;
@@ -121,28 +135,68 @@ export default function EmergencyScreen() {
   // Show Bengaluru casualty & Karnataka 108 only when country is India and user is in Bengaluru region
   const showBengaluruSpecificContacts = activeCountryCode === 'IN' && isBengaluruRegion;
 
-  // Pulsating emergency glow ring animation
-  const pulseAnim = useRef(new Animated.Value(1)).current;
-  const pulseOpacity = useRef(new Animated.Value(0.6)).current;
+  // === 3D EMERGENCY BUTTON ANIMATIONS ===
+  // Ripple ring 1 (innermost, fastest)
+  const pulseAnim1 = useRef(new Animated.Value(1)).current;
+  const pulseOpacity1 = useRef(new Animated.Value(0.5)).current;
+  // Ripple ring 2 (middle, offset delay)
+  const pulseAnim2 = useRef(new Animated.Value(1)).current;
+  const pulseOpacity2 = useRef(new Animated.Value(0.4)).current;
+  // Ripple ring 3 (outer, slowest)
+  const pulseAnim3 = useRef(new Animated.Value(1)).current;
+  const pulseOpacity3 = useRef(new Animated.Value(0.3)).current;
+  // Floating bob (idle vertical oscillation)
+  const floatAnim = useRef(new Animated.Value(0)).current;
+  // Button press scale
+  const pressScale = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
-    const loop = Animated.loop(
+    // 3 concentric ripple rings with staggered starts
+    const ring1 = Animated.loop(
       Animated.parallel([
-        Animated.timing(pulseAnim, {
-          toValue: 1.08,
-          duration: 1200,
-          useNativeDriver: true,
-        }),
-        Animated.timing(pulseOpacity, {
-          toValue: 0,
-          duration: 1200,
-          useNativeDriver: true,
-        }),
+        Animated.timing(pulseAnim1, { toValue: 1.25, duration: 1400, useNativeDriver: true }),
+        Animated.timing(pulseOpacity1, { toValue: 0, duration: 1400, useNativeDriver: true }),
       ])
     );
-    loop.start();
-    return () => loop.stop();
-  }, [pulseAnim, pulseOpacity]);
+    const ring2 = Animated.loop(
+      Animated.sequence([
+        Animated.delay(400),
+        Animated.parallel([
+          Animated.timing(pulseAnim2, { toValue: 1.4, duration: 1600, useNativeDriver: true }),
+          Animated.timing(pulseOpacity2, { toValue: 0, duration: 1600, useNativeDriver: true }),
+        ]),
+      ])
+    );
+    const ring3 = Animated.loop(
+      Animated.sequence([
+        Animated.delay(800),
+        Animated.parallel([
+          Animated.timing(pulseAnim3, { toValue: 1.55, duration: 1800, useNativeDriver: true }),
+          Animated.timing(pulseOpacity3, { toValue: 0, duration: 1800, useNativeDriver: true }),
+        ]),
+      ])
+    );
+    // Floating bob animation (subtle ±3px vertical oscillation)
+    const float = Animated.loop(
+      Animated.sequence([
+        Animated.timing(floatAnim, { toValue: -3, duration: 1200, useNativeDriver: true }),
+        Animated.timing(floatAnim, { toValue: 3, duration: 1200, useNativeDriver: true }),
+        Animated.timing(floatAnim, { toValue: 0, duration: 1200, useNativeDriver: true }),
+      ])
+    );
+    ring1.start();
+    ring2.start();
+    ring3.start();
+    float.start();
+    return () => { ring1.stop(); ring2.stop(); ring3.stop(); float.stop(); };
+  }, [pulseAnim1, pulseOpacity1, pulseAnim2, pulseOpacity2, pulseAnim3, pulseOpacity3, floatAnim]);
+
+  const handleEmergencyPressIn = () => {
+    Animated.spring(pressScale, { toValue: 0.92, useNativeDriver: true, friction: 8, tension: 100 }).start();
+  };
+  const handleEmergencyPressOut = () => {
+    Animated.spring(pressScale, { toValue: 1, useNativeDriver: true, friction: 5, tension: 120 }).start();
+  };
 
   const handleDial = async (number: string, title: string) => {
     const cleanNumber = number.replace(/[^\d+]/g, '');
@@ -252,7 +306,7 @@ export default function EmergencyScreen() {
             </Text>
           </View>
 
-          {/* ACTIVE COUNTRY BANNER WITH VISIBLE CHANGE LINK */}
+          {/* ACTIVE COUNTRY BANNER WITH LIVE LOCATION INDICATOR & CHANGE LINK */}
           <View
             style={[
               styles.countryBar,
@@ -263,27 +317,82 @@ export default function EmergencyScreen() {
             ]}
           >
             <View style={styles.countryBarLeft}>
-              <Text style={[styles.countryBarLabel, { color: palette.ink2 }]}>
+              <View style={styles.countryStatusRow}>
+                {isLocating ? (
+                  <View style={[styles.locatingPill, { backgroundColor: palette.surface2 }]}>
+                    <ActivityIndicator size="small" color={palette.accent} style={{ transform: [{ scale: 0.75 }] }} />
+                    <Text style={[styles.locatingText, { color: palette.accent, fontFamily: fonts.sansMedium }]}>
+                      Detecting live location...
+                    </Text>
+                  </View>
+                ) : (
+                  <View style={[styles.locatingPill, { backgroundColor: palette.surface2 }]}>
+                    <View
+                      style={[
+                        styles.liveDot,
+                        {
+                          backgroundColor:
+                            resolved.source === 'gps'
+                              ? '#10B981'
+                              : resolved.source === 'manual'
+                              ? palette.accent
+                              : palette.ink2,
+                        },
+                      ]}
+                    />
+                    <Text style={[styles.locatingText, { color: palette.ink2, fontFamily: fonts.sansMedium }]}>
+                      {resolved.source === 'gps'
+                        ? 'Live GPS Location'
+                        : resolved.source === 'manual'
+                        ? 'Selected Location'
+                        : 'Device Location'}
+                    </Text>
+                  </View>
+                )}
+              </View>
+
+              <Text style={[styles.countryBarLabel, { color: palette.ink2, marginTop: 2 }]}>
                 {isVerifiedCountry
                   ? `${t('emergency_numbers_for', 'Emergency numbers for')} `
                   : `${t('call_local_emergency', 'Emergency location')}: `}
                 <Text style={[styles.countryBarName, { color: palette.ink }]}>
-                  {isVerifiedCountry ? activeCountryName : 'Unverified Region'}
+                  {activeCountry && activeCountryCode ? `${getFlagEmoji(activeCountryCode)} ${activeCountryName}` : (activeCountryName || 'Unverified Region')}
                 </Text>
               </Text>
             </View>
-            <Pressable
-              onPress={() => setShowCountryPicker(true)}
-              hitSlop={8}
-              accessible={true}
-              accessibilityRole="button"
-              accessibilityLabel={`Change country, current is ${activeCountryName}`}
-              style={styles.changeCountryBtn}
-            >
-              <Text style={[styles.changeCountryBtnText, { color: palette.btn }]}>
-                {t('change_country', 'Change country')}
-              </Text>
-            </Pressable>
+
+            <View style={styles.countryBarRightActions}>
+              <Pressable
+                onPress={() => requestGpsLocation()}
+                hitSlop={8}
+                accessible={true}
+                accessibilityRole="button"
+                accessibilityLabel="Re-detect live GPS location"
+                style={({ pressed }) => [
+                  styles.refreshGpsBtn,
+                  {
+                    backgroundColor: palette.surface2,
+                    borderColor: palette.line,
+                    opacity: pressed ? 0.7 : 1,
+                  },
+                ]}
+              >
+                <CrosshairTargetIcon size={14} color={palette.accent} />
+              </Pressable>
+
+              <Pressable
+                onPress={() => setShowCountryPicker(true)}
+                hitSlop={8}
+                accessible={true}
+                accessibilityRole="button"
+                accessibilityLabel={`Change country, current is ${activeCountryName}`}
+                style={styles.changeCountryBtn}
+              >
+                <Text style={[styles.changeCountryBtnText, { color: palette.btn }]}>
+                  {t('change_country', 'Change')}
+                </Text>
+              </Pressable>
+            </View>
           </View>
 
           {/* WORLDWIDE DIRECTORY ENTRY LINK */}
@@ -332,46 +441,91 @@ export default function EmergencyScreen() {
               {/* PRIMARY UNIVERSAL HERO BUTTON (IF GENERAL NUMBER EXISTS AND IS CONFIRMED) */}
               {activeCountry.numbers.general && isServiceConfirmed('general') && (
                 <View style={styles.heroEmergencyWrapper}>
+                  {/* 3D Ripple Ring 1 (innermost) */}
                   <Animated.View
                     style={[
                       styles.emergencyPulseRing,
                       {
                         borderColor: palette.red,
-                        transform: [{ scale: pulseAnim }],
-                        opacity: pulseOpacity,
+                        transform: [{ scale: pulseAnim1 }],
+                        opacity: pulseOpacity1,
                       },
                     ]}
                   />
-                  <Pressable
-                    onPress={() =>
-                      handleDial(
-                        activeCountry.numbers.general!,
-                        `${activeCountryName} Emergency ${activeCountry.numbers.general}`
-                      )
-                    }
-                    accessible={true}
-                    accessibilityRole="button"
-                    accessibilityLabel={`Call emergency service, Dial ${activeCountry.numbers.general}`}
-                    style={({ pressed }) => [
-                      styles.heroEmergencyButton,
+                  {/* 3D Ripple Ring 2 (middle) */}
+                  <Animated.View
+                    style={[
+                      styles.emergencyPulseRing,
+                      styles.emergencyPulseRing2,
                       {
-                        backgroundColor: palette.red,
-                        opacity: pressed ? 0.9 : 1.0,
+                        borderColor: palette.red,
+                        transform: [{ scale: pulseAnim2 }],
+                        opacity: pulseOpacity2,
                       },
                     ]}
+                  />
+                  {/* 3D Ripple Ring 3 (outer) */}
+                  <Animated.View
+                    style={[
+                      styles.emergencyPulseRing,
+                      styles.emergencyPulseRing3,
+                      {
+                        borderColor: palette.red,
+                        transform: [{ scale: pulseAnim3 }],
+                        opacity: pulseOpacity3,
+                      },
+                    ]}
+                  />
+
+                  {/* 3D Emergency Button with floating bob + press scale */}
+                  <Animated.View
+                    style={{
+                      transform: [
+                        { translateY: floatAnim },
+                        { scale: pressScale },
+                        { perspective: 800 },
+                      ],
+                    }}
                   >
-                    <View style={styles.heroEmergencyIconBox}>
-                      <PhoneIcon size={24} color="#FFFFFF" />
-                    </View>
-                    <View style={styles.heroEmergencyTextGroup}>
-                      <Text style={styles.heroEmergencyTitle}>
-                        {t('call_112', 'Call emergency service')}
-                      </Text>
-                      <Text style={styles.heroEmergencySubtitle}>
-                        {t('dial_prefix', 'Dial')} {activeCountry.numbers.general}
-                      </Text>
-                    </View>
-                  </Pressable>
+                    <Pressable
+                      onPress={() =>
+                        handleDial(
+                          activeCountry.numbers.general!,
+                          `${activeCountryName} Emergency ${activeCountry.numbers.general}`
+                        )
+                      }
+                      onPressIn={handleEmergencyPressIn}
+                      onPressOut={handleEmergencyPressOut}
+                      accessible={true}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Call emergency service, Dial ${activeCountry.numbers.general}`}
+                      style={[styles.heroEmergencyButton3D]}
+                    >
+                      {/* Shadow layer 1 (deepest) */}
+                      <View style={[styles.emergencyShadowLayer1, { backgroundColor: 'rgba(220, 38, 38, 0.15)' }]} />
+                      {/* Shadow layer 2 (mid) */}
+                      <View style={[styles.emergencyShadowLayer2, { backgroundColor: 'rgba(220, 38, 38, 0.25)' }]} />
+                      {/* Main 3D button body */}
+                      <View style={[styles.emergencyButtonBody, { backgroundColor: palette.red }]}>
+                        {/* Glossy highlight (top-left shine) */}
+                        <View style={styles.emergencyGlossyHighlight} />
+                        {/* Bottom dark edge for 3D depth */}
+                        <View style={styles.emergencyBottomEdge} />
+
+                        <View style={styles.heroEmergencyIconBox}>
+                          <PhoneIcon size={28} color="#FFFFFF" />
+                        </View>
+                        <View style={styles.heroEmergencyTextGroup}>
+                          <Text style={styles.heroEmergencyTitle}>
+                            {t('call_112', 'Call emergency service')}
+                          </Text>
+                          <Text style={styles.heroEmergencySubtitle}>
+                            {t('dial_prefix', 'Dial')} {formatNumber(activeCountry.numbers.general)}
+                          </Text>
+                        </View>
+                      </View>
+                    </Pressable>
+                  </Animated.View>
                 </View>
               )}
 
@@ -727,10 +881,10 @@ export default function EmergencyScreen() {
                   >
                     <View style={styles.commonNumberLeft}>
                       <Text style={[styles.commonNumberDigits, { color: palette.ink }]}>
-                        112
+                        {formatNumber('112')}
                       </Text>
                       <Text style={[styles.commonNumberLabel, { color: palette.ink2 }]}>
-                        European & International Standard
+                        {t('intl_std_112', 'European & International Standard')}
                       </Text>
                     </View>
                     <Pressable
@@ -742,7 +896,7 @@ export default function EmergencyScreen() {
                     >
                       <PhoneIcon size={16} color={palette.surface} />
                       <Text style={[styles.commonCallBtnText, { color: palette.surface }]}>
-                        Dial 112
+                        {t('dial_num', 'Dial {num}').replace('{num}', formatNumber('112'))}
                       </Text>
                     </Pressable>
                   </View>
@@ -759,10 +913,10 @@ export default function EmergencyScreen() {
                   >
                     <View style={styles.commonNumberLeft}>
                       <Text style={[styles.commonNumberDigits, { color: palette.ink }]}>
-                        911
+                        {formatNumber('911')}
                       </Text>
                       <Text style={[styles.commonNumberLabel, { color: palette.ink2 }]}>
-                        North American Standard
+                        {t('north_american_std', 'North American Standard')}
                       </Text>
                     </View>
                     <Pressable
@@ -774,12 +928,12 @@ export default function EmergencyScreen() {
                     >
                       <PhoneIcon size={16} color={palette.surface} />
                       <Text style={[styles.commonCallBtnText, { color: palette.surface }]}>
-                        Dial 911
+                        {t('dial_num', 'Dial {num}').replace('{num}', formatNumber('911'))}
                       </Text>
                     </Pressable>
                   </View>
 
-                  {/* Option 3: 999 */}
+                  {/* Option 3: 108 (Emergency Medical / Ambulance) */}
                   <View
                     style={[
                       styles.commonNumberCard,
@@ -791,22 +945,22 @@ export default function EmergencyScreen() {
                   >
                     <View style={styles.commonNumberLeft}>
                       <Text style={[styles.commonNumberDigits, { color: palette.ink }]}>
-                        999
+                        {formatNumber('108')}
                       </Text>
                       <Text style={[styles.commonNumberLabel, { color: palette.ink2 }]}>
-                        UK & Commonwealth Standard
+                        {t('ambulance_medical_std', 'Emergency Medical & Ambulance (India)')}
                       </Text>
                     </View>
                     <Pressable
-                      onPress={() => handleDial('999', 'Universal 999')}
+                      onPress={() => handleDial('108', 'Emergency Ambulance 108')}
                       accessible={true}
                       accessibilityRole="button"
-                      accessibilityLabel="Dial 999"
+                      accessibilityLabel="Dial 108"
                       style={[styles.commonCallBtn, { backgroundColor: palette.ink }]}
                     >
                       <PhoneIcon size={16} color={palette.surface} />
                       <Text style={[styles.commonCallBtnText, { color: palette.surface }]}>
-                        Dial 999
+                        {t('dial_num', 'Dial {num}').replace('{num}', formatNumber('108'))}
                       </Text>
                     </Pressable>
                   </View>
@@ -957,6 +1111,30 @@ const styles = StyleSheet.create({
   countryBarLeft: {
     flex: 1,
   },
+  countryStatusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 2,
+  },
+  locatingPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: radii.pill,
+    alignSelf: 'flex-start',
+  },
+  liveDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  locatingText: {
+    fontSize: 11,
+    lineHeight: 14,
+  },
   countryBarLabel: {
     fontFamily: fonts.sans,
     fontSize: 13,
@@ -964,6 +1142,19 @@ const styles = StyleSheet.create({
   countryBarName: {
     fontFamily: fonts.sansBold,
     fontWeight: '700',
+  },
+  countryBarRightActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  refreshGpsBtn: {
+    width: 30,
+    height: 30,
+    borderRadius: radii.pill,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   changeCountryBtn: {
     paddingVertical: 4,
@@ -1028,6 +1219,74 @@ const styles = StyleSheet.create({
     bottom: -4,
     borderRadius: radii.cardLg + 4,
     borderWidth: 2.5,
+  },
+  emergencyPulseRing2: {
+    position: 'absolute',
+    top: -10,
+    left: -10,
+    right: -10,
+    bottom: -10,
+    borderRadius: radii.cardLg + 10,
+    borderWidth: 2,
+  },
+  emergencyPulseRing3: {
+    position: 'absolute',
+    top: -18,
+    left: -18,
+    right: -18,
+    bottom: -18,
+    borderRadius: radii.cardLg + 18,
+    borderWidth: 1.5,
+  },
+  heroEmergencyButton3D: {
+    borderRadius: radii.cardLg,
+    position: 'relative',
+  },
+  emergencyShadowLayer1: {
+    position: 'absolute',
+    top: 8,
+    left: 4,
+    right: 4,
+    bottom: -8,
+    borderRadius: radii.cardLg,
+  },
+  emergencyShadowLayer2: {
+    position: 'absolute',
+    top: 4,
+    left: 2,
+    right: 2,
+    bottom: -4,
+    borderRadius: radii.cardLg,
+  },
+  emergencyButtonBody: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    minHeight: 84,
+    paddingHorizontal: 20,
+    borderRadius: radii.cardLg,
+    gap: 16,
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  emergencyGlossyHighlight: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 38,
+    backgroundColor: 'rgba(255, 255, 255, 0.12)',
+    borderTopLeftRadius: radii.cardLg,
+    borderTopRightRadius: radii.cardLg,
+  },
+  emergencyBottomEdge: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 4,
+    backgroundColor: 'rgba(0, 0, 0, 0.2)',
+    borderBottomLeftRadius: radii.cardLg,
+    borderBottomRightRadius: radii.cardLg,
   },
   heroEmergencyButton: {
     flexDirection: 'row',

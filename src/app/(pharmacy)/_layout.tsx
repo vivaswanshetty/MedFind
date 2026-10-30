@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
-import { Stack, useRouter, useFocusEffect } from 'expo-router';
+import { Stack, useRouter, useFocusEffect, Redirect } from 'expo-router';
 import { useTheme } from '../../theme/ThemeContext';
-import { useProfile } from '../../store/profile';
+import { useProfile, isProviderRole, getProviderLabel } from '../../store/profile';
 import {
   pharmacyPortalService,
   StorePartnerAuth,
@@ -21,10 +21,15 @@ export default function PharmacyLayout() {
 
   const checkAuth = useCallback(async () => {
     try {
-      const [auth, storeList] = await Promise.all([
-        pharmacyPortalService.getStorePartnerAuth(),
-        pharmacyPortalService.getPharmacies(),
-      ]);
+      const auth = await pharmacyPortalService.getStorePartnerAuth();
+      const facilityType =
+        auth?.facilityType ||
+        (profile.role === 'hospital'
+          ? 'hospital'
+          : profile.role === 'clinic'
+          ? 'clinic'
+          : 'pharmacy');
+      const storeList = await pharmacyPortalService.getFacilitiesByType(facilityType);
       setPartnerAuth(auth);
       setPharmacies(storeList);
     } catch {
@@ -32,10 +37,15 @@ export default function PharmacyLayout() {
     } finally {
       setIsAuthLoading(false);
     }
-  }, []);
+  }, [profile.role]);
 
   useEffect(() => {
     checkAuth();
+    // Subscribe to immediate real-time auth changes (sign-out, verification)
+    const unsubscribe = pharmacyPortalService.subscribeAuth((auth) => {
+      setPartnerAuth(auth);
+    });
+    return unsubscribe;
   }, [checkAuth]);
 
   // Re-check auth when screen gains focus
@@ -51,9 +61,17 @@ export default function PharmacyLayout() {
   };
 
   const handleBackToRolePicker = async () => {
+    await pharmacyPortalService.clearStorePartnerAuth();
     await updateProfile({ role: null });
     router.replace('/');
   };
+
+  if (profile.role === 'customer') {
+    return <Redirect href="/(tabs)" />;
+  }
+  if (profile.role === null) {
+    return <Redirect href="/" />;
+  }
 
   if (isAuthLoading) {
     return (
@@ -69,7 +87,9 @@ export default function PharmacyLayout() {
     return (
       <View style={[styles.fullScreen, { backgroundColor: palette.bg }]}>
         <StoreOnboardingModal
+          key={`store-onboarding-${profile.role}-${partnerAuth?.isAuthorized ? 'authed' : 'unauthed'}`}
           pharmacies={pharmacies}
+          initialRole={profile.role}
           onComplete={handleVerificationComplete}
           onCancel={handleBackToRolePicker}
           cancelLabel="Back / Change role"

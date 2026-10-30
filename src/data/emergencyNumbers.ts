@@ -1518,6 +1518,22 @@ export function getDeviceRegion(): string | null {
   }
 }
 
+/**
+ * Determines whether given geographic coordinates are within India boundaries.
+ * India mainland + islands roughly span:
+ * Latitude: 6.0° N to 37.5° N
+ * Longitude: 68.0° E to 97.5° E
+ */
+export function isCoordinatesInIndia(coords: { latitude: number; longitude: number } | null | undefined): boolean {
+  if (!coords || typeof coords.latitude !== 'number' || typeof coords.longitude !== 'number') return false;
+  return (
+    coords.latitude >= 6.0 &&
+    coords.latitude <= 37.5 &&
+    coords.longitude >= 68.0 &&
+    coords.longitude <= 97.5
+  );
+}
+
 export type CountryResolutionSource = 'manual' | 'gps' | 'device' | 'unknown';
 
 export interface ResolvedEmergencyCountry {
@@ -1531,13 +1547,15 @@ export interface ResolvedEmergencyCountry {
  * Resolves the user's country in strict priority order:
  * 1. Manual user override (if chosen)
  * 2. GPS reverse-geocode isoCountryCode (if location set)
- * 3. Device region from expo-localization
- * 4. Fallback: unknown
+ * 3. Physical live coordinates (if in India e.g. Bengaluru)
+ * 4. Device region from expo-localization
+ * 5. Fallback: unknown
  */
 export function resolveEmergencyCountry(params: {
   manualCountryCode?: string | null;
   gpsCountryCode?: string | null;
   deviceRegionCode?: string | null;
+  coordinates?: { latitude: number; longitude: number } | null;
 }): ResolvedEmergencyCountry {
   const manual = params.manualCountryCode?.trim().toUpperCase();
   if (manual) {
@@ -1557,6 +1575,17 @@ export function resolveEmergencyCountry(params: {
       country: entry,
       countryCode: gps,
       countryName: entry?.name || gps,
+      source: 'gps',
+    };
+  }
+
+  // Live coordinates check: if physical coordinates are in India (e.g. Bengaluru), resolve directly to India
+  if (params.coordinates && isCoordinatesInIndia(params.coordinates)) {
+    const entry = getEmergencyNumbersForCountry('IN');
+    return {
+      country: entry,
+      countryCode: 'IN',
+      countryName: 'India',
       source: 'gps',
     };
   }

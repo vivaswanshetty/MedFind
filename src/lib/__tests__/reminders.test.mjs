@@ -7,7 +7,7 @@ import {
   cancelAllItemReminders,
   scheduleItemReminders,
   setMockNotificationClient,
-} from '../reminders.js';
+} from '../reminders.ts';
 
 test('Reminders - calculateRefillMoment parses to 9:00 AM local time', () => {
   const moment = calculateRefillMoment('2026-11-15');

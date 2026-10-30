@@ -15,7 +15,8 @@ import { STORE_AUTH_STORAGE_KEY } from '../constants/storageKeys';
 
 export const PROFILE_STORAGE_KEY = '@medfind_user_profile_v1';
 
-export type UserRole = 'customer' | 'pharmacist' | null;
+export type UserRole = 'customer' | 'pharmacist' | 'clinic' | 'hospital' | null;
+export type ProviderRole = 'pharmacist' | 'clinic' | 'hospital';
 
 export interface ProfileAnswers {
   medicineBox: boolean;
@@ -24,6 +25,9 @@ export interface ProfileAnswers {
   wantsReminders: boolean;
   comparesPrices: boolean;
 }
+
+export type BloodGroup = 'A+' | 'A-' | 'B+' | 'B-' | 'AB+' | 'AB-' | 'O+' | 'O-';
+export type Gender = 'male' | 'female' | 'other' | 'prefer_not_to_say';
 
 export interface Profile {
   role: UserRole;
@@ -34,6 +38,9 @@ export interface Profile {
   buddyName?: string | null;
   buddyTrait?: string | null;
   displayName?: string | null;
+  bloodGroup: BloodGroup | null;
+  allergies: string[];
+  gender: Gender | null;
   onboardingComplete: boolean;
   onboardingSkippedAt?: string | null;
   dismissedSetupCard?: boolean;
@@ -50,12 +57,29 @@ export const DEFAULT_PROFILE: Profile = {
   buddyName: null,
   buddyTrait: null,
   displayName: null,
+  bloodGroup: null,
+  allergies: [],
+  gender: null,
   onboardingComplete: false,
   onboardingSkippedAt: null,
   dismissedSetupCard: false,
   hasSeenFirstHomeVisit: false,
   createdAt: '',
 };
+
+/** Helper to check if a role is a provider (non-customer) role */
+export function isProviderRole(role: UserRole): role is ProviderRole {
+  return role === 'pharmacist' || role === 'clinic' || role === 'hospital';
+}
+
+/** Get display label for provider role */
+export function getProviderLabel(role: ProviderRole): string {
+  switch (role) {
+    case 'pharmacist': return 'Pharmacy';
+    case 'clinic': return 'Clinic';
+    case 'hospital': return 'Hospital';
+  }
+}
 
 /**
  * Migration helper for existing installs:

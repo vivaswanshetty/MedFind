@@ -11,117 +11,46 @@ import {
   scheduleItemReminders,
   cancelItemReminders,
   cancelAllItemReminders,
-} from '../lib/reminders';
+} from '../lib/reminders.ts';
+import {
+  MEDICINE_BOX_STORAGE_KEY,
+  MAX_MEDICINE_BOX_ITEMS,
+  RestockInterval,
+  MedicineSpace,
+  MedicineBoxItem,
+  NewMedicineBoxItemInput,
+  validateMedicineBoxItem,
+  sanitizeMedicineBoxItems,
+  addItemToList,
+  updateItemInList,
+  removeItemFromList,
+  calculateNextRestockDate,
+  formatRestockIntervalLabel,
+  getItemSpace,
+  getTodayDateString,
+  isItemTakenToday,
+  toggleItemTakenToday,
+} from './medicineBoxModel.ts';
 
-export const MEDICINE_BOX_STORAGE_KEY = '@medfind_medicine_box_v1';
-export const MAX_MEDICINE_BOX_ITEMS = 30;
-
-export interface MedicineBoxItem {
-  id: string;
-  name: string;
-  note?: string;
-  expiryDate?: string; // YYYY-MM or YYYY-MM-DD
-  exactExpiryDate?: string; // YYYY-MM-DD
-  refillOn?: string; // YYYY-MM-DD
-  remindersEnabled?: boolean;
-  expiryNotificationId?: string;
-  refillNotificationId?: string;
-  createdAt: string;
-}
-
-export type NewMedicineBoxItemInput = Omit<MedicineBoxItem, 'id' | 'createdAt' | 'expiryNotificationId' | 'refillNotificationId'>;
-
-/**
- * Validates a raw object from storage, ensuring it conforms to MedicineBoxItem.
- * Returns null for corrupt or invalid records so they can be safely discarded.
- */
-export function validateMedicineBoxItem(raw: any): MedicineBoxItem | null {
-  if (!raw || typeof raw !== 'object') return null;
-
-  const id = typeof raw.id === 'string' ? raw.id.trim() : '';
-  const name = typeof raw.name === 'string' ? raw.name.trim() : '';
-
-  if (!id || !name) return null;
-
-  const note = typeof raw.note === 'string' && raw.note.trim() ? raw.note.trim() : undefined;
-  const expiryDate = typeof raw.expiryDate === 'string' && raw.expiryDate.trim() ? raw.expiryDate.trim() : undefined;
-  const exactExpiryDate = typeof raw.exactExpiryDate === 'string' && raw.exactExpiryDate.trim() ? raw.exactExpiryDate.trim() : undefined;
-  const refillOn = typeof raw.refillOn === 'string' && raw.refillOn.trim() ? raw.refillOn.trim() : undefined;
-  const remindersEnabled = Boolean(raw.remindersEnabled);
-
-  const expiryNotificationId = typeof raw.expiryNotificationId === 'string' ? raw.expiryNotificationId : undefined;
-  const refillNotificationId = typeof raw.refillNotificationId === 'string' ? raw.refillNotificationId : undefined;
-
-  let createdAt = typeof raw.createdAt === 'string' && raw.createdAt.trim() ? raw.createdAt.trim() : '';
-  if (!createdAt || isNaN(new Date(createdAt).getTime())) {
-    createdAt = new Date().toISOString();
-  }
-
-  return {
-    id,
-    name,
-    ...(note ? { note } : {}),
-    ...(expiryDate ? { expiryDate } : {}),
-    ...(exactExpiryDate ? { exactExpiryDate } : {}),
-    ...(refillOn ? { refillOn } : {}),
-    remindersEnabled,
-    ...(expiryNotificationId ? { expiryNotificationId } : {}),
-    ...(refillNotificationId ? { refillNotificationId } : {}),
-    createdAt,
-  };
-}
-
-/**
- * Parses and sanitizes a stored JSON array, discarding any corrupted records
- * and ensuring the 30-item cap is respected.
- */
-export function sanitizeMedicineBoxItems(raw: any): MedicineBoxItem[] {
-  if (!Array.isArray(raw)) return [];
-  const validItems: MedicineBoxItem[] = [];
-  for (const entry of raw) {
-    const validated = validateMedicineBoxItem(entry);
-    if (validated) {
-      validItems.push(validated);
-      if (validItems.length >= MAX_MEDICINE_BOX_ITEMS) {
-        break;
-      }
-    }
-  }
-  return validItems;
-}
-
-export function addItemToList(
-  items: MedicineBoxItem[],
-  newItem: MedicineBoxItem
-): { items: MedicineBoxItem[]; error?: string } {
-  if (items.length >= MAX_MEDICINE_BOX_ITEMS) {
-    return {
-      items,
-      error: `Your medicine box is full (${MAX_MEDICINE_BOX_ITEMS} items)`,
-    };
-  }
-  return { items: [newItem, ...items] };
-}
-
-export function updateItemInList(
-  items: MedicineBoxItem[],
-  id: string,
-  updates: Partial<MedicineBoxItem>
-): MedicineBoxItem[] {
-  return items.map((item) => {
-    if (item.id !== id) return item;
-    return {
-      ...item,
-      ...updates,
-      id: item.id,
-      createdAt: item.createdAt,
-    };
-  });
-}
-
-export function removeItemFromList(items: MedicineBoxItem[], id: string): MedicineBoxItem[] {
-  return items.filter((item) => item.id !== id);
-}
+export {
+  MEDICINE_BOX_STORAGE_KEY,
+  MAX_MEDICINE_BOX_ITEMS,
+  RestockInterval,
+  MedicineSpace,
+  MedicineBoxItem,
+  NewMedicineBoxItemInput,
+  validateMedicineBoxItem,
+  sanitizeMedicineBoxItems,
+  addItemToList,
+  updateItemInList,
+  removeItemFromList,
+  calculateNextRestockDate,
+  formatRestockIntervalLabel,
+  getItemSpace,
+  getTodayDateString,
+  isItemTakenToday,
+  toggleItemTakenToday,
+};
 
 export interface MedicineBoxContextType {
   items: MedicineBoxItem[];
@@ -129,6 +58,9 @@ export interface MedicineBoxContextType {
   addItem: (input: NewMedicineBoxItemInput) => Promise<{ success: boolean; error?: string; warning?: string; item?: MedicineBoxItem }>;
   updateItem: (id: string, updates: Partial<NewMedicineBoxItemInput>) => Promise<{ success: boolean; error?: string; warning?: string }>;
   removeItem: (id: string) => Promise<void>;
+  markRestocked: (id: string) => Promise<{ success: boolean; nextRefillOn?: string; error?: string }>;
+  toggleTakenToday: (id: string, dateStr?: string) => Promise<{ success: boolean; isTaken: boolean }>;
+  isItemInBox: (medicineName: string) => boolean;
   clearAll: () => Promise<void>;
 }
 
@@ -174,6 +106,18 @@ export function MedicineBoxProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const isItemInBox = useCallback(
+    (medicineName: string): boolean => {
+      if (!medicineName) return false;
+      const lower = medicineName.trim().toLowerCase();
+      return items.some((i) => {
+        const itemLower = i.name.toLowerCase();
+        return itemLower === lower || itemLower.includes(lower) || lower.includes(itemLower);
+      });
+    },
+    [items]
+  );
+
   const addItem = useCallback(
     async (
       input: NewMedicineBoxItemInput
@@ -193,16 +137,30 @@ export function MedicineBoxProvider({ children }: { children: ReactNode }) {
       const id = `mb_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
       const createdAt = new Date().toISOString();
 
+      let targetRefillOn = input.refillOn?.trim() || undefined;
+      // If user specified regular medicine with an interval but didn't pick an explicit date, auto-calculate
+      if (input.isRegular && input.restockInterval && input.restockInterval !== 'custom' && !targetRefillOn) {
+        targetRefillOn = calculateNextRestockDate(input.restockInterval);
+      }
+
+      const remindersEnabled =
+        input.remindersEnabled !== undefined
+          ? Boolean(input.remindersEnabled)
+          : Boolean(input.isRegular || targetRefillOn || input.expiryDate);
+
       let expiryNotificationId: string | undefined;
       let refillNotificationId: string | undefined;
       let warning: string | undefined;
 
-      if (input.remindersEnabled && (input.expiryDate || input.refillOn)) {
+      if (remindersEnabled && (input.expiryDate || input.exactExpiryDate || targetRefillOn)) {
         const scheduleResult = await scheduleItemReminders({
           name: trimmedName,
           expiryDate: input.expiryDate,
-          refillOn: input.refillOn,
+          exactExpiryDate: input.exactExpiryDate,
+          refillOn: targetRefillOn,
           remindersEnabled: true,
+          isRegular: input.isRegular,
+          restockInterval: input.restockInterval,
         });
 
         expiryNotificationId = scheduleResult.expiryNotificationId;
@@ -210,13 +168,31 @@ export function MedicineBoxProvider({ children }: { children: ReactNode }) {
         warning = scheduleResult.warning;
       }
 
+      const space: MedicineSpace =
+        input.space === 'daily' || input.space === 'essential'
+          ? input.space
+          : input.isRegular
+          ? 'daily'
+          : 'essential';
+
       const newItem: MedicineBoxItem = {
         id,
         name: trimmedName,
+        space,
         note: input.note?.trim() || undefined,
         expiryDate: input.expiryDate?.trim() || undefined,
-        refillOn: input.refillOn?.trim() || undefined,
-        remindersEnabled: Boolean(input.remindersEnabled),
+        exactExpiryDate: input.exactExpiryDate?.trim() || undefined,
+        refillOn: targetRefillOn,
+        remindersEnabled,
+        isRegular: Boolean(input.isRegular || space === 'daily'),
+        restockInterval: input.restockInterval,
+        lastRestockedAt: input.lastRestockedAt || undefined,
+        dailyTime: input.dailyTime?.trim() || undefined,
+        dailyTakenDates: input.dailyTakenDates || undefined,
+        essentialCategory: input.essentialCategory?.trim() || undefined,
+        stockLevel: input.stockLevel || undefined,
+        dosageForm: input.dosageForm?.trim() || undefined,
+        strength: input.strength?.trim() || undefined,
         expiryNotificationId,
         refillNotificationId,
         createdAt,
@@ -251,19 +227,34 @@ export function MedicineBoxProvider({ children }: { children: ReactNode }) {
       const mergedName = updates.name !== undefined ? updates.name.trim() : existing.name;
       const mergedNote = updates.note !== undefined ? (updates.note.trim() || undefined) : existing.note;
       const mergedExpiry = updates.expiryDate !== undefined ? (updates.expiryDate.trim() || undefined) : existing.expiryDate;
-      const mergedRefill = updates.refillOn !== undefined ? (updates.refillOn.trim() || undefined) : existing.refillOn;
+      const mergedExactExpiry = updates.exactExpiryDate !== undefined ? (updates.exactExpiryDate.trim() || undefined) : existing.exactExpiryDate;
+
+      let mergedRefill = updates.refillOn !== undefined ? (updates.refillOn.trim() || undefined) : existing.refillOn;
+      const mergedIsRegular = updates.isRegular !== undefined ? Boolean(updates.isRegular) : Boolean(existing.isRegular);
+      const mergedRestockInterval = updates.restockInterval !== undefined ? updates.restockInterval : existing.restockInterval;
+
+      if (mergedIsRegular && mergedRestockInterval && mergedRestockInterval !== 'custom' && !mergedRefill) {
+        mergedRefill = calculateNextRestockDate(mergedRestockInterval);
+      }
+
       const mergedReminders = updates.remindersEnabled !== undefined ? Boolean(updates.remindersEnabled) : existing.remindersEnabled;
+      const mergedDosageForm = updates.dosageForm !== undefined ? updates.dosageForm : existing.dosageForm;
+      const mergedStrength = updates.strength !== undefined ? updates.strength : existing.strength;
+      const mergedLastRestocked = updates.lastRestockedAt !== undefined ? updates.lastRestockedAt : existing.lastRestockedAt;
 
       let expiryNotificationId: string | undefined;
       let refillNotificationId: string | undefined;
       let warning: string | undefined;
 
-      if (mergedReminders && (mergedExpiry || mergedRefill)) {
+      if (mergedReminders && (mergedExpiry || mergedExactExpiry || mergedRefill)) {
         const scheduleResult = await scheduleItemReminders({
           name: mergedName,
           expiryDate: mergedExpiry,
+          exactExpiryDate: mergedExactExpiry,
           refillOn: mergedRefill,
           remindersEnabled: true,
+          isRegular: mergedIsRegular,
+          restockInterval: mergedRestockInterval,
         });
 
         expiryNotificationId = scheduleResult.expiryNotificationId;
@@ -271,13 +262,43 @@ export function MedicineBoxProvider({ children }: { children: ReactNode }) {
         warning = scheduleResult.warning;
       }
 
+      const mergedSpace =
+        updates.space !== undefined
+          ? updates.space
+          : updates.isRegular !== undefined
+          ? updates.isRegular
+            ? 'daily'
+            : 'essential'
+          : existing.space || (existing.isRegular ? 'daily' : 'essential');
+
       const updatedItem: MedicineBoxItem = {
         ...existing,
         name: mergedName,
+        space: mergedSpace,
         note: mergedNote,
         expiryDate: mergedExpiry,
+        exactExpiryDate: mergedExactExpiry,
         refillOn: mergedRefill,
         remindersEnabled: mergedReminders,
+        isRegular: Boolean(mergedIsRegular || mergedSpace === 'daily'),
+        restockInterval: mergedRestockInterval,
+        lastRestockedAt: mergedLastRestocked,
+        dailyTime:
+          updates.dailyTime !== undefined
+            ? (updates.dailyTime.trim() || undefined)
+            : existing.dailyTime,
+        dailyTakenDates:
+          updates.dailyTakenDates !== undefined
+            ? updates.dailyTakenDates
+            : existing.dailyTakenDates,
+        essentialCategory:
+          updates.essentialCategory !== undefined
+            ? (updates.essentialCategory.trim() || undefined)
+            : existing.essentialCategory,
+        stockLevel:
+          updates.stockLevel !== undefined ? updates.stockLevel : existing.stockLevel,
+        dosageForm: mergedDosageForm,
+        strength: mergedStrength,
         expiryNotificationId,
         refillNotificationId,
       };
@@ -287,6 +308,70 @@ export function MedicineBoxProvider({ children }: { children: ReactNode }) {
       await persistItems(nextItems);
 
       return { success: true, warning };
+    },
+    [items, persistItems]
+  );
+
+  const markRestocked = useCallback(
+    async (id: string): Promise<{ success: boolean; nextRefillOn?: string; error?: string }> => {
+      const existing = items.find((i) => i.id === id);
+      if (!existing) {
+        return { success: false, error: 'Item not found in medicine box.' };
+      }
+
+      // Calculate next restock date
+      const interval =
+        existing.restockInterval === 'weekly' ||
+        existing.restockInterval === 'monthly' ||
+        existing.restockInterval === '2months'
+          ? existing.restockInterval
+          : 'monthly';
+
+      const nextDate = calculateNextRestockDate(interval);
+
+      // Cancel old reminder
+      await cancelItemReminders(existing);
+
+      let refillNotificationId: string | undefined;
+      if (existing.remindersEnabled) {
+        const scheduleResult = await scheduleItemReminders({
+          name: existing.name,
+          expiryDate: existing.expiryDate,
+          exactExpiryDate: existing.exactExpiryDate,
+          refillOn: nextDate,
+          remindersEnabled: true,
+          isRegular: true,
+          restockInterval: interval,
+        });
+        refillNotificationId = scheduleResult.refillNotificationId;
+      }
+
+      const updatedItem: MedicineBoxItem = {
+        ...existing,
+        refillOn: nextDate,
+        lastRestockedAt: new Date().toISOString(),
+        refillNotificationId,
+      };
+
+      const nextItems = updateItemInList(items, id, updatedItem);
+      setItems(nextItems);
+      await persistItems(nextItems);
+
+      return { success: true, nextRefillOn: nextDate };
+    },
+    [items, persistItems]
+  );
+
+  const toggleTakenToday = useCallback(
+    async (id: string, dateStr?: string): Promise<{ success: boolean; isTaken: boolean }> => {
+      const existing = items.find((i) => i.id === id);
+      if (!existing) return { success: false, isTaken: false };
+      const updatedItem = toggleItemTakenToday(existing, dateStr);
+      const isTaken = isItemTakenToday(updatedItem, dateStr);
+      const nextItems = updateItemInList(items, id, updatedItem);
+      setItems(nextItems);
+      await persistItems(nextItems);
+      return { success: true, isTaken };
     },
     [items, persistItems]
   );
@@ -326,6 +411,9 @@ export function MedicineBoxProvider({ children }: { children: ReactNode }) {
         addItem,
         updateItem,
         removeItem,
+        markRestocked,
+        toggleTakenToday,
+        isItemInBox,
         clearAll,
       }}
     >
